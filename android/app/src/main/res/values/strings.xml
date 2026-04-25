@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">xinsight</string>
+    <string name="title_activity_main">xinsight</string>
+    <string name="package_name">com.xinsight.app</string>
+    <string name="custom_url_scheme">com.xinsight.app</string>
+</resources>

@@ -1,0 +1,9 @@
+node_modules
+.next
+bun.lock
+pnpm-lock.yaml
+package-lock.json
+src/components/ui
+src/components/ai-elements
+.agents
+skills
