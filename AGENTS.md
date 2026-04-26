@@ -34,6 +34,20 @@
 - 安装 AI Elements 组件：`bunx --bun shadcn@latest add "https://elements.ai-sdk.dev/api/registry/<component>.json"`
 - `src/components/ui/` 和 `src/components/ai-elements/` 由 CLI 生成，可自定义但不要手动创建新文件到这些目录
 
+## Git 分支工作流
+
+- **禁止直接在 `main` 分支上修改代码。** 每次改动必须从 `main` 创建新分支后再开始。
+- **分支命名：** `feat/<简短描述>` 或 `fix/<简短描述>`（如 `feat/add-chat-history`、`fix/stream-error-handling`）。描述使用英文短横线连接。
+- **工作流程：**
+  1. `git checkout main && git pull origin main`
+  2. `git checkout -b feat/<描述>` 或 `git checkout -b fix/<描述>`
+  3. 在分支上完成开发、测试、提交（遵循 Conventional Commits）
+  4. `git push -u origin <分支名>`
+  5. 通过 `gh pr create` 发起 Pull Request，填写清晰的摘要
+  6. PR 合并后删除远程分支
+- **PR 规范：** 标题遵循 Conventional Commits 格式，body 包含 `## Summary` + 要点列表
+- **一个分支只做一件事：** 不要在同一分支混合不相关的改动
+
 ## 已安装的 OpenCode Skills
 
 | Skill         | 用途                                                      | 触发场景         |
