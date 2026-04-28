@@ -8,9 +8,15 @@ import { mastra } from "@/mastra"
 export const maxDuration = 60
 
 export async function POST(req: Request) {
-  const { messages }: { messages: UIMessage[] } = await req.json()
+  const {
+    messages,
+    agentId = "chatAgent",
+  }: {
+    messages: UIMessage[]
+    agentId?: string
+  } = await req.json()
 
-  const agent = mastra.getAgent("chatAgent")
+  const agent = mastra.getAgent(agentId as "chatAgent" | "researchAgent" | "codeAgent")
   const stream = await agent.stream(messages)
 
   const uiMessageStream = createUIMessageStream({

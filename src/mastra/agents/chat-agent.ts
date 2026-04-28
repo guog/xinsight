@@ -14,7 +14,7 @@ const evalModel = "deepseek/deepseek-chat"
 /**
  * 通用聊天 Agent
  *
- * 使用 DeepSeek 模型作为默认后端。
+ * 支持通过 requestContext.modelId 动态切换模型。
  * 模型格式：`provider/model-name`（Mastra provider registry 规范）。
  *
  * 已集成 Mastra Evals 评估机制：
