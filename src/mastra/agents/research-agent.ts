@@ -1,4 +1,5 @@
 import { Agent } from "@mastra/core/agent"
+import { datasourceQueryTool, datasourceListTool } from "../tools/datasource"
 
 /**
  * 研究助手 Agent
@@ -13,4 +14,5 @@ export const researchAgent = new Agent({
     "请使用中文回复，除非用户明确使用其他语言。" +
     "回答应有条理、引用可靠来源、提供多角度分析。",
   model: "deepseek/deepseek-chat",
+  tools: { datasourceQueryTool, datasourceListTool },
 })
