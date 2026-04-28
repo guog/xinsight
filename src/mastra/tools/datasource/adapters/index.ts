@@ -1,5 +1,6 @@
 import type { DatasourceAdapter } from "../types"
 import { RestAdapter } from "./rest-adapter"
+import { GraphqlAdapter } from "./graphql-adapter"
 
 /** 适配器注册表 */
 const adapters = new Map<string, DatasourceAdapter>()
@@ -16,3 +17,4 @@ export function getAdapter(type: string): DatasourceAdapter | undefined {
 
 // 注册内置适配器
 registerAdapter(new RestAdapter())
+registerAdapter(new GraphqlAdapter())
