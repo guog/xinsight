@@ -24,7 +24,7 @@ export const datasourceQueryTool = createTool({
     "先调用 datasource-list 获取可用数据源及其接口列表。",
   inputSchema: z.object({
     datasourceId: z.string().describe("数据源 ID"),
-    params: z.record(z.unknown()).describe("查询参数"),
+    params: z.record(z.string(), z.unknown()).describe("查询参数"),
   }),
   outputSchema: z.object({
     success: z.boolean(),
@@ -40,7 +40,7 @@ export const datasourceQueryTool = createTool({
   }),
   execute: async (inputData, context) => {
     const { datasourceId, params } = inputData
-    const agentId = context?.resourceId
+    const agentId = (context as unknown as { resourceId?: string })?.resourceId
 
     const config = await repo.findById(datasourceId)
     if (!config) return { success: false, error: `数据源 "${datasourceId}" 未找到` }
@@ -94,7 +94,7 @@ export const datasourceListTool = createTool({
             id: z.string(),
             name: z.string(),
             description: z.string(),
-            params: z.record(z.unknown()),
+            params: z.record(z.string(), z.unknown()),
             paramSchema: z.string().optional(),
             responseExample: z.string().optional(),
           }),
@@ -103,7 +103,7 @@ export const datasourceListTool = createTool({
     ),
   }),
   execute: async (_inputData, context) => {
-    const agentId = context?.resourceId
+    const agentId = (context as unknown as { resourceId?: string })?.resourceId
     const list = agentId ? await repo.findByAgentId(agentId) : await repo.findAllEnabled()
     return {
       datasources: list.map((ds) => ({
