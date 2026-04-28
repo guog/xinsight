@@ -5,3 +5,4 @@
  */
 
 export { weatherTool } from "./weather"
+export { datasourceQueryTool, datasourceListTool } from "./datasource"
