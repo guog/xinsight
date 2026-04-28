@@ -3,7 +3,7 @@
 import { useTheme } from "@/hooks/use-theme"
 import { useModel } from "@/hooks/use-model"
 import { getProviders, getModels } from "@/lib/models"
-import { ArrowLeft, Sun, Moon, Monitor } from "lucide-react"
+import { ArrowLeft, Sun, Moon, Monitor, Database } from "lucide-react"
 import Link from "next/link"
 
 const themeOptions = [
@@ -78,6 +78,18 @@ export default function SettingsPage() {
             )
           })}
         </div>
+      </section>
+
+      {/* 数据源管理 */}
+      <section className="mb-8">
+        <h2 className="text-sm font-medium text-muted-foreground mb-3">管理</h2>
+        <Link
+          href="/admin/datasources"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border hover:bg-muted transition-colors text-sm w-fit"
+        >
+          <Database className="size-4" />
+          数据源管理
+        </Link>
       </section>
 
       {/* 关于 */}
