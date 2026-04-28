@@ -21,5 +21,6 @@ export function getAdapter(type: string): DatasourceAdapter | undefined {
 // 注册内置适配器
 registerAdapter(new RestAdapter())
 registerAdapter(new GraphqlAdapter())
+registerAdapter(new OpcuaAdapter())
 registerAdapter(new GrpcAdapter())
 registerAdapter(new MqttAdapter())
