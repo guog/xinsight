@@ -1,0 +1,28 @@
+import { NextResponse } from "next/server"
+import { db } from "@/db"
+import { SqliteDatasourceRepository } from "@/db/repositories/datasource-repository"
+
+/** GET /api/datasources — 获取所有数据源 */
+export async function GET() {
+  try {
+    const repo = new SqliteDatasourceRepository(db)
+    const datasources = await repo.findAll()
+    return NextResponse.json(datasources)
+  } catch (error) {
+    console.error("获取数据源列表失败:", error)
+    return NextResponse.json({ error: "获取数据源列表失败" }, { status: 500 })
+  }
+}
+
+/** POST /api/datasources — 创建数据源 */
+export async function POST(request: Request) {
+  try {
+    const body = await request.json()
+    const repo = new SqliteDatasourceRepository(db)
+    const datasource = await repo.create(body)
+    return NextResponse.json(datasource, { status: 201 })
+  } catch (error) {
+    console.error("创建数据源失败:", error)
+    return NextResponse.json({ error: "创建数据源失败" }, { status: 500 })
+  }
+}
