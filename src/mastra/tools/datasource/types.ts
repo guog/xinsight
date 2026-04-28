@@ -9,22 +9,27 @@ export const AuthConfigSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("none") }),
   z.object({ type: z.literal("bearer"), token: z.string() }),
   z.object({ type: z.literal("basic"), username: z.string(), password: z.string() }),
-  z.object({ type: z.literal("apikey"), key: z.string(), value: z.string(), in: z.enum(["header", "query"]) }),
+  z.object({
+    type: z.literal("apikey"),
+    key: z.string(),
+    value: z.string(),
+    in: z.enum(["header", "query"]),
+  }),
 ])
 export type AuthConfig = z.infer<typeof AuthConfigSchema>
 
 /** REST 适配器配置 */
 export const RestConfigSchema = z.object({
   baseUrl: z.string().url(),
-  defaultHeaders: z.record(z.string()).optional(),
-  timeout: z.number().positive().default(30000),
+  defaultHeaders: z.record(z.string(), z.string()).optional(),
+  timeout: z.number().positive().optional(),
 })
 
 /** GraphQL 适配器配置 */
 export const GraphqlConfigSchema = z.object({
   endpoint: z.string().url(),
-  defaultHeaders: z.record(z.string()).optional(),
-  timeout: z.number().positive().default(30000),
+  defaultHeaders: z.record(z.string(), z.string()).optional(),
+  timeout: z.number().positive().optional(),
 })
 
 /** 数据源 Endpoint 定义 — 描述数据源能提供的接口 */
@@ -32,8 +37,8 @@ export const DatasourceEndpointSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   description: z.string(),
-  params: z.record(z.unknown()),        // 调用时的默认参数模板 (path, method, query 等)
-  paramSchema: z.string().optional(),    // 入参说明 (自然语言或 JSON Schema)
+  params: z.record(z.string(), z.unknown()), // 调用时的默认参数模板 (path, method, query 等)
+  paramSchema: z.string().optional(), // 入参说明 (自然语言或 JSON Schema)
   responseExample: z.string().optional(), // 响应示例
 })
 export type DatasourceEndpoint = z.infer<typeof DatasourceEndpointSchema>
@@ -45,7 +50,7 @@ export const DatasourceConfigSchema = z.object({
   description: z.string().optional(),
   type: AdapterType,
   auth: AuthConfigSchema,
-  config: z.record(z.unknown()),
+  config: z.record(z.string(), z.unknown()),
   endpoints: z.array(DatasourceEndpointSchema).default([]),
   enabled: z.boolean().default(true),
   createdAt: z.date(),
