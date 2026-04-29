@@ -1,5 +1,6 @@
 import { Agent } from "@mastra/core/agent"
 import { datasourceQueryTool, datasourceListTool } from "../tools/datasource"
+import { datasourceBatchQueryTool } from "../tools/cross-source"
 
 export const autoAgent = new Agent({
   id: "auto-agent",
@@ -19,5 +20,9 @@ export const autoAgent = new Agent({
     "\n" +
     "根据用户消息自动选择最合适的模式，直接回答，无需告知使用了哪个模式。\n" +
     "如果用户查询涉及已配置的数据源，主动使用数据源工具获取实时数据。",
-  tools: { datasourceQuery: datasourceQueryTool, datasourceList: datasourceListTool },
+  tools: {
+    datasourceQuery: datasourceQueryTool,
+    datasourceList: datasourceListTool,
+    datasourceBatchQuery: datasourceBatchQueryTool,
+  },
 })

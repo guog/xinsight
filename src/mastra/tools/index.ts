@@ -6,3 +6,4 @@
 
 export { weatherTool } from "./weather"
 export { datasourceQueryTool, datasourceListTool } from "./datasource"
+export { datasourceBatchQueryTool } from "./cross-source"
