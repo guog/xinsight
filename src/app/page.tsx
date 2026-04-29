@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
 import { MessageSquare, Settings, Plus, ChevronDown } from "lucide-react"
@@ -35,6 +35,7 @@ export default function ChatPage() {
   const [agentId, setAgentId] = useState("chatAgent")
   const [showAgentMenu, setShowAgentMenu] = useState(false)
   const [activeChatId, setActiveChatId] = useState<string | null>(null)
+  const chatIdRef = useRef<string | null>(null)
   const { modelId } = useModel()
   useTheme()
 
@@ -47,7 +48,13 @@ export default function ChatPage() {
   const { messages, sendMessage, status, setMessages } = useChat({
     transport: new DefaultChatTransport({
       api: chatApiUrl,
-      body: { modelId, agentId, chatId: activeChatId },
+      body: {
+        modelId,
+        agentId,
+        get chatId() {
+          return chatIdRef.current
+        },
+      },
     }),
   })
 
@@ -55,6 +62,7 @@ export default function ChatPage() {
   const switchChat = useCallback(
     async (chat: Chat) => {
       setActiveChatId(chat.id)
+      chatIdRef.current = chat.id
       setAgentId(chat.agentId)
       // 加载历史消息
       try {
@@ -85,6 +93,7 @@ export default function ChatPage() {
     try {
       const chat = await createChat({ agentId })
       setActiveChatId(chat.id)
+      chatIdRef.current = chat.id
       setMessages([])
     } catch (e) {
       console.error("创建对话失败:", e)
@@ -102,6 +111,7 @@ export default function ChatPage() {
           const chat = await createChat({ agentId })
           chatId = chat.id
           setActiveChatId(chatId)
+          chatIdRef.current = chatId
         } catch (e) {
           console.error("创建对话失败:", e)
           return

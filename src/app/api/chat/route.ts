@@ -53,6 +53,7 @@ export async function POST(req: Request) {
           // 保存用户最后一条消息
           const lastUserMsg = chatMessages[chatMessages.length - 1]
           if (lastUserMsg && lastUserMsg.role === "user") {
+            // onConflictDoNothing: 客户端重试时同一消息 ID 不重复保存（预期行为）
             await db
               .insert(messages)
               .values({
