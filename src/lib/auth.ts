@@ -118,3 +118,10 @@ export async function requireAuth() {
   if (!user) throw new Error("未登录")
   return user
 }
+
+/** 要求管理员权限，非管理员抛错 */
+export async function requireAdmin() {
+  const user = await requireAuth()
+  if (user.role !== "admin") throw new Error("需要管理员权限")
+  return user
+}

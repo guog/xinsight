@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { db } from "@/db"
 import { SqliteDatasourceRepository } from "@/db/repositories/datasource-repository"
+import { requireAdmin } from "@/lib/auth"
 
 /** GET /api/datasources — 获取所有数据源 */
 export async function GET() {
@@ -20,11 +21,19 @@ export async function GET() {
 /** POST /api/datasources — 创建数据源 */
 export async function POST(request: Request) {
   try {
+    await requireAdmin()
     const body = await request.json()
     const repo = new SqliteDatasourceRepository(db)
     const datasource = await repo.create(body)
     return NextResponse.json(datasource, { status: 201 })
   } catch (error) {
+    if (
+      error instanceof Error &&
+      (error.message === "未登录" || error.message === "需要管理员权限")
+    ) {
+      const status = error.message === "未登录" ? 401 : 403
+      return Response.json({ error: error.message }, { status })
+    }
     console.error("创建数据源失败:", error)
     return NextResponse.json(
       { error: "创建数据源失败", message: error instanceof Error ? error.message : "未知错误" },

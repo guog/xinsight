@@ -1,13 +1,34 @@
-import { describe, it, expect } from "vitest"
+import { describe, it, expect, beforeEach, afterAll } from "vitest"
 import {
   getProviders,
   getModels,
   getModelById,
   getDefaultModelId,
+  _resetCache,
   type ProviderInfo,
 } from "./models"
 
+// 保存原始环境变量
+const origEnv = { ...process.env }
+
 describe("模型注册表", () => {
+  beforeEach(() => {
+    _resetCache()
+    // 设置测试用环境变量
+    process.env.LLM_PROVIDERS = "deepseek,qwen"
+    process.env.DEEPSEEK_API_KEY = "test-key"
+    process.env.DASHSCOPE_API_KEY = "test-key"
+  })
+
+  afterAll(() => {
+    // 恢复原始环境变量
+    Object.keys(process.env).forEach((k) => {
+      if (!(k in origEnv)) delete process.env[k]
+      else process.env[k] = origEnv[k]
+    })
+    _resetCache()
+  })
+
   describe("getProviders", () => {
     it("应该返回预定义的模型提供商列表", () => {
       const providers = getProviders()
@@ -21,6 +42,13 @@ describe("模型注册表", () => {
       const deepseek = providers.find((p: ProviderInfo) => p.id === "deepseek")
       expect(deepseek).toBeDefined()
       expect(deepseek!.name).toBe("DeepSeek")
+    })
+
+    it("没有 API Key 时不应返回该提供商", () => {
+      _resetCache()
+      delete process.env.DASHSCOPE_API_KEY
+      const providers = getProviders()
+      expect(providers.find((p) => p.id === "qwen")).toBeUndefined()
     })
   })
 
