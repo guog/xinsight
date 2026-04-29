@@ -18,7 +18,7 @@ import {
 } from "@/components/ai-elements/prompt-input"
 import { useModel } from "@/hooks/use-model"
 import { useTheme } from "@/hooks/use-theme"
-import { useChats, type Chat } from "@/hooks/use-chats"
+import { useChats } from "@/hooks/use-chats"
 import { useOnboarding } from "@/hooks/use-onboarding"
 import { OnboardingWizard } from "@/components/onboarding-wizard"
 import { WelcomeEmptyState } from "@/components/welcome-empty-state"
@@ -46,7 +46,7 @@ export default function ChatPage() {
   useTheme()
   const { isOnboardingComplete, markComplete } = useOnboarding()
 
-  const { chats, createChat } = useChats()
+  const { createChat } = useChats()
 
   const chatApiUrl = process.env.NEXT_PUBLIC_API_URL
     ? `${process.env.NEXT_PUBLIC_API_URL}/api/chat`

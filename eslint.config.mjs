@@ -7,6 +7,19 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   prettier,
+  {
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          destructuredArrayIgnorePattern: "^_",
+          ignoreRestSiblings: true,
+        },
+      ],
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts", ".agents/**", "skills/**"]),
 ])

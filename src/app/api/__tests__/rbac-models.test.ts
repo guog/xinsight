@@ -49,7 +49,7 @@ describe("RBAC 与认证", () => {
   describe("注册用户角色分配", () => {
     it("第一个注册用户应获得 admin 角色", async () => {
       expect(hasAnyUser()).toBe(false)
-      const user = await registerUser("admin1", "password123", "管理员")
+      await registerUser("admin1", "password123", "管理员")
       // registerUser 默认 role="user"，但 API route 会根据 hasAnyUser() 传入 "admin"
       // 这里直接测试带 role 参数的调用
       clearAuthTables()

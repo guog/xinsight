@@ -1,12 +1,6 @@
 import { Agent } from "@mastra/core/agent"
 import { datasourceQueryTool, datasourceListTool } from "../tools/datasource"
-import {
-  datasourceBatchQueryTool,
-  wikiSearchTool,
-  wikiReadTool,
-  wikiIngestTool,
-} from "../tools/cross-source"
-import { wikiSearchTool, wikiReadTool, wikiIngestTool } from "../tools/wiki"
+import { datasourceBatchQueryTool } from "../tools/cross-source"
 
 export const autoAgent = new Agent({
   id: "auto-agent",

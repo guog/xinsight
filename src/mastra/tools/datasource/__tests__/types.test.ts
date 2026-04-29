@@ -6,10 +6,6 @@ import {
   OpcuaEndpointSchema,
   MqttEndpointSchema,
   type RestEndpoint,
-  type GraphqlEndpoint,
-  type GrpcEndpoint,
-  type OpcuaEndpoint,
-  type MqttEndpoint,
   type ProtocolEndpoint,
   EndpointSchemaByType,
 } from "../types"

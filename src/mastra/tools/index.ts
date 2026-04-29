@@ -4,7 +4,6 @@
  * 在此文件导出所有自定义工具，供 Agent 使用。
  */
 
-export { weatherTool } from "./weather"
 export { datasourceQueryTool, datasourceListTool } from "./datasource"
 export { datasourceBatchQueryTool } from "./cross-source"
 export { wikiSearchTool, wikiReadTool, wikiIngestTool } from "./wiki"
