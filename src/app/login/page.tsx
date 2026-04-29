@@ -37,6 +37,7 @@ function LoginForm() {
       router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : "登录失败")
+      setPassword("")
     } finally {
       setLoading(false)
     }

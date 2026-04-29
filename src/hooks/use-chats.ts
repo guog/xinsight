@@ -21,6 +21,7 @@ let cachedChats: Chat[] = []
 let cacheVersion = 0
 let cacheListeners: Array<() => void> = []
 let fetchPromise: Promise<void> | null = null
+const EMPTY_CHATS: Chat[] = []
 
 function notifyListeners() {
   cacheVersion++
@@ -53,7 +54,7 @@ function ensureFetched() {
 export function useChats() {
   // 触发首次加载
   ensureFetched()
-  const chats = useSyncExternalStore(subscribe, getSnapshot, () => [] as Chat[])
+  const chats = useSyncExternalStore(subscribe, getSnapshot, () => EMPTY_CHATS)
   const [loading] = useState(() => cachedChats.length === 0 && fetchPromise !== null)
 
   const createChat = useCallback(

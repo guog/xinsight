@@ -140,10 +140,21 @@ export default function ChatPage() {
 
   /** 点击建议直接发送 */
   const handleSuggestionClick = useCallback(
-    (text: string) => {
+    async (text: string) => {
+      // 如果没有活动会话，先创建
+      if (!activeChatId) {
+        try {
+          const chat = await createChat({ agentId })
+          setActiveChatId(chat.id)
+          chatIdRef.current = chat.id
+        } catch (e) {
+          console.error("创建对话失败:", e)
+          return
+        }
+      }
       sendMessage({ text })
     },
-    [sendMessage],
+    [activeChatId, agentId, createChat, sendMessage],
   )
 
   const currentAgent = agents.find((a) => a.id === agentId) ?? agents[0]
@@ -219,7 +230,9 @@ export default function ChatPage() {
                       switch (part.type) {
                         case "text":
                           return (
-                            <MessageResponse key={`${message.id}-${i}`}>{part.text}</MessageResponse>
+                            <MessageResponse key={`${message.id}-${i}`}>
+                              {part.text}
+                            </MessageResponse>
                           )
                         default:
                           return null

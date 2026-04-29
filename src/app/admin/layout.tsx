@@ -36,6 +36,52 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           ))}
         </nav>
       </header>
+      {/* 面包屑 */}
+      {pathname && pathname !== "/admin" && (
+        <nav className="flex items-center gap-1 text-sm text-muted-foreground mb-4">
+          <span>管理后台</span>
+          {pathname.startsWith("/admin/datasources") && (
+            <>
+              <span>&gt;</span>
+              <Link href="/admin/datasources" className="hover:text-foreground transition-colors">
+                数据源管理
+              </Link>
+              {pathname.includes("/new") && (
+                <>
+                  <span>&gt;</span>
+                  <span className="text-foreground">新建</span>
+                </>
+              )}
+              {pathname.includes("/edit") && (
+                <>
+                  <span>&gt;</span>
+                  <span className="text-foreground">编辑</span>
+                </>
+              )}
+            </>
+          )}
+          {pathname.startsWith("/admin/agents") && (
+            <>
+              <span>&gt;</span>
+              <Link href="/admin/agents" className="hover:text-foreground transition-colors">
+                Agent 管理
+              </Link>
+              {pathname.includes("/new") && (
+                <>
+                  <span>&gt;</span>
+                  <span className="text-foreground">新建</span>
+                </>
+              )}
+              {pathname.includes("/edit") && (
+                <>
+                  <span>&gt;</span>
+                  <span className="text-foreground">编辑</span>
+                </>
+              )}
+            </>
+          )}
+        </nav>
+      )}
       {children}
     </main>
   )

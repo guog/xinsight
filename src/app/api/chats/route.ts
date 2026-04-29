@@ -1,12 +1,21 @@
 import { NextResponse } from "next/server"
 import { db } from "@/db"
 import { chats } from "@/db/schema"
-import { desc } from "drizzle-orm"
+import { desc, eq } from "drizzle-orm"
+import { getCurrentUser } from "@/lib/auth"
 
-/** GET /api/chats — 获取所有对话列表 */
+/** GET /api/chats — 获取当前用户的对话列表 */
 export async function GET() {
   try {
-    const list = await db.select().from(chats).orderBy(desc(chats.updatedAt))
+    const user = await getCurrentUser()
+    if (!user) {
+      return NextResponse.json({ error: "未登录" }, { status: 401 })
+    }
+    const list = await db
+      .select()
+      .from(chats)
+      .where(eq(chats.userId, user.id))
+      .orderBy(desc(chats.updatedAt))
     return NextResponse.json(list)
   } catch (error) {
     console.error("获取对话列表失败:", error)
@@ -17,6 +26,10 @@ export async function GET() {
 /** POST /api/chats — 创建新对话 */
 export async function POST(request: Request) {
   try {
+    const user = await getCurrentUser()
+    if (!user) {
+      return NextResponse.json({ error: "未登录" }, { status: 401 })
+    }
     const body = await request.json()
     const now = new Date()
     const chat = {
@@ -24,6 +37,7 @@ export async function POST(request: Request) {
       title: body.title ?? "新对话",
       agentId: body.agentId ?? "chatAgent",
       modelId: body.modelId ?? null,
+      userId: user.id,
       createdAt: now,
       updatedAt: now,
     }
