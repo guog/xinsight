@@ -3,10 +3,12 @@ import { db } from "@/db"
 import { SqliteDatasourceRepository } from "@/db/repositories/datasource-repository"
 import { getAdapter } from "@/mastra/tools/datasource/adapters"
 import type { DatasourceConfig } from "@/mastra/tools/datasource/types"
+import { requireAdmin } from "@/lib/auth"
 
 /** POST /api/datasources/[id]/test — 测试数据源连接 */
 export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    await requireAdmin()
     const { id } = await params
     const repo = new SqliteDatasourceRepository(db)
     const ds = await repo.findById(id)
@@ -35,6 +37,13 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     const result = await adapter.testConnection(config)
     return NextResponse.json(result)
   } catch (error) {
+    if (
+      error instanceof Error &&
+      (error.message === "未登录" || error.message === "需要管理员权限")
+    ) {
+      const status = error.message === "未登录" ? 401 : 403
+      return Response.json({ error: error.message }, { status })
+    }
     console.error("测试数据源连接失败:", error)
     return NextResponse.json({ error: "测试数据源连接失败" }, { status: 500 })
   }
