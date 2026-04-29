@@ -129,4 +129,54 @@ describe("OpcuaAdapter", () => {
     expect(result.ok).toBe(false)
     expect(result.message).toContain("connection refused")
   })
+
+  describe("endpoint 字段解析", () => {
+    it("通过 endpointId 使用 endpoint 的 action 和 nodeIds", async () => {
+      mockFetch.mockResolvedValue(new Response(JSON.stringify([{ value: 42 }]), { status: 200 }))
+
+      const config = makeConfig({
+        endpoints: [
+          {
+            id: "ep-1",
+            name: "读温度",
+            description: "读温度",
+            params: {},
+            apiSchemaFormat: "natural",
+            action: "read",
+            nodeIds: ["ns=2;s=Temperature"],
+          },
+        ] as any,
+      })
+
+      const result = await adapter.query(config, { endpointId: "ep-1" })
+
+      expect(result.success).toBe(true)
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body)
+      expect(body.action).toBe("read")
+      expect(body.nodeIds).toEqual(["ns=2;s=Temperature"])
+    })
+
+    it("params 可覆盖 endpoint 的 nodeIds", async () => {
+      mockFetch.mockResolvedValue(new Response(JSON.stringify([]), { status: 200 }))
+
+      const config = makeConfig({
+        endpoints: [
+          {
+            id: "ep-1",
+            name: "读取",
+            description: "读取",
+            params: {},
+            apiSchemaFormat: "natural",
+            action: "read",
+            nodeIds: ["ns=2;s=Default"],
+          },
+        ] as any,
+      })
+
+      await adapter.query(config, { endpointId: "ep-1", nodeIds: ["ns=2;s=Override"] })
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body)
+      expect(body.nodeIds).toEqual(["ns=2;s=Override"])
+    })
+  })
 })
