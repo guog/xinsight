@@ -1,8 +1,10 @@
 import { createUIMessageStream, createUIMessageStreamResponse } from "ai"
 import type { UIMessage } from "ai"
 import { toAISdkStream } from "@mastra/ai-sdk"
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible"
 
 import { mastra } from "@/mastra"
+import { getProviderForModel, getModelById, getDefaultModelId } from "@/lib/models"
 import { db } from "@/db"
 import { chats, messages } from "@/db/schema"
 import { eq } from "drizzle-orm"
@@ -15,14 +17,30 @@ export async function POST(req: Request) {
     messages: chatMessages,
     agentId = "chatAgent",
     chatId,
+    modelId,
   }: {
     messages: UIMessage[]
     agentId?: string
     chatId?: string
+    modelId?: string
   } = await req.json()
 
+  // 动态构建模型实例
+  const effectiveModelId = modelId || getDefaultModelId()
+  const provider = getProviderForModel(effectiveModelId)
+  const modelInfo = getModelById(effectiveModelId)
+  let modelInstance = undefined
+  if (provider && modelInfo) {
+    const client = createOpenAICompatible({
+      name: provider.id,
+      baseURL: provider.baseUrl,
+      apiKey: provider.apiKey,
+    })
+    modelInstance = client.chatModel(modelInfo.modelSlug)
+  }
+
   const agent = mastra.getAgent(agentId as "chatAgent" | "researchAgent" | "codeAgent")
-  const stream = await agent.stream(chatMessages)
+  const stream = await agent.stream(chatMessages, { model: modelInstance })
 
   // 收集完整的 assistant 响应
   let assistantText = ""
