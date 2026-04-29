@@ -39,7 +39,9 @@ export async function POST(req: Request) {
     modelInstance = client.chatModel(modelInfo.modelSlug)
   }
 
-  const agent = mastra.getAgent(agentId as "chatAgent" | "researchAgent" | "codeAgent")
+  const agent = mastra.getAgent(
+    agentId as "chatAgent" | "researchAgent" | "codeAgent" | "autoAgent",
+  )
   const stream = await agent.stream(chatMessages, { model: modelInstance })
 
   // 收集完整的 assistant 响应
