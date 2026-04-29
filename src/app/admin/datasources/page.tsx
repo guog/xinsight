@@ -3,6 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { Plus, Zap, Pencil, Trash2, Loader2 } from "lucide-react"
+import { toast } from "sonner"
 import { useDatasources } from "@/hooks/use-datasources"
 
 const typeBadge: Record<string, { label: string; color: string }> = {
@@ -34,17 +35,32 @@ export default function DatasourcesPage() {
     try {
       const result = await testConnection(id)
       setTestStatus((s) => ({ ...s, [id]: result.ok ? "ok" : "failed" }))
+      if (result.ok) {
+        toast.success("连接测试成功")
+      } else {
+        toast.error("连接测试失败")
+      }
     } catch {
       setTestStatus((s) => ({ ...s, [id]: "failed" }))
+      toast.error("连接测试失败")
     }
   }
 
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+
   const handleDelete = async (id: string) => {
-    if (!confirm("确定删除该数据源？")) return
+    if (deleteConfirm !== id) {
+      setDeleteConfirm(id)
+      toast("再次点击确认删除", { duration: 3000 })
+      setTimeout(() => setDeleteConfirm(null), 3000)
+      return
+    }
+    setDeleteConfirm(null)
     try {
       await remove(id)
+      toast.success("数据源已删除")
     } catch {
-      alert("删除失败")
+      toast.error("删除失败，请重试")
     }
   }
 

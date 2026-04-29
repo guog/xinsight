@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import type { Datasource, DatasourceEndpoint } from "@/hooks/use-datasources"
 import { useAgents } from "@/hooks/use-agents"
 import { Plus, Trash2 } from "lucide-react"
+import { toast } from "sonner"
 
 // 接入协议选项
 const protocolOptions = [
@@ -114,6 +115,17 @@ export default function DatasourceForm({ initialData, isEdit }: Props) {
   // 提交
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // 前端校验
+    if (!id.trim()) {
+      toast.error("请填写数据源 ID")
+      return
+    }
+    if (!name.trim()) {
+      toast.error("请填写数据源名称")
+      return
+    }
+
     setSaving(true)
 
     try {
@@ -166,8 +178,9 @@ export default function DatasourceForm({ initialData, isEdit }: Props) {
       ])
 
       router.push("/admin/datasources")
+      toast.success(isEdit ? "数据源已更新" : "数据源已创建")
     } catch (err) {
-      alert(err instanceof Error ? err.message : "保存失败")
+      toast.error(err instanceof Error ? err.message : "保存失败")
     } finally {
       setSaving(false)
     }
