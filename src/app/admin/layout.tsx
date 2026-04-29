@@ -1,8 +1,8 @@
 "use client"
-
 import Link from "next/link"
 import { ArrowLeft, Database, Bot } from "lucide-react"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
+import { useUser } from "@/hooks/use-user"
 
 const navItems = [
   { href: "/admin/datasources", label: "数据源管理", icon: Database },
@@ -11,7 +11,22 @@ const navItems = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const router = useRouter()
+  const { loading, isAdmin } = useUser()
 
+  // 非管理员重定向到首页
+  if (loading) {
+    return (
+      <main className="flex items-center justify-center h-dvh">
+        <p className="text-muted-foreground">加载中...</p>
+      </main>
+    )
+  }
+
+  if (!isAdmin) {
+    router.push("/")
+    return null
+  }
   return (
     <main className="flex flex-col h-dvh max-w-4xl mx-auto w-full px-4 py-4">
       <header className="flex items-center gap-3 mb-6">

@@ -13,6 +13,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useUser } from "@/hooks/use-user"
 
 interface ChatItem {
   id: string
@@ -38,6 +39,7 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [chatList, setChatList] = useState<ChatItem[]>([])
   const router = useRouter()
+  const { isAdmin } = useUser()
 
   // 加载对话列表
   useEffect(() => {
@@ -132,14 +134,14 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
 
       {/* 底部导航 */}
       <div className="p-3 border-t border-border space-y-1">
-        <Link
+        {isAdmin && <Link
           href="/admin/datasources"
           className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-muted transition-colors"
           onClick={() => setIsMobileOpen(false)}
         >
           <Database className="size-4" />
           数据源管理
-        </Link>
+        </Link>}
         <Link
           href="/settings"
           className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-muted transition-colors"
