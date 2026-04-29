@@ -4,6 +4,8 @@ import { join } from "path"
 import { randomUUID } from "crypto"
 import { getSession } from "@/lib/auth"
 import { extractText } from "@/lib/wiki/extract-text"
+import { ingestFile } from "@/lib/wiki/ingest-pipeline"
+import { taskRunner } from "@/lib/wiki/task-runner"
 
 const WIKI_PATH = process.env.WIKI_PATH || join(process.cwd(), "wiki")
 const UPLOAD_DIR = join(WIKI_PATH, "raw", "uploads")
@@ -84,6 +86,17 @@ export async function POST(request: NextRequest) {
       size: file.size,
       hasText: !!extractedText,
       uploadedAt: new Date().toISOString(),
+    }
+
+    // 自动触发摄入（后台执行，不阻塞响应）
+    if (extractedText) {
+      const extractedPath = storedPath + ".extracted.md"
+      taskRunner.createTask("ingest", async (ctx) => {
+        ctx.reportProgress(0, 1, file.name)
+        const ingestResult = await ingestFile(extractedPath, WIKI_PATH, { signal: ctx.signal })
+        ctx.reportProgress(1, 1, file.name)
+        return ingestResult
+      })
     }
 
     return NextResponse.json(result, { status: 201 })

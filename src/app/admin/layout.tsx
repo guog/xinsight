@@ -1,12 +1,13 @@
 "use client"
 import Link from "next/link"
-import { ArrowLeft, Database, Bot } from "lucide-react"
+import { ArrowLeft, Database, Bot, BookOpen } from "lucide-react"
 import { usePathname, useRouter } from "next/navigation"
 import { useUser } from "@/hooks/use-user"
 
 const navItems = [
   { href: "/admin/datasources", label: "数据源管理", icon: Database },
   { href: "/admin/agents", label: "Agent 管理", icon: Bot },
+  { href: "/admin/wiki", label: "知识库", icon: BookOpen },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
