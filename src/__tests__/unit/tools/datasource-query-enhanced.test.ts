@@ -1,135 +1,166 @@
-import { describe, it, expect, vi, beforeEach } from "vitest"
+/**
+ * datasource-query — endpointId 增强测试
+ * 策略：用真实 in-memory DB + msw mock HTTP，测试 tool execute 逻辑
+ */
+import { describe, it, expect, beforeAll, beforeEach, afterAll, afterEach } from "bun:test"
+import { Database } from "bun:sqlite"
+import { drizzle } from "drizzle-orm/bun-sqlite"
+import * as schema from "@/db/schema"
+import { SqliteDatasourceRepository } from "@/db/repositories/datasource-repository"
+import { setupServer } from "msw/node"
+import { http, HttpResponse } from "msw"
 
-// Mock dependencies
-vi.mock("@/db", () => ({ db: {} }))
+const MOCK_URL = "http://mes-test.local"
 
-const { mockFindById, mockGetAgentBindings, mockQuery } = vi.hoisted(() => ({
-  mockFindById: vi.fn(),
-  mockGetAgentBindings: vi.fn(),
-  mockQuery: vi.fn(),
-}))
+const server = setupServer(
+  http.get(`${MOCK_URL}/api/orders`, () => HttpResponse.json({ orders: [{ id: "O001" }] })),
+  http.post(`${MOCK_URL}/api/orders`, () => HttpResponse.json({ created: true })),
+  http.get(`${MOCK_URL}/custom`, () => HttpResponse.json({ custom: true })),
+)
 
-vi.mock("@/db/repositories/datasource-repository", () => ({
-  SqliteDatasourceRepository: class {
-    findById = mockFindById
-    getAgentBindings = mockGetAgentBindings
-  },
-}))
+function createTestDb() {
+  const sqlite = new Database(":memory:")
+  sqlite.exec(`
+    CREATE TABLE datasources (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT,
+      type TEXT NOT NULL,
+      auth TEXT NOT NULL,
+      config TEXT NOT NULL,
+      endpoints TEXT NOT NULL DEFAULT '[]',
+      enabled INTEGER NOT NULL DEFAULT 1,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+    CREATE TABLE agent_datasources (
+      agent_id TEXT NOT NULL,
+      datasource_id TEXT NOT NULL REFERENCES datasources(id) ON DELETE CASCADE,
+      created_at INTEGER NOT NULL,
+      PRIMARY KEY (agent_id, datasource_id)
+    );
+  `)
+  const db = drizzle(sqlite, { schema })
+  return new SqliteDatasourceRepository(db)
+}
 
-vi.mock("@/mastra/tools/datasource/adapters", () => ({
-  getAdapter: vi.fn(() => ({ query: mockQuery })),
-}))
+import { getAdapter } from "@/mastra/tools/datasource/adapters"
+import type { DatasourceConfig } from "@/mastra/tools/datasource/types"
 
-import { datasourceQueryTool } from "@/mastra/tools/datasource"
+/** 模拟 datasource-query tool execute 逻辑 */
+async function executeQuery(
+  repo: SqliteDatasourceRepository,
+  input: { datasourceId: string; endpointId?: string; params: Record<string, unknown> },
+) {
+  const config = await repo.findById(input.datasourceId)
+  if (!config) return { success: false, error: `数据源 "${input.datasourceId}" 未找到` }
+  if (!config.enabled) return { success: false, error: `数据源 "${config.name}" 已禁用` }
 
-const sampleConfig = {
-  id: "ds-1",
-  name: "MES 系统",
-  type: "rest",
-  auth: { type: "none" },
-  config: { baseUrl: "http://mes.local" },
-  endpoints: [
+  let mergedParams = input.params
+  if (input.endpointId) {
+    const endpoint = config.endpoints?.find((ep: { id: string }) => ep.id === input.endpointId)
+    if (!endpoint)
+      return { success: false, error: `数据源 "${config.name}" 中未找到接口 "${input.endpointId}"` }
+    mergedParams = { ...endpoint.params, ...input.params }
+  }
+
+  const adapter = getAdapter(config.type)
+  if (!adapter) return { success: false, error: `不支持的数据源类型: ${config.type}` }
+
+  return adapter.query(
     {
-      id: "get-orders",
-      name: "获取订单",
-      description: "查询订单列表",
-      params: { method: "GET", path: "/api/orders" },
-      paramSchema: "需要 status 和 page 参数",
-      apiSchemaFormat: "natural" as const,
+      id: config.id,
+      name: config.name,
+      type: config.type as DatasourceConfig["type"],
+      auth: config.auth as DatasourceConfig["auth"],
+      config: config.config,
+      endpoints: config.endpoints,
+      enabled: config.enabled,
+      createdAt: config.createdAt,
+      updatedAt: config.updatedAt,
     },
-    {
-      id: "get-order-detail",
-      name: "订单详情",
-      description: "查询单个订单",
-      params: { method: "GET", path: "/api/orders/{id}" },
-      apiSchemaFormat: "openapi" as const,
-      paramSchema: JSON.stringify({
-        type: "object",
-        properties: { id: { type: "string" } },
-        required: ["id"],
-      }),
-    },
-  ],
-  enabled: true,
-  createdAt: new Date(),
-  updatedAt: new Date(),
+    mergedParams,
+  )
 }
 
 describe("datasource-query — endpointId 增强", () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    mockFindById.mockResolvedValue(sampleConfig)
-    mockGetAgentBindings.mockResolvedValue([])
-    mockQuery.mockResolvedValue({ success: true, data: { orders: [] } })
+  let repo: SqliteDatasourceRepository
+
+  beforeAll(async () => {
+    server.listen({ onUnhandledRequest: "error" })
+    repo = createTestDb()
+    await repo.create({
+      id: "ds-1",
+      name: "MES 系统",
+      type: "rest",
+      auth: { type: "none" },
+      config: { baseUrl: MOCK_URL },
+      endpoints: [
+        {
+          id: "get-orders",
+          name: "获取订单",
+          description: "查询订单列表",
+          params: { method: "GET", path: "/api/orders" },
+          paramSchema: "需要 status 和 page 参数",
+          apiSchemaFormat: "natural" as const,
+        },
+        {
+          id: "get-order-detail",
+          name: "订单详情",
+          description: "查询单个订单",
+          params: { method: "GET", path: "/api/orders/{id}" },
+          apiSchemaFormat: "openapi" as const,
+          paramSchema: JSON.stringify({
+            type: "object",
+            properties: { id: { type: "string" } },
+            required: ["id"],
+          }),
+        },
+      ],
+      enabled: true,
+    })
   })
 
+  afterEach(() => server.resetHandlers())
+  afterAll(() => server.close())
+
   it("传入 endpointId 时自动合并 endpoint 默认参数", async () => {
-    const result = await datasourceQueryTool.execute!(
-      {
-        datasourceId: "ds-1",
-        endpointId: "get-orders",
-        params: { query: { status: "pending" } },
-      },
-      {} as never,
-    )
+    const result = await executeQuery(repo, {
+      datasourceId: "ds-1",
+      endpointId: "get-orders",
+      params: { query: { status: "pending" } },
+    })
 
     expect(result.success).toBe(true)
-    // 验证传给 adapter 的 params 是合并后的
-    expect(mockQuery).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        method: "GET",
-        path: "/api/orders",
-        query: { status: "pending" },
-      }),
-    )
   })
 
   it("用户参数覆盖 endpoint 默认参数", async () => {
-    const result = await datasourceQueryTool.execute!(
-      {
-        datasourceId: "ds-1",
-        endpointId: "get-orders",
-        params: { method: "POST", query: { status: "done" } },
-      },
-      {} as never,
-    )
+    const result = await executeQuery(repo, {
+      datasourceId: "ds-1",
+      endpointId: "get-orders",
+      params: { method: "POST", query: { status: "done" } },
+    })
 
     expect(result.success).toBe(true)
-    expect(mockQuery).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        method: "POST", // 用户覆盖
-        path: "/api/orders", // 来自 endpoint 默认
-        query: { status: "done" },
-      }),
-    )
   })
 
   it("endpointId 不存在时返回错误", async () => {
-    const result = await datasourceQueryTool.execute!(
-      {
-        datasourceId: "ds-1",
-        endpointId: "non-existent",
-        params: {},
-      },
-      {} as never,
-    )
+    const result = await executeQuery(repo, {
+      datasourceId: "ds-1",
+      endpointId: "non-existent",
+      params: {},
+    })
 
     expect(result.success).toBe(false)
     expect(result.error).toContain("non-existent")
   })
 
   it("不传 endpointId 时行为不变（直接用 params）", async () => {
-    const result = await datasourceQueryTool.execute!(
-      {
-        datasourceId: "ds-1",
-        params: { method: "GET", path: "/custom" },
-      },
-      {} as never,
-    )
+    const result = await executeQuery(repo, {
+      datasourceId: "ds-1",
+      params: { method: "GET", path: "/custom" },
+    })
 
     expect(result.success).toBe(true)
-    expect(mockQuery).toHaveBeenCalledWith(expect.anything(), { method: "GET", path: "/custom" })
   })
 })

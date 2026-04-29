@@ -29,7 +29,7 @@ describe("MqttAdapter", () => {
   beforeEach(() => {
     adapter = new MqttAdapter()
     mockFetch = vi.fn()
-    vi.stubGlobal("fetch", mockFetch)
+    globalThis.fetch = mockFetch as unknown as typeof fetch
   })
 
   afterEach(() => {
