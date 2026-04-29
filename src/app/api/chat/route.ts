@@ -45,11 +45,11 @@ export async function POST(req: Request) {
     agentId as "chatAgent" | "researchAgent" | "codeAgent" | "autoAgent",
   )
 
-  // 注入数据源上下文到系统消息
+  // 注入数据源上下文到系统消息（图表指令仅在有数据源时注入，节省 token）
   const dsContext = await buildDatasourceContext(agentId)
   const systemContent = [
     dsContext ? `\n\n---\n可用数据源:\n${dsContext}\n---\n` : "",
-    CHART_SYSTEM_PROMPT,
+    dsContext ? CHART_SYSTEM_PROMPT : "",
   ]
     .filter(Boolean)
     .join("\n")
