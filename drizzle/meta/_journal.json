@@ -15,6 +15,13 @@
       "when": 1777444966290,
       "tag": "0001_fresh_taskmaster",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1777446840461,
+      "tag": "0002_abandoned_korath",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,26 @@
 import { sqliteTable, text, integer, primaryKey, index } from "drizzle-orm/sqlite-core"
 
+/** 用户表 */
+export const users = sqliteTable("users", {
+  id: text("id").primaryKey(),
+  username: text("username").notNull().unique(),
+  displayName: text("display_name").notNull(),
+  passwordHash: text("password_hash").notNull(),
+  role: text("role").notNull().default("user"), // "admin" | "user"
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+})
+
+/** 会话表 */
+export const sessions = sqliteTable("sessions", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+})
+
 export const datasources = sqliteTable("datasources", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
