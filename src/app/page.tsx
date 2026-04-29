@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
 import { MessageSquare, Settings, Plus, ChevronDown } from "lucide-react"
@@ -19,6 +19,7 @@ import {
 } from "@/components/ai-elements/prompt-input"
 import { useModel } from "@/hooks/use-model"
 import { useTheme } from "@/hooks/use-theme"
+import { useChats, type Chat } from "@/hooks/use-chats"
 import { getModelById } from "@/lib/models"
 import Link from "next/link"
 
@@ -33,9 +34,11 @@ export default function ChatPage() {
   const [input, setInput] = useState("")
   const [agentId, setAgentId] = useState("chatAgent")
   const [showAgentMenu, setShowAgentMenu] = useState(false)
+  const [activeChatId, setActiveChatId] = useState<string | null>(null)
   const { modelId } = useModel()
-  // 初始化主题（确保 dark class 被应用）
   useTheme()
+
+  const { chats, createChat } = useChats()
 
   const chatApiUrl = process.env.NEXT_PUBLIC_API_URL
     ? `${process.env.NEXT_PUBLIC_API_URL}/api/chat`
@@ -44,16 +47,72 @@ export default function ChatPage() {
   const { messages, sendMessage, status, setMessages } = useChat({
     transport: new DefaultChatTransport({
       api: chatApiUrl,
-      body: { modelId, agentId },
+      body: { modelId, agentId, chatId: activeChatId },
     }),
   })
 
-  const handleSubmit = (message: PromptInputMessage) => {
-    if (message.text.trim()) {
+  /** 切换到已有对话 */
+  const switchChat = useCallback(
+    async (chat: Chat) => {
+      setActiveChatId(chat.id)
+      setAgentId(chat.agentId)
+      // 加载历史消息
+      try {
+        const apiBase = process.env.NEXT_PUBLIC_API_URL ?? ""
+        const res = await fetch(`${apiBase}/api/chats/${chat.id}/messages`)
+        if (res.ok) {
+          const msgs = await res.json()
+          // 转换为 UIMessage 格式
+          const uiMessages = msgs.map(
+            (m: { id: string; role: string; parts: string; createdAt: string }) => ({
+              id: m.id,
+              role: m.role,
+              parts: typeof m.parts === "string" ? JSON.parse(m.parts) : m.parts,
+              createdAt: new Date(m.createdAt),
+            }),
+          )
+          setMessages(uiMessages)
+        }
+      } catch (e) {
+        console.error("加载历史消息失败:", e)
+      }
+    },
+    [setMessages],
+  )
+
+  /** 新建对话 */
+  const handleNewChat = useCallback(async () => {
+    try {
+      const chat = await createChat({ agentId })
+      setActiveChatId(chat.id)
+      setMessages([])
+    } catch (e) {
+      console.error("创建对话失败:", e)
+    }
+  }, [agentId, createChat, setMessages])
+
+  const handleSubmit = useCallback(
+    async (message: PromptInputMessage) => {
+      if (!message.text.trim()) return
+
+      // 如果没有活动会话，先创建
+      let chatId = activeChatId
+      if (!chatId) {
+        try {
+          const chat = await createChat({ agentId })
+          chatId = chat.id
+          setActiveChatId(chatId)
+        } catch (e) {
+          console.error("创建对话失败:", e)
+          return
+        }
+      }
+
       sendMessage({ text: message.text })
       setInput("")
-    }
-  }
+    },
+    [activeChatId, agentId, createChat, sendMessage],
+  )
 
   const currentAgent = agents.find((a) => a.id === agentId) ?? agents[0]
   const currentModel = getModelById(modelId)
@@ -101,7 +160,7 @@ export default function ChatPage() {
 
         <div className="flex items-center gap-1">
           <button
-            onClick={() => setMessages([])}
+            onClick={handleNewChat}
             className="p-2 rounded-lg hover:bg-muted transition-colors"
             title="新对话"
           >
