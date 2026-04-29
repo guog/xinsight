@@ -48,6 +48,83 @@ export const DatasourceEndpointSchema = z.object({
 })
 export type DatasourceEndpoint = z.infer<typeof DatasourceEndpointSchema>
 
+/** 协议 endpoint 公共基础字段 */
+const endpointBaseFields = {
+  id: z.string().min(1),
+  name: z.string().min(1),
+  description: z.string().optional(),
+  paramSchema: z.string().optional(),
+  apiSchemaFormat: ApiSchemaFormat,
+  responseExample: z.string().optional(),
+}
+
+/** REST 协议 endpoint */
+export const RestEndpointSchema = z.object({
+  ...endpointBaseFields,
+  method: z.enum(["GET", "POST", "PUT", "PATCH", "DELETE"]),
+  path: z.string().min(1),
+  queryParams: z.record(z.string(), z.string()).optional(),
+  requestBody: z.string().optional(),
+  headers: z.record(z.string(), z.string()).optional(),
+})
+export type RestEndpoint = z.infer<typeof RestEndpointSchema>
+
+/** GraphQL 协议 endpoint */
+export const GraphqlEndpointSchema = z.object({
+  ...endpointBaseFields,
+  operationType: z.enum(["query", "mutation", "subscription"]),
+  operationName: z.string().min(1),
+  query: z.string().min(1),
+  variables: z.string().optional(),
+})
+export type GraphqlEndpoint = z.infer<typeof GraphqlEndpointSchema>
+
+/** gRPC 协议 endpoint */
+export const GrpcEndpointSchema = z.object({
+  ...endpointBaseFields,
+  service: z.string().min(1),
+  method: z.string().min(1),
+  requestMessage: z.string().optional(),
+  responseMessage: z.string().optional(),
+})
+export type GrpcEndpoint = z.infer<typeof GrpcEndpointSchema>
+
+/** OPC UA 协议 endpoint */
+export const OpcuaEndpointSchema = z.object({
+  ...endpointBaseFields,
+  action: z.enum(["read", "write", "browse"]),
+  nodeIds: z.array(z.string().min(1)),
+  dataType: z.string().optional(),
+})
+export type OpcuaEndpoint = z.infer<typeof OpcuaEndpointSchema>
+
+/** MQTT 协议 endpoint */
+export const MqttEndpointSchema = z.object({
+  ...endpointBaseFields,
+  topic: z.string().min(1),
+  direction: z.enum(["publish", "subscribe", "both"]),
+  qos: z.number().min(0).max(2).default(0),
+  payloadFormat: z.enum(["json", "text", "binary"]).default("json"),
+})
+export type MqttEndpoint = z.infer<typeof MqttEndpointSchema>
+
+/** 协议 endpoint 联合类型 */
+export type ProtocolEndpoint =
+  | RestEndpoint
+  | GraphqlEndpoint
+  | GrpcEndpoint
+  | OpcuaEndpoint
+  | MqttEndpoint
+
+/** 按适配器类型索引的 endpoint schema 映射 */
+export const EndpointSchemaByType = {
+  rest: RestEndpointSchema,
+  graphql: GraphqlEndpointSchema,
+  grpc: GrpcEndpointSchema,
+  opcua: OpcuaEndpointSchema,
+  mqtt: MqttEndpointSchema,
+} as const
+
 /** 数据源配置（完整） */
 export const DatasourceConfigSchema = z.object({
   id: z.string().min(1),
