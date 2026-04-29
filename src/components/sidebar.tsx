@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import {
   Plus,
   Settings,
+  BookOpen,
   Database,
   MessageSquare,
   PanelLeftClose,
@@ -215,6 +216,14 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
             数据源管理
           </Link>
         )}
+        <Link
+          href="/wiki"
+          className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-muted transition-colors"
+          onClick={() => setIsMobileOpen(false)}
+        >
+          <BookOpen className="size-4" />
+          知识库
+        </Link>
         <Link
           href="/settings"
           className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-muted transition-colors"
