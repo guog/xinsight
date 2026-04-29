@@ -1,5 +1,5 @@
 import YAML from "yaml"
-import type { RestEndpoint } from "@/mastra/tools/datasource/types"
+import type { RestEndpoint, FieldDefinition } from "@/mastra/tools/datasource/types"
 
 export interface ParsedOpenApiResult {
   baseUrl?: string
@@ -24,11 +24,12 @@ export async function parseOpenApiSpec(
   }
 
   const info = {
-    title: (spec.info as Record<string, unknown>)?.title as string ?? "",
-    version: (spec.info as Record<string, unknown>)?.version as string ?? "",
+    title: ((spec.info as Record<string, unknown>)?.title as string) ?? "",
+    version: ((spec.info as Record<string, unknown>)?.version as string) ?? "",
   }
 
-  const baseUrl = ((spec.servers as Array<Record<string, unknown>>)?.[0]?.url as string) || undefined
+  const baseUrl =
+    ((spec.servers as Array<Record<string, unknown>>)?.[0]?.url as string) || undefined
 
   const endpoints = extractEndpoints(spec)
   const authType = detectAuthType(spec)
@@ -36,7 +37,9 @@ export async function parseOpenApiSpec(
   return { baseUrl, endpoints, info, authType }
 }
 
-async function resolveInput(input: string | Record<string, unknown>): Promise<Record<string, unknown>> {
+async function resolveInput(
+  input: string | Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   if (typeof input !== "string") return input
 
   // URL 输入
@@ -128,6 +131,23 @@ function extractEndpoints(spec: Record<string, unknown>): RestEndpoint[] {
         }
       }
 
+      // 提取 responseSchema
+      let responseSchema: RestEndpoint["responseSchema"]
+      if (okResponse) {
+        const rsContent = okResponse.content as Record<string, Record<string, unknown>> | undefined
+        const rsJsonContent = rsContent?.["application/json"]
+        if (rsJsonContent?.schema) {
+          const fields = openApiSchemaToFields(rsJsonContent.schema)
+          if (fields.length > 0) {
+            responseSchema = {
+              fields,
+              source: "openapi" as const,
+              discoveredAt: new Date().toISOString(),
+            }
+          }
+        }
+      }
+
       endpoints.push({
         id,
         name,
@@ -139,6 +159,7 @@ function extractEndpoints(spec: Record<string, unknown>): RestEndpoint[] {
         paramSchema,
         apiSchemaFormat: "openapi",
         responseExample,
+        responseSchema,
       })
     }
   }
@@ -146,9 +167,44 @@ function extractEndpoints(spec: Record<string, unknown>): RestEndpoint[] {
   return endpoints
 }
 
+/** 将 OpenAPI JSON Schema 转换为 FieldDefinition 数组 */
+export function openApiSchemaToFields(schema: unknown, maxDepth = 3): FieldDefinition[] {
+  if (!schema || maxDepth <= 0 || schema.$ref) return []
+
+  const mapType = (t: string): FieldDefinition["type"] => {
+    if (t === "integer") return "number"
+    if (["string", "number", "boolean", "object", "array", "null"].includes(t))
+      return t as FieldDefinition["type"]
+    return "string"
+  }
+
+  if (schema.type === "object" && schema.properties) {
+    return Object.entries(schema.properties).map(
+      ([name, prop]: [string, Record<string, unknown>]) => {
+        const field: FieldDefinition = { name, type: mapType(prop.type || "string") }
+        if (prop.description) field.description = prop.description
+        if (prop.type === "object" && prop.properties) {
+          field.children = openApiSchemaToFields(prop, maxDepth - 1)
+        } else if (prop.type === "array" && prop.items) {
+          field.children = prop.items.$ref ? [] : openApiSchemaToFields(prop.items, maxDepth - 1)
+        }
+        return field
+      },
+    )
+  }
+
+  if (schema.type === "array" && schema.items) {
+    return openApiSchemaToFields(schema.items, maxDepth - 1)
+  }
+
+  return []
+}
+
 function detectAuthType(spec: Record<string, unknown>): ParsedOpenApiResult["authType"] {
   const components = spec.components as Record<string, unknown> | undefined
-  const securitySchemes = components?.securitySchemes as Record<string, Record<string, unknown>> | undefined
+  const securitySchemes = components?.securitySchemes as
+    | Record<string, Record<string, unknown>>
+    | undefined
   if (!securitySchemes) return "none"
 
   for (const scheme of Object.values(securitySchemes)) {

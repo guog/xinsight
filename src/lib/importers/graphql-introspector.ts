@@ -1,4 +1,4 @@
-import type { GraphqlEndpoint } from "@/mastra/tools/datasource/types"
+import type { GraphqlEndpoint, FieldDefinition } from "@/mastra/tools/datasource/types"
 
 /** GraphQL 自省结果 */
 export interface IntrospectionResult {
@@ -33,7 +33,7 @@ const INTROSPECTION_QUERY = `
 `
 
 /** 将自省类型引用格式化为 GraphQL 类型字符串 */
-function formatTypeName(typeRef: any): string {
+function formatTypeName(typeRef: unknown): string {
   if (!typeRef) return "String"
   if (typeRef.kind === "NON_NULL") return `${formatTypeName(typeRef.ofType)}!`
   if (typeRef.kind === "LIST") return `[${formatTypeName(typeRef.ofType)}]`
@@ -41,49 +41,135 @@ function formatTypeName(typeRef: any): string {
 }
 
 /** 获取类型的标量字段名列表（用于生成返回字段） */
-function getScalarFields(typeRef: any, allTypes: any[]): string[] {
-  const typeName = typeRef?.kind === "NON_NULL" || typeRef?.kind === "LIST"
-    ? typeRef?.ofType?.name ?? typeRef?.ofType?.ofType?.name
-    : typeRef?.name
+function getScalarFields(typeRef: unknown, allTypes: unknown[]): string[] {
+  const typeName =
+    typeRef?.kind === "NON_NULL" || typeRef?.kind === "LIST"
+      ? (typeRef?.ofType?.name ?? typeRef?.ofType?.ofType?.name)
+      : typeRef?.name
 
   if (!typeName) return []
 
-  const typeObj = allTypes.find((t: any) => t.name === typeName)
+  const typeObj = allTypes.find((t: unknown) => t.name === typeName)
   if (!typeObj?.fields) return []
 
   return typeObj.fields
-    .filter((f: any) => {
+    .filter((f: unknown) => {
       const ft = f.type
       const kind = ft?.kind === "NON_NULL" ? ft?.ofType?.kind : ft?.kind
       return kind === "SCALAR" || kind === "ENUM"
     })
-    .map((f: any) => f.name)
+    .map((f: unknown) => f.name)
 }
 
 /** 为一个 field 生成简单查询字符串 */
 function generateQuery(
   operationType: "query" | "mutation" | "subscription",
-  field: any,
-  allTypes: any[],
+  field: unknown,
+  allTypes: unknown[],
 ): string {
   const args = field.args ?? []
-  const argsDef = args.length > 0
-    ? `(${args.map((a: any) => `$${a.name}: ${formatTypeName(a.type)}`).join(", ")})`
-    : ""
-  const argsPass = args.length > 0
-    ? `(${args.map((a: any) => `${a.name}: $${a.name}`).join(", ")})`
-    : ""
+  const argsDef =
+    args.length > 0
+      ? `(${args.map((a: unknown) => `$${a.name}: ${formatTypeName(a.type)}`).join(", ")})`
+      : ""
+  const argsPass =
+    args.length > 0 ? `(${args.map((a: unknown) => `${a.name}: $${a.name}`).join(", ")})` : ""
 
   const scalarFields = getScalarFields(field.type, allTypes)
-  const selection = scalarFields.length > 0
-    ? ` {\n    ${scalarFields.join("\n    ")}\n  }`
-    : ""
+  const selection = scalarFields.length > 0 ? ` {\n    ${scalarFields.join("\n    ")}\n  }` : ""
 
   return `${operationType}${argsDef} {\n  ${field.name}${argsPass}${selection}\n}`
 }
 
+/** 将 GraphQL 自省类型转换为 FieldDefinition[] */
+export function graphqlTypeToFields(
+  type: unknown,
+  typeMap: Map<string, unknown>,
+  maxDepth = 3,
+  depth = 0,
+): FieldDefinition[] {
+  if (!type || depth >= maxDepth) return []
+
+  if (type.kind === "NON_NULL") {
+    return graphqlTypeToFields(type.ofType, typeMap, maxDepth, depth)
+  }
+
+  if (type.kind === "LIST") {
+    const children = graphqlTypeToFields(type.ofType, typeMap, maxDepth, depth + 1)
+    return [{ name: "items", type: "array", children }]
+  }
+
+  if (type.kind === "SCALAR") {
+    const scalarMap: Record<string, FieldDefinition["type"]> = {
+      String: "string",
+      Int: "number",
+      Float: "number",
+      Boolean: "boolean",
+      ID: "string",
+    }
+    return [{ name: type.name, type: scalarMap[type.name] ?? "string" }]
+  }
+
+  if (type.kind === "OBJECT" || type.kind === "INTERFACE") {
+    const resolved = typeMap.get(type.name)
+    if (!resolved?.fields) return []
+    return resolved.fields.map((f: unknown) => {
+      const fieldType = unwrapType(f.type)
+      const kind = fieldType?.kind
+      if (kind === "SCALAR") {
+        const scalarMap: Record<string, FieldDefinition["type"]> = {
+          String: "string",
+          Int: "number",
+          Float: "number",
+          Boolean: "boolean",
+          ID: "string",
+        }
+        return {
+          name: f.name,
+          type: scalarMap[fieldType.name] ?? "string",
+          description: f.description || undefined,
+        }
+      }
+      if (kind === "OBJECT" || kind === "INTERFACE") {
+        const children =
+          depth + 1 < maxDepth ? graphqlTypeToFields(fieldType, typeMap, maxDepth, depth + 1) : []
+        return {
+          name: f.name,
+          type: "object" as const,
+          children,
+          description: f.description || undefined,
+        }
+      }
+      if (kind === "LIST") {
+        const children = graphqlTypeToFields(
+          f.type.ofType ?? fieldType.ofType,
+          typeMap,
+          maxDepth,
+          depth + 1,
+        )
+        return {
+          name: f.name,
+          type: "array" as const,
+          children,
+          description: f.description || undefined,
+        }
+      }
+      return { name: f.name, type: "string" as const, description: f.description || undefined }
+    })
+  }
+
+  return []
+}
+
+/** 剥离 NON_NULL/LIST 包装获取底层类型 */
+function unwrapType(typeRef: unknown): unknown {
+  if (!typeRef) return null
+  if (typeRef.kind === "NON_NULL" || typeRef.kind === "LIST") return unwrapType(typeRef.ofType)
+  return typeRef
+}
+
 /** 为一个 field 生成 variables schema JSON */
-function generateVariables(field: any): string | undefined {
+function generateVariables(field: unknown): string | undefined {
   const args = field.args ?? []
   if (args.length === 0) return undefined
   const schema: Record<string, string> = {}
@@ -95,10 +181,12 @@ function generateVariables(field: any): string | undefined {
 
 /** 将一个根类型的 field 转换为 GraphqlEndpoint */
 function fieldToEndpoint(
-  field: any,
+  field: unknown,
   operationType: "query" | "mutation" | "subscription",
-  allTypes: any[],
+  allTypes: unknown[],
+  typeMap: Map<string, unknown>,
 ): GraphqlEndpoint {
+  const responseFields = graphqlTypeToFields(field.type, typeMap)
   return {
     id: field.name,
     name: field.name,
@@ -108,6 +196,14 @@ function fieldToEndpoint(
     variables: generateVariables(field),
     description: field.description ?? undefined,
     apiSchemaFormat: "openapi",
+    responseSchema:
+      responseFields.length > 0
+        ? {
+            fields: responseFields,
+            source: "introspection",
+            discoveredAt: new Date().toISOString(),
+          }
+        : undefined,
   }
 }
 
@@ -138,16 +234,20 @@ export async function introspectGraphql(
     throw new Error("无效的 GraphQL 自省响应: 缺少 __schema")
   }
 
-  const allTypes: any[] = schema.types ?? []
+  const allTypes: unknown[] = schema.types ?? []
+  const typeMap = new Map<string, unknown>()
+  for (const t of allTypes) {
+    if (t.name) typeMap.set(t.name, t)
+  }
 
   function extractEndpoints(
     rootTypeName: string | null | undefined,
     opType: "query" | "mutation" | "subscription",
   ): GraphqlEndpoint[] {
     if (!rootTypeName) return []
-    const rootType = allTypes.find((t: any) => t.name === rootTypeName)
+    const rootType = allTypes.find((t: unknown) => t.name === rootTypeName)
     if (!rootType?.fields) return []
-    return rootType.fields.map((f: any) => fieldToEndpoint(f, opType, allTypes))
+    return rootType.fields.map((f: unknown) => fieldToEndpoint(f, opType, allTypes, typeMap))
   }
 
   return {
