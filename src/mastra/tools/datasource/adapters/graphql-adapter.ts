@@ -1,4 +1,5 @@
 import type { DatasourceAdapter, DatasourceConfig, DatasourceResult } from "../types"
+import { fetchWithRetry } from "./fetch-with-retry"
 
 /** GraphQL 数据源适配器 */
 export class GraphqlAdapter implements DatasourceAdapter {
@@ -51,29 +52,41 @@ export class GraphqlAdapter implements DatasourceAdapter {
     if (resolvedVariables) body.variables = resolvedVariables
     if (resolvedOperationName) body.operationName = resolvedOperationName
 
-    try {
-      const res = await fetch(gqlEndpoint, {
+    const timeout =
+      ((config.config as Record<string, unknown>)?.timeout as number | undefined) ?? 30000
+
+    const result = await fetchWithRetry(
+      gqlEndpoint,
+      {
         method: "POST",
         headers: this.buildHeaders(config),
         body: JSON.stringify(body),
-      })
+      },
+      {
+        timeout,
+        allowRetry: true,
+      },
+    )
 
-      if (!res.ok) {
-        return { success: false, error: `HTTP ${res.status}: ${res.statusText}` }
+    if (result.error) {
+      return { success: false, error: result.error }
+    }
+
+    const json = result.data as Record<string, unknown>
+    if (json?.errors?.length) {
+      return {
+        success: false,
+        error: json.errors.map((e: { message: string }) => e.message).join("; "),
       }
+    }
 
-      const json = await res.json()
+    const metadata: Record<string, unknown> = {}
+    if (result.metadata?.truncated) metadata.truncated = true
 
-      if (json.errors?.length) {
-        return {
-          success: false,
-          error: json.errors.map((e: { message: string }) => e.message).join("; "),
-        }
-      }
-
-      return { success: true, data: json.data }
-    } catch (err) {
-      return { success: false, error: String(err) }
+    return {
+      success: true,
+      data: json?.data ?? json,
+      ...(Object.keys(metadata).length ? { metadata } : {}),
     }
   }
 

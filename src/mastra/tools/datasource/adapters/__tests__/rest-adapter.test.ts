@@ -160,6 +160,30 @@ describe("RestAdapter", () => {
     expect(result.message).toContain("connection refused")
   })
 
+  it("响应过大时返回 success=false", async () => {
+    const headers = new Headers({ "content-length": "6000000" })
+    mockFetch.mockResolvedValue(new Response("{}", { status: 200, headers }))
+
+    const result = await adapter.query(makeConfig(), { path: "/big", method: "GET" })
+
+    expect(result.success).toBe(false)
+    expect(result.error).toContain("5MB")
+  })
+
+  it("超时时返回 success=false", async () => {
+    mockFetch.mockRejectedValue(
+      Object.assign(new Error("The operation was aborted"), { name: "AbortError" }),
+    )
+
+    const config = makeConfig({
+      config: { baseUrl: "https://api.example.com", timeout: 100 },
+    } as unknown as Parameters<typeof makeConfig>[0])
+    const result = await adapter.query(config, { path: "/slow", method: "GET" })
+
+    expect(result.success).toBe(false)
+    expect(result.error).toBeDefined()
+  })
+
   describe("endpoint 字段解析", () => {
     it("通过 endpointId 查找 endpoint 并使用 method/path", async () => {
       mockFetch.mockResolvedValue(new Response(JSON.stringify({ id: 1 }), { status: 200 }))
@@ -177,7 +201,7 @@ describe("RestAdapter", () => {
             queryParams: { fields: "name,email" },
             headers: { "X-Custom": "value" },
           },
-        ] as any,
+        ] as unknown[],
       })
 
       const result = await adapter.query(config, { endpointId: "ep-1", userId: "42" })
@@ -205,7 +229,7 @@ describe("RestAdapter", () => {
             path: "/items",
             queryParams: { page: "1", size: "10" },
           },
-        ] as any,
+        ] as unknown[],
       })
 
       await adapter.query(config, { endpointId: "ep-2", query: { page: "2" } })
@@ -218,7 +242,11 @@ describe("RestAdapter", () => {
     it("endpointId 找不到时回退到 params", async () => {
       mockFetch.mockResolvedValue(new Response(JSON.stringify({}), { status: 200 }))
 
-      await adapter.query(makeConfig(), { endpointId: "nonexistent", path: "/fallback", method: "GET" })
+      await adapter.query(makeConfig(), {
+        endpointId: "nonexistent",
+        path: "/fallback",
+        method: "GET",
+      })
 
       const [url] = mockFetch.mock.calls[0]
       expect(url).toBe("https://api.example.com/fallback")
