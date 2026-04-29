@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef } from "react"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
-import { ChevronDown } from "lucide-react"
+import { ChevronDown, Square, RotateCcw } from "lucide-react"
 import {
   Conversation,
   ConversationContent,
@@ -27,6 +27,8 @@ import { parseChartBlocks } from "@/lib/chart/parse-chart-block"
 import { ChartBlock } from "@/components/chart/chart-block"
 import { FileUpload } from "@/components/file-upload"
 import { Sidebar, type ChatItem } from "@/components/sidebar"
+import { ToolInvocation } from "@/components/tool-invocation"
+import { CodeBlockCopyProvider } from "@/components/code-block-copy"
 
 /** Agent 定义 */
 const agents = [
@@ -52,7 +54,7 @@ export default function ChatPage() {
     ? `${process.env.NEXT_PUBLIC_API_URL}/api/chat`
     : "/api/chat"
 
-  const { messages, sendMessage, status, setMessages } = useChat({
+  const { messages, sendMessage, status, setMessages, stop, regenerate } = useChat({
     transport: new DefaultChatTransport({
       api: chatApiUrl,
       body: {
@@ -166,6 +168,7 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-dvh">
+      <CodeBlockCopyProvider />
       {/* 侧边栏 */}
       <Sidebar
         activeChatId={activeChatId}
@@ -207,11 +210,43 @@ export default function ChatPage() {
                             ),
                           )
                         }
+                        case "tool-invocation": {
+                          const inv = (
+                            part as unknown as {
+                              toolInvocation: {
+                                toolName: string
+                                state: "call" | "partial-call" | "result"
+                                args?: Record<string, unknown>
+                                result?: unknown
+                              }
+                            }
+                          ).toolInvocation
+                          return (
+                            <ToolInvocation
+                              key={`${message.id}-${i}-tool`}
+                              toolName={inv.toolName}
+                              state={inv.state}
+                              args={inv.args}
+                              result={inv.result}
+                            />
+                          )
+                        }
                         default:
                           return null
                       }
                     })}
                   </MessageContent>
+                  {message.role === "assistant" &&
+                    message === messages[messages.length - 1] &&
+                    status !== "streaming" && (
+                      <button
+                        onClick={() => regenerate()}
+                        className="flex items-center gap-1 mt-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground rounded-md hover:bg-muted transition-colors"
+                      >
+                        <RotateCcw className="size-3" />
+                        重新生成
+                      </button>
+                    )}
                 </Message>
               ))
             )}
@@ -266,10 +301,16 @@ export default function ChatPage() {
             />
             <div className="absolute bottom-1 right-1 flex items-center gap-1">
               <FileUpload disabled={status === "streaming"} />
-              <PromptInputSubmit
-                status={status === "streaming" ? "streaming" : "ready"}
-                disabled={!input.trim()}
-              />
+              {status === "streaming" ? (
+                <button
+                  onClick={() => stop()}
+                  className="flex items-center justify-center size-8 rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors"
+                >
+                  <Square className="size-4" />
+                </button>
+              ) : (
+                <PromptInputSubmit status="ready" disabled={!input.trim()} />
+              )}
             </div>
           </PromptInput>
         </div>

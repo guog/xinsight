@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import {
   Plus,
   Settings,
@@ -10,6 +10,7 @@ import {
   PanelLeft,
   Trash2,
   LogOut,
+  Search,
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -38,6 +39,10 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
   const [isOpen, setIsOpen] = useState(true)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [chatList, setChatList] = useState<ChatItem[]>([])
+  const [searchQuery, setSearchQuery] = useState("")
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editTitle, setEditTitle] = useState("")
+  const editInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const { isAdmin } = useUser()
 
@@ -48,6 +53,24 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
       .then((data) => setChatList(data))
       .catch(() => {})
   }, [activeChatId]) // activeChatId 变化时刷新
+
+  // 重命名对话
+  const handleRename = async (id: string) => {
+    const trimmed = editTitle.trim()
+    if (!trimmed) {
+      setEditingId(null)
+      return
+    }
+    try {
+      await fetch(`${apiBase}/api/chats/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: trimmed }),
+      })
+      setChatList((prev) => prev.map((c) => (c.id === id ? { ...c, title: trimmed } : c)))
+    } catch {}
+    setEditingId(null)
+  }
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation()
@@ -89,59 +112,109 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
         </button>
       </div>
 
+      {/* 搜索框 */}
+      <div className="px-3 mb-2">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="搜索对话..."
+            className="w-full pl-8 pr-3 py-1.5 text-sm rounded-lg border border-border bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          />
+        </div>
+      </div>
+
       {/* 对话列表 */}
       <div className="flex-1 overflow-y-auto px-3 space-y-0.5">
         {chatList.length === 0 ? (
           <p className="text-xs text-muted-foreground text-center py-4">暂无对话</p>
         ) : (
-          chatList.map((chat) => (
-            <div
-              role="button"
-              tabIndex={0}
-              key={chat.id}
-              onClick={() => {
-                onSelectChat(chat)
-                setIsMobileOpen(false)
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault()
-                  onSelectChat(chat)
-                  setIsMobileOpen(false)
-                }
-              }}
-              className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors group ${
-                activeChatId === chat.id
-                  ? "bg-primary/10 text-primary"
-                  : "hover:bg-muted text-foreground"
-              } cursor-pointer`}
-            >
-              <MessageSquare className="size-3.5 shrink-0" />
-              <span className="truncate flex-1 text-left">{chat.title}</span>
-              {onDeleteChat && (
-                <button
-                  onClick={(e) => handleDelete(e, chat.id)}
-                  className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-destructive/10 hover:text-destructive transition-all"
-                  title="删除对话"
-                >
-                  <Trash2 className="size-3" />
-                </button>
-              )}
-            </div>
-          ))
+          chatList
+            .filter((chat) => chat.title.toLowerCase().includes(searchQuery.toLowerCase()))
+            .map((chat) => (
+              <div
+                role="button"
+                tabIndex={0}
+                key={chat.id}
+                onClick={() => {
+                  if (editingId !== chat.id) {
+                    onSelectChat(chat)
+                    setIsMobileOpen(false)
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault()
+                    onSelectChat(chat)
+                    setIsMobileOpen(false)
+                  }
+                }}
+                className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors group ${
+                  activeChatId === chat.id
+                    ? "bg-primary/10 text-primary"
+                    : "hover:bg-muted text-foreground"
+                } cursor-pointer`}
+              >
+                <MessageSquare className="size-3.5 shrink-0" />
+                {editingId === chat.id ? (
+                  <input
+                    ref={editInputRef}
+                    type="text"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    onBlur={() => handleRename(chat.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault()
+                        handleRename(chat.id)
+                      } else if (e.key === "Escape") {
+                        setEditingId(null)
+                      }
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex-1 text-sm bg-background border border-border rounded px-1 py-0 focus:outline-none focus:ring-1 focus:ring-ring"
+                    autoFocus
+                  />
+                ) : (
+                  <span
+                    className="truncate flex-1 text-left"
+                    onDoubleClick={(e) => {
+                      e.stopPropagation()
+                      setEditingId(chat.id)
+                      setEditTitle(chat.title)
+                    }}
+                  >
+                    {chat.title}
+                  </span>
+                )}
+                {onDeleteChat && editingId !== chat.id && (
+                  <button
+                    onClick={(e) => handleDelete(e, chat.id)}
+                    className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-destructive/10 hover:text-destructive transition-all"
+                    title="删除对话"
+                  >
+                    <Trash2 className="size-3" />
+                  </button>
+                )}
+              </div>
+            ))
         )}
       </div>
 
       {/* 底部导航 */}
       <div className="p-3 border-t border-border space-y-1">
-        {isAdmin && <Link
-          href="/admin/datasources"
-          className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-muted transition-colors"
-          onClick={() => setIsMobileOpen(false)}
-        >
-          <Database className="size-4" />
-          数据源管理
-        </Link>}
+        {isAdmin && (
+          <Link
+            href="/admin/datasources"
+            className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-muted transition-colors"
+            onClick={() => setIsMobileOpen(false)}
+          >
+            <Database className="size-4" />
+            数据源管理
+          </Link>
+        )}
         <Link
           href="/settings"
           className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-muted transition-colors"
