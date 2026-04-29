@@ -3,11 +3,10 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
-import { MessageSquare, Settings, Plus, ChevronDown } from "lucide-react"
+import { Settings, Plus, ChevronDown } from "lucide-react"
 import {
   Conversation,
   ConversationContent,
-  ConversationEmptyState,
   ConversationScrollButton,
 } from "@/components/ai-elements/conversation"
 import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message"
@@ -20,6 +19,9 @@ import {
 import { useModel } from "@/hooks/use-model"
 import { useTheme } from "@/hooks/use-theme"
 import { useChats, type Chat } from "@/hooks/use-chats"
+import { useOnboarding } from "@/hooks/use-onboarding"
+import { OnboardingWizard } from "@/components/onboarding-wizard"
+import { WelcomeEmptyState } from "@/components/welcome-empty-state"
 import { getModelById } from "@/lib/models"
 import Link from "next/link"
 
@@ -38,6 +40,7 @@ export default function ChatPage() {
   const chatIdRef = useRef<string | null>(null)
   const { modelId } = useModel()
   useTheme()
+  const { isOnboardingComplete, markComplete } = useOnboarding()
 
   const { chats, createChat } = useChats()
 
@@ -64,13 +67,11 @@ export default function ChatPage() {
       setActiveChatId(chat.id)
       chatIdRef.current = chat.id
       setAgentId(chat.agentId)
-      // 加载历史消息
       try {
         const apiBase = process.env.NEXT_PUBLIC_API_URL ?? ""
         const res = await fetch(`${apiBase}/api/chats/${chat.id}/messages`)
         if (res.ok) {
           const msgs = await res.json()
-          // 转换为 UIMessage 格式
           const uiMessages = msgs.map(
             (m: { id: string; role: string; parts: string; createdAt: string }) => ({
               id: m.id,
@@ -104,7 +105,6 @@ export default function ChatPage() {
     async (message: PromptInputMessage) => {
       if (!message.text.trim()) return
 
-      // 如果没有活动会话，先创建
       let chatId = activeChatId
       if (!chatId) {
         try {
@@ -124,11 +124,21 @@ export default function ChatPage() {
     [activeChatId, agentId, createChat, sendMessage],
   )
 
+  /** 点击建议直接发送 */
+  const handleSuggestionClick = useCallback(
+    (text: string) => {
+      sendMessage({ text })
+    },
+    [sendMessage],
+  )
+
   const currentAgent = agents.find((a) => a.id === agentId) ?? agents[0]
   const currentModel = getModelById(modelId)
 
   return (
     <main className="flex flex-col h-dvh max-w-4xl mx-auto w-full px-2 py-3 sm:px-4 sm:py-4 md:px-6">
+      {/* 首次使用引导 */}
+      {!isOnboardingComplete && <OnboardingWizard onComplete={markComplete} />}
       {/* 顶部工具栏 */}
       <header className="flex items-center justify-between mb-2 sm:mb-3">
         <div className="flex items-center gap-2">
@@ -190,10 +200,9 @@ export default function ChatPage() {
       <Conversation>
         <ConversationContent>
           {messages.length === 0 ? (
-            <ConversationEmptyState
-              icon={<MessageSquare className="size-8 sm:size-12" />}
-              title="欢迎使用 xinsight"
-              description={`当前使用 ${currentAgent.name}，输入消息开始对话`}
+            <WelcomeEmptyState
+              agentName={currentAgent.name}
+              onSuggestionClick={handleSuggestionClick}
             />
           ) : (
             messages.map((message) => (
