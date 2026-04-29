@@ -19,12 +19,18 @@ export const datasourceQueryTool = createTool({
   id: "datasource-query",
   description:
     "从已注册的第三方数据源（MES、ERP 等工业系统）实时查询数据。" +
-    "需要指定数据源 ID 和查询参数。不同类型的数据源参数不同：" +
-    "REST 类型需要 path、method；GraphQL 类型需要 query、variables。" +
+    "推荐用法：指定 endpointId 选择接口，系统会自动合并默认参数，你只需传覆盖/补充参数。" +
+    "也可不传 endpointId，直接在 params 中指定完整查询参数。" +
     "先调用 datasource-list 获取可用数据源及其接口列表。",
   inputSchema: z.object({
     datasourceId: z.string().describe("数据源 ID"),
-    params: z.record(z.string(), z.unknown()).describe("查询参数"),
+    endpointId: z
+      .string()
+      .optional()
+      .describe("接口 ID（来自 datasource-list 返回的 endpoints[].id）"),
+    params: z
+      .record(z.string(), z.unknown())
+      .describe("查询参数（会与 endpoint 默认参数合并，用户参数优先）"),
   }),
   outputSchema: z.object({
     success: z.boolean(),
@@ -39,7 +45,7 @@ export const datasourceQueryTool = createTool({
       .optional(),
   }),
   execute: async (inputData, context) => {
-    const { datasourceId, params } = inputData
+    const { datasourceId, endpointId, params } = inputData
     const agentId = (context as unknown as { resourceId?: string })?.resourceId
 
     const config = await repo.findById(datasourceId)
@@ -52,6 +58,16 @@ export const datasourceQueryTool = createTool({
       if (bindings.length > 0 && !bindings.includes(datasourceId)) {
         return { success: false, error: `当前 Agent 无权访问数据源 "${config.name}"` }
       }
+    }
+
+    // 合并 endpoint 默认参数 + 用户传入参数
+    let mergedParams = params
+    if (endpointId) {
+      const endpoint = config.endpoints?.find((ep: { id: string }) => ep.id === endpointId)
+      if (!endpoint) {
+        return { success: false, error: `数据源 "${config.name}" 中未找到接口 "${endpointId}"` }
+      }
+      mergedParams = { ...endpoint.params, ...params }
     }
 
     const adapter = getAdapter(config.type)
@@ -69,7 +85,7 @@ export const datasourceQueryTool = createTool({
         createdAt: config.createdAt,
         updatedAt: config.updatedAt,
       },
-      params,
+      mergedParams,
     )
   },
 })
