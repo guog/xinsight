@@ -9,12 +9,35 @@ export class MqttAdapter implements DatasourceAdapter {
     params: Record<string, unknown>,
   ): Promise<DatasourceResult> {
     const start = Date.now()
-    const { action, topic, payload, timeout } = params as {
-      action: "publish" | "subscribe_once"
-      topic?: string
+
+    // 查找 endpoint 定义（如有 endpointId）
+    const endpoint = params.endpointId
+      ? (config.endpoints.find((ep) => ep.id === params.endpointId) as
+          | Record<string, unknown>
+          | undefined)
+      : undefined
+
+    const { payload, timeout } = params as {
       payload?: unknown
       timeout?: number
     }
+
+    // 从 endpoint 获取默认值，params 可覆盖
+    const endpointTopic = endpoint?.topic as string | undefined
+    const endpointDirection = endpoint?.direction as string | undefined
+    const endpointQos = endpoint?.qos as number | undefined
+
+    // action: 优先 params.action，其次根据 endpoint.direction 映射
+    const paramAction = params.action as string | undefined
+    const resolvedAction =
+      paramAction ??
+      (endpointDirection === "subscribe"
+        ? "subscribe_once"
+        : endpointDirection === "publish"
+          ? "publish"
+          : endpointDirection === "both"
+            ? "publish"
+            : undefined)
 
     try {
       const mqttConfig = config.config as {
@@ -24,7 +47,8 @@ export class MqttAdapter implements DatasourceAdapter {
         timeout?: number
       }
 
-      const resolvedTopic = topic ?? mqttConfig.defaultTopic
+      // topic 优先级: params.topic > endpoint.topic > config.defaultTopic
+      const resolvedTopic = (params.topic as string) ?? endpointTopic ?? mqttConfig.defaultTopic
 
       const reqHeaders: Record<string, string> = {
         "Content-Type": "application/json",
@@ -32,9 +56,10 @@ export class MqttAdapter implements DatasourceAdapter {
         ...this.buildAuthHeaders(config.auth),
       }
 
-      const body: Record<string, unknown> = { action, topic: resolvedTopic }
-      if (action === "publish") body.payload = payload
-      if (action === "subscribe_once") body.timeout = timeout ?? mqttConfig.timeout
+      const body: Record<string, unknown> = { action: resolvedAction, topic: resolvedTopic }
+      if (resolvedAction === "publish") body.payload = payload
+      if (resolvedAction === "subscribe_once") body.timeout = timeout ?? mqttConfig.timeout
+      if (endpointQos != null) body.qos = endpointQos
 
       const response = await fetch(mqttConfig.brokerUrl, {
         method: "POST",
@@ -49,7 +74,7 @@ export class MqttAdapter implements DatasourceAdapter {
         return { success: false, error: `HTTP ${response.status} ${response.statusText}`, metadata }
       }
 
-      if (action === "publish") {
+      if (resolvedAction === "publish") {
         return { success: true, data: { published: true }, metadata }
       }
 

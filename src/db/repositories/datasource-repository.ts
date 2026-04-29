@@ -13,6 +13,11 @@ export interface DatasourceRecord {
   config: Record<string, unknown>
   endpoints: DatasourceEndpoint[]
   enabled: boolean
+  lastTestedAt: Date | null
+  lastTestResult: string | null
+  lastTestMessage: string | null
+  lastCalledAt: Date | null
+  callCount: number
   createdAt: Date
   updatedAt: Date
 }
@@ -53,6 +58,8 @@ export interface DatasourceRepository {
   unbindAgent(agentId: string, datasourceId: string): Promise<void>
   getAgentBindings(agentId: string): Promise<string[]>
   getDatasourceAgents(datasourceId: string): Promise<string[]>
+  updateTestResult(id: string, result: "ok" | "failed", message?: string): Promise<DatasourceRecord>
+  recordCall(id: string): Promise<DatasourceRecord>
 }
 
 /** 将数据库行转换为 DatasourceRecord */
@@ -66,6 +73,11 @@ function toRecord(row: typeof datasources.$inferSelect): DatasourceRecord {
     config: JSON.parse(row.config),
     endpoints: JSON.parse(row.endpoints),
     enabled: row.enabled,
+    lastTestedAt: row.lastTestedAt,
+    lastTestResult: row.lastTestResult,
+    lastTestMessage: row.lastTestMessage,
+    lastCalledAt: row.lastCalledAt,
+    callCount: row.callCount,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   }
@@ -146,7 +158,9 @@ export class SqliteDatasourceRepository implements DatasourceRepository {
   async unbindAgent(agentId: string, datasourceId: string): Promise<void> {
     await this.db
       .delete(agentDatasources)
-      .where(and(eq(agentDatasources.agentId, agentId), eq(agentDatasources.datasourceId, datasourceId)))
+      .where(
+        and(eq(agentDatasources.agentId, agentId), eq(agentDatasources.datasourceId, datasourceId)),
+      )
   }
 
   async getAgentBindings(agentId: string): Promise<string[]> {
@@ -163,5 +177,35 @@ export class SqliteDatasourceRepository implements DatasourceRepository {
       .from(agentDatasources)
       .where(eq(agentDatasources.datasourceId, datasourceId))
     return rows.map((r) => r.agentId)
+  }
+
+  async updateTestResult(
+    id: string,
+    result: "ok" | "failed",
+    message?: string,
+  ): Promise<DatasourceRecord> {
+    await this.db
+      .update(datasources)
+      .set({
+        lastTestedAt: new Date(),
+        lastTestResult: result,
+        lastTestMessage: message ?? null,
+        updatedAt: new Date(),
+      })
+      .where(eq(datasources.id, id))
+    return this.findById(id) as Promise<DatasourceRecord>
+  }
+
+  async recordCall(id: string): Promise<DatasourceRecord> {
+    const current = await this.findById(id)
+    if (!current) throw new Error(`数据源不存在: ${id}`)
+    await this.db
+      .update(datasources)
+      .set({
+        lastCalledAt: new Date(),
+        callCount: current.callCount + 1,
+      })
+      .where(eq(datasources.id, id))
+    return this.findById(id) as Promise<DatasourceRecord>
   }
 }

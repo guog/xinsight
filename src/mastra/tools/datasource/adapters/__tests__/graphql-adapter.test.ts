@@ -123,4 +123,41 @@ describe("GraphqlAdapter", () => {
     expect(result.ok).toBe(false)
     expect(result.message).toContain("无权限")
   })
+
+  describe("endpoint 字段解析", () => {
+    it("通过 endpointId 使用 endpoint 的 query 和 operationName", async () => {
+      fetchMock.mockResolvedValue(new Response(JSON.stringify({ data: { user: { id: "1" } } })))
+
+      const config = makeConfig()
+      config.endpoints = [
+        {
+          id: "ep-1",
+          name: "获取用户",
+          description: "获取用户",
+          params: {},
+          apiSchemaFormat: "natural",
+          query: "query GetUser($id: ID!) { user(id: $id) { id name } }",
+          operationName: "GetUser",
+        },
+      ] as any
+
+      const result = await adapter.query(config, { endpointId: "ep-1", variables: { id: "1" } })
+
+      expect(result.success).toBe(true)
+      const body = JSON.parse(fetchMock.mock.calls[0][1].body)
+      expect(body.query).toBe("query GetUser($id: ID!) { user(id: $id) { id name } }")
+      expect(body.operationName).toBe("GetUser")
+      expect(body.variables).toEqual({ id: "1" })
+    })
+
+    it("endpointId 找不到时回退到 params", async () => {
+      fetchMock.mockResolvedValue(new Response(JSON.stringify({ data: { ok: true } })))
+
+      const result = await adapter.query(makeConfig(), { endpointId: "missing", query: "{ ok }" })
+
+      expect(result.success).toBe(true)
+      const body = JSON.parse(fetchMock.mock.calls[0][1].body)
+      expect(body.query).toBe("{ ok }")
+    })
+  })
 })

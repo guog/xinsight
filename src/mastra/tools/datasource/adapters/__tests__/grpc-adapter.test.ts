@@ -117,4 +117,42 @@ describe("GrpcAdapter", () => {
     expect(result.ok).toBe(false)
     expect(result.message).toContain("connection refused")
   })
+
+  describe("endpoint 字段解析", () => {
+    it("通过 endpointId 使用 endpoint 的 service 和 method", async () => {
+      mockFetch.mockResolvedValue(new Response(JSON.stringify({ users: [] }), { status: 200 }))
+
+      const config = makeConfig({
+        endpoints: [
+          {
+            id: "ep-1",
+            name: "列出用户",
+            description: "列出用户",
+            params: {},
+            apiSchemaFormat: "natural",
+            service: "UserService",
+            method: "ListUsers",
+          },
+        ] as any,
+      })
+
+      const result = await adapter.query(config, { endpointId: "ep-1", message: { page: 1 } })
+
+      expect(result.success).toBe(true)
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body)
+      expect(body.service).toBe("UserService")
+      expect(body.method).toBe("ListUsers")
+      expect(body.message).toEqual({ page: 1 })
+    })
+
+    it("endpointId 找不到时回退到 params", async () => {
+      mockFetch.mockResolvedValue(new Response(JSON.stringify({}), { status: 200 }))
+
+      await adapter.query(makeConfig(), { endpointId: "missing", service: "Svc", method: "Call", message: {} })
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body)
+      expect(body.service).toBe("Svc")
+      expect(body.method).toBe("Call")
+    })
+  })
 })

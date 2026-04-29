@@ -167,4 +167,58 @@ describe("MqttAdapter", () => {
     expect(result.ok).toBe(false)
     expect(result.message).toContain("connection refused")
   })
+
+  describe("endpoint 字段解析", () => {
+    it("通过 endpointId 使用 endpoint 的 topic 和 direction/qos", async () => {
+      mockFetch.mockResolvedValue(new Response(JSON.stringify({ ok: true }), { status: 200 }))
+
+      const config = makeConfig({
+        endpoints: [
+          {
+            id: "ep-1",
+            name: "发布控制",
+            description: "发布控制命令",
+            params: {},
+            apiSchemaFormat: "natural",
+            topic: "device/control",
+            direction: "publish",
+            qos: 1,
+          },
+        ] as any,
+      })
+
+      const result = await adapter.query(config, { endpointId: "ep-1", payload: { cmd: "on" } })
+
+      expect(result.success).toBe(true)
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body)
+      expect(body.topic).toBe("device/control")
+      expect(body.action).toBe("publish")
+      expect(body.qos).toBe(1)
+      expect(body.payload).toEqual({ cmd: "on" })
+    })
+
+    it("params.topic 可覆盖 endpoint 的 topic", async () => {
+      mockFetch.mockResolvedValue(new Response(JSON.stringify({ ok: true }), { status: 200 }))
+
+      const config = makeConfig({
+        endpoints: [
+          {
+            id: "ep-1",
+            name: "发布",
+            description: "发布",
+            params: {},
+            apiSchemaFormat: "natural",
+            topic: "default/topic",
+            direction: "publish",
+            qos: 0,
+          },
+        ] as any,
+      })
+
+      await adapter.query(config, { endpointId: "ep-1", topic: "custom/topic", payload: "hi" })
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body)
+      expect(body.topic).toBe("custom/topic")
+    })
+  })
 })

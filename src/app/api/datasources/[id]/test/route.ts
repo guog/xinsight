@@ -35,6 +35,12 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     }
 
     const result = await adapter.testConnection(config)
+    // 记录测试结果
+    await repo.updateTestResult(
+      id,
+      result.ok ? "ok" : "failed",
+      result.ok ? undefined : result.message,
+    )
     return NextResponse.json(result)
   } catch (error) {
     const authResp = handleAuthError(error)

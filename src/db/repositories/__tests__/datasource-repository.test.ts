@@ -17,6 +17,11 @@ function createTestDb() {
       config TEXT NOT NULL,
       endpoints TEXT NOT NULL DEFAULT '[]',
       enabled INTEGER NOT NULL DEFAULT 1,
+      last_tested_at INTEGER,
+      last_test_result TEXT,
+      last_test_message TEXT,
+      last_called_at INTEGER,
+      call_count INTEGER NOT NULL DEFAULT 0,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     );
@@ -121,6 +126,41 @@ describe("SqliteDatasourceRepository", () => {
     const result = await repo.findByAgentId("agent-1")
     expect(result).toHaveLength(1)
     expect(result[0].id).toBe("ds-1")
+  })
+
+  it("updateTestResult 记录测试结果", async () => {
+    await repo.create(sampleInput)
+    const updated = await repo.updateTestResult("ds-1", "ok")
+    expect(updated.lastTestResult).toBe("ok")
+    expect(updated.lastTestMessage).toBeNull()
+    expect(updated.lastTestedAt).toBeInstanceOf(Date)
+  })
+
+  it("updateTestResult 记录失败信息", async () => {
+    await repo.create(sampleInput)
+    const updated = await repo.updateTestResult("ds-1", "failed", "连接超时")
+    expect(updated.lastTestResult).toBe("failed")
+    expect(updated.lastTestMessage).toBe("连接超时")
+  })
+
+  it("recordCall 更新调用时间和次数", async () => {
+    await repo.create(sampleInput)
+    const first = await repo.recordCall("ds-1")
+    expect(first.callCount).toBe(1)
+    expect(first.lastCalledAt).toBeInstanceOf(Date)
+
+    const second = await repo.recordCall("ds-1")
+    expect(second.callCount).toBe(2)
+  })
+
+  it("findById 返回健康状态字段", async () => {
+    await repo.create(sampleInput)
+    const ds = await repo.findById("ds-1")
+    expect(ds!.callCount).toBe(0)
+    expect(ds!.lastTestedAt).toBeNull()
+    expect(ds!.lastTestResult).toBeNull()
+    expect(ds!.lastTestMessage).toBeNull()
+    expect(ds!.lastCalledAt).toBeNull()
   })
 
   it("getDatasourceAgents 返回绑定的 agent IDs", async () => {

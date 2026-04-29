@@ -22,6 +22,11 @@ export function createTestDb() {
       config TEXT NOT NULL,
       endpoints TEXT NOT NULL DEFAULT '[]',
       enabled INTEGER NOT NULL DEFAULT 1,
+      last_tested_at INTEGER,
+      last_test_result TEXT,
+      last_test_message TEXT,
+      last_called_at INTEGER,
+      call_count INTEGER NOT NULL DEFAULT 0,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     );

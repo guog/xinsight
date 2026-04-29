@@ -9,12 +9,19 @@ export class OpcuaAdapter implements DatasourceAdapter {
     params: Record<string, unknown>,
   ): Promise<DatasourceResult> {
     const start = Date.now()
-    const { action, nodeIds, nodeId, values } = params as {
-      action: "read" | "write" | "browse"
-      nodeIds?: string[]
-      nodeId?: string
-      values?: unknown[]
-    }
+
+    // 查找 endpoint 定义（如有 endpointId）
+    const endpoint = params.endpointId
+      ? (config.endpoints.find((ep) => ep.id === params.endpointId) as
+          | Record<string, unknown>
+          | undefined)
+      : undefined
+
+    // params 覆盖 endpoint 默认值
+    const action = (params.action ?? endpoint?.action) as "read" | "write" | "browse"
+    const nodeIds = (params.nodeIds ?? endpoint?.nodeIds) as string[] | undefined
+    const nodeId = params.nodeId as string | undefined
+    const values = params.values as unknown[] | undefined
 
     try {
       const opcuaConfig = config.config as {

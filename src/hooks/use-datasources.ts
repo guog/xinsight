@@ -22,6 +22,11 @@ export interface Datasource {
   auth?: Record<string, unknown>
   endpoints?: DatasourceEndpoint[]
   agents?: string[]
+  lastTestedAt?: string | null
+  lastTestResult?: string | null
+  lastTestMessage?: string | null
+  lastCalledAt?: string | null
+  callCount?: number
 }
 
 export function useDatasources() {
@@ -83,5 +88,32 @@ export function useDatasources() {
     [],
   )
 
-  return { datasources, loading, error, refresh, remove, testConnection }
+  const duplicate = useCallback(
+    async (id: string): Promise<Datasource> => {
+      const res = await fetch(`/api/datasources/${id}/duplicate`, { method: "POST" })
+      if (!res.ok) throw new Error("复制失败")
+      const newDs = await res.json()
+      setDatasources((prev) => [...prev, newDs])
+      return newDs
+    },
+    [],
+  )
+
+  const batchUpdate = useCallback(
+    async (action: "enable" | "disable", ids: string[]) => {
+      const res = await fetch("/api/datasources/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, ids }),
+      })
+      if (!res.ok) throw new Error("批量操作失败")
+      const enabled = action === "enable"
+      setDatasources((prev) =>
+        prev.map((d) => (ids.includes(d.id) ? { ...d, enabled } : d)),
+      )
+    },
+    [],
+  )
+
+  return { datasources, loading, error, refresh, remove, testConnection, duplicate, batchUpdate }
 }
