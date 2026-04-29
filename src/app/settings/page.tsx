@@ -1,8 +1,8 @@
 "use client"
-
+import { useState, useEffect } from "react"
 import { useTheme } from "@/hooks/use-theme"
 import { useModel } from "@/hooks/use-model"
-import { getProviders, getModels } from "@/lib/models"
+import { useUser } from "@/hooks/use-user"
 import { ArrowLeft, Sun, Moon, Monitor, Database } from "lucide-react"
 import Link from "next/link"
 
@@ -15,8 +15,20 @@ const themeOptions = [
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme()
   const { modelId, setModelId } = useModel()
-  const providers = getProviders()
-  const models = getModels()
+  const { isAdmin } = useUser()
+  const [providers, setProviders] = useState<{ id: string; name: string }[]>([])
+  const [models, setModels] = useState<{ id: string; name: string; description?: string; providerId: string }[]>([])
+
+  // 从 API 获取模型列表
+  useEffect(() => {
+    fetch("/api/models")
+      .then((res) => res.json())
+      .then((data) => {
+        setProviders(data.providers || [])
+        setModels(data.models || [])
+      })
+      .catch(() => {})
+  }, [])
 
   return (
     <main className="flex flex-col h-dvh max-w-2xl mx-auto w-full px-4 py-4">
@@ -48,8 +60,8 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      {/* 模型选择 */}
-      <section className="mb-8">
+      {/* 模型选择 — 仅管理员可见 */}
+      {isAdmin && <section className="mb-8">
         <h2 className="text-sm font-medium text-muted-foreground mb-3">默认模型</h2>
         <div className="space-y-2">
           {providers.map((provider) => {
@@ -78,10 +90,12 @@ export default function SettingsPage() {
             )
           })}
         </div>
-      </section>
-
-      {/* 数据源管理 */}
-      <section className="mb-8">
+        <p className="text-xs text-muted-foreground mt-3">
+          ℹ️ 模型提供商通过环境变量配置。如需添加或变更，请修改部署配置中的 LLM_PROVIDERS、*_API_KEY、*_MODELS 等环境变量，详见 .env.example。
+        </p>
+      </section>}
+      {/* 数据源管理 — 仅管理员可见 */}
+      {isAdmin && <section className="mb-8">
         <h2 className="text-sm font-medium text-muted-foreground mb-3">管理</h2>
         <Link
           href="/admin/datasources"
@@ -90,7 +104,7 @@ export default function SettingsPage() {
           <Database className="size-4" />
           数据源管理
         </Link>
-      </section>
+      </section>}
 
       {/* 关于 */}
       <section>
