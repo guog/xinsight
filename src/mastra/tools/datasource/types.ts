@@ -48,6 +48,32 @@ export const DatasourceEndpointSchema = z.object({
 })
 export type DatasourceEndpoint = z.infer<typeof DatasourceEndpointSchema>
 
+/** 字段定义 Schema（递归） */
+export const FieldDefinitionSchema: z.ZodType<FieldDefinition> = z.lazy(() =>
+  z.object({
+    name: z.string().min(1),
+    type: z.enum(["string", "number", "boolean", "object", "array", "null"]),
+    description: z.optional(z.string()),
+    children: z.optional(z.array(FieldDefinitionSchema)),
+  }),
+)
+
+export type FieldDefinition = {
+  name: string
+  type: "string" | "number" | "boolean" | "object" | "array" | "null"
+  description?: string
+  children?: FieldDefinition[]
+}
+
+/** 响应 Schema 定义 */
+export const ResponseSchemaDefinition = z.object({
+  fields: z.array(FieldDefinitionSchema),
+  description: z.optional(z.string()),
+  discoveredAt: z.optional(z.string()),
+  source: z.optional(z.enum(["manual", "inferred", "openapi", "introspection"])),
+})
+export type ResponseSchema = z.infer<typeof ResponseSchemaDefinition>
+
 /** 协议 endpoint 公共基础字段 */
 const endpointBaseFields = {
   id: z.string().min(1),
@@ -56,6 +82,7 @@ const endpointBaseFields = {
   paramSchema: z.string().optional(),
   apiSchemaFormat: ApiSchemaFormat,
   responseExample: z.string().optional(),
+  responseSchema: z.optional(ResponseSchemaDefinition),
 }
 
 /** REST 协议 endpoint */

@@ -4,6 +4,7 @@ import { toAISdkStream } from "@mastra/ai-sdk"
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible"
 
 import { mastra } from "@/mastra"
+import { buildDatasourceContext } from "@/lib/schema/build-context"
 import { getProviderForModel, getModelById, getDefaultModelId } from "@/lib/models"
 import { db } from "@/db"
 import { chats, messages } from "@/db/schema"
@@ -42,7 +43,20 @@ export async function POST(req: Request) {
   const agent = mastra.getAgent(
     agentId as "chatAgent" | "researchAgent" | "codeAgent" | "autoAgent",
   )
-  const stream = await agent.stream(chatMessages, { model: modelInstance })
+
+  // 注入数据源上下文到系统消息
+  const dsContext = await buildDatasourceContext(agentId)
+  const messagesWithContext = dsContext
+    ? [
+        {
+          role: "system" as const,
+          content: `\n\n---\n可用数据源:\n${dsContext}\n---\n`,
+        },
+        ...chatMessages,
+      ]
+    : chatMessages
+
+  const stream = await agent.stream(messagesWithContext, { model: modelInstance })
 
   // 收集完整的 assistant 响应
   let assistantText = ""

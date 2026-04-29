@@ -130,7 +130,21 @@ export const datasourceListTool = createTool({
         name: ds.name,
         type: ds.type,
         description: ds.description,
-        endpoints: ds.endpoints,
+        endpoints: (ds.endpoints ?? []).map((ep: Record<string, unknown>) => {
+          const base: Record<string, unknown> = { ...ep }
+          if (ep.responseSchema && typeof ep.responseSchema === "object") {
+            const schema = ep.responseSchema as Record<string, unknown>
+            const fieldsArr = (schema.fields ?? []) as Array<Record<string, unknown>>
+            const fields = fieldsArr.slice(0, 20).map((f) => ({
+              name: (f.name as string) ?? "unknown",
+              type: (f.type as string) ?? "unknown",
+            }))
+            if (fields.length > 0) {
+              base.responseFields = fields
+            }
+          }
+          return base
+        }),
       })),
     }
   },
