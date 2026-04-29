@@ -3,6 +3,7 @@ import { writeFile, mkdir } from "fs/promises"
 import { join } from "path"
 import { randomUUID } from "crypto"
 import { getSession } from "@/lib/auth"
+import { extractText } from "@/lib/wiki/extract-text"
 
 const WIKI_PATH = process.env.WIKI_PATH || join(process.cwd(), "wiki")
 const UPLOAD_DIR = join(WIKI_PATH, "raw", "uploads")
@@ -62,12 +63,26 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer())
     await writeFile(storedPath, buffer)
 
+    // 提取文本内容并保存为 .extracted.md
+    let extractedText: string | undefined
+    const extraction = await extractText(storedPath)
+    if (extraction.text) {
+      extractedText = extraction.text
+      const extractedPath = storedPath + ".extracted.md"
+      await writeFile(
+        extractedPath,
+        `---\nsource: ${file.name}\nextracted: ${new Date().toISOString()}\n---\n\n${extraction.text}`,
+      )
+    }
+
     const result = {
       id: randomUUID(),
       originalName: file.name,
       storedPath: `raw/uploads/${storedName}`,
+      extractedPath: extractedText ? `raw/uploads/${storedName}.extracted.md` : undefined,
       mimeType: file.type || "application/octet-stream",
       size: file.size,
+      hasText: !!extractedText,
       uploadedAt: new Date().toISOString(),
     }
 

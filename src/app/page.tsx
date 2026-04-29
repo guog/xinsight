@@ -25,6 +25,7 @@ import { WelcomeEmptyState } from "@/components/welcome-empty-state"
 import { getModelById } from "@/lib/models"
 import { parseChartBlocks } from "@/lib/chart/parse-chart-block"
 import { ChartBlock } from "@/components/chart/chart-block"
+import { FileUpload } from "@/components/file-upload"
 import { Sidebar, type ChatItem } from "@/components/sidebar"
 
 /** Agent 定义 */
@@ -261,13 +262,15 @@ export default function ChatPage() {
               value={input}
               placeholder="输入你的问题..."
               onChange={(e) => setInput(e.currentTarget.value)}
-              className="pr-12"
+              className="pr-20"
             />
-            <PromptInputSubmit
-              status={status === "streaming" ? "streaming" : "ready"}
-              disabled={!input.trim()}
-              className="absolute bottom-1 right-1"
-            />
+            <div className="absolute bottom-1 right-1 flex items-center gap-1">
+              <FileUpload disabled={status === "streaming"} />
+              <PromptInputSubmit
+                status={status === "streaming" ? "streaming" : "ready"}
+                disabled={!input.trim()}
+              />
+            </div>
           </PromptInput>
         </div>
       </main>
