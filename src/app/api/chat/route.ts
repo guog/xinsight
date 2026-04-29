@@ -36,8 +36,10 @@ export async function POST(req: Request) {
           const { done, value } = await reader.read()
           if (done) break
           // 收集文本用于持久化
-          if (value.type === "text" && typeof value.value === "string") {
-            assistantText += value.value
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const chunk = value as any
+          if (chunk.type === "text-delta" && typeof chunk.value === "string") {
+            assistantText += chunk.value
           }
           await writer.write(value)
         }
@@ -77,10 +79,9 @@ export async function POST(req: Request) {
           const msgCount = await db.select().from(messages).where(eq(messages.chatId, chatId))
           if (msgCount.length <= 2 && lastUserMsg) {
             // 前两条消息（user + assistant），用用户消息前 30 字作为标题
-            const firstText =  
-            lastUserMsg.parts?.find((p: { type: string }) => p.type === "text")?.text as
-              | string
-              | undefined
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const textPart = (lastUserMsg.parts as any[])?.find((p) => p.type === "text")
+            const firstText = textPart?.text as string | undefined
             if (firstText) {
               updates.title = firstText.slice(0, 30) + (firstText.length > 30 ? "..." : "")
             }
