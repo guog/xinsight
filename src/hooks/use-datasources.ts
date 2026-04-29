@@ -8,6 +8,7 @@ export interface DatasourceEndpoint {
   description?: string
   params?: Record<string, unknown>
   paramSchema?: string
+  apiSchemaFormat?: "natural" | "openapi"
   responseExample?: string
 }
 
