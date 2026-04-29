@@ -6,6 +6,7 @@ import { getSession } from "@/lib/auth"
 import { extractText } from "@/lib/wiki/extract-text"
 import { ingestFile } from "@/lib/wiki/ingest-pipeline"
 import { taskRunner } from "@/lib/wiki/task-runner"
+import { checkDuplicate, registerUpload, computeSha256 } from "@/lib/wiki/upload-registry"
 
 const WIKI_PATH = process.env.WIKI_PATH || join(process.cwd(), "wiki")
 const UPLOAD_DIR = join(WIKI_PATH, "raw", "uploads")
@@ -56,13 +57,26 @@ export async function POST(request: NextRequest) {
     // 确保上传目录存在
     await mkdir(UPLOAD_DIR, { recursive: true })
 
+    // SHA256 去重检查
+    const buffer = Buffer.from(await file.arrayBuffer())
+    const duplicate = await checkDuplicate(buffer, WIKI_PATH)
+    if (duplicate) {
+      return NextResponse.json(
+        {
+          duplicate: true,
+          message: `文件内容与已上传的「${duplicate.originalName}」重复`,
+          duplicateOf: duplicate,
+        },
+        { status: 409 },
+      )
+    }
+
     // 生成存储文件名（保留原始扩展名）
     const ext = file.name.includes(".") ? "." + file.name.split(".").pop() : ""
     const storedName = `${Date.now()}-${randomUUID().slice(0, 8)}${ext}`
     const storedPath = join(UPLOAD_DIR, storedName)
 
     // 写入文件
-    const buffer = Buffer.from(await file.arrayBuffer())
     await writeFile(storedPath, buffer)
 
     // 提取文本内容并保存为 .extracted.md
@@ -87,6 +101,14 @@ export async function POST(request: NextRequest) {
       hasText: !!extractedText,
       uploadedAt: new Date().toISOString(),
     }
+
+    // 注册到去重表
+    await registerUpload(WIKI_PATH, {
+      sha256: computeSha256(buffer),
+      originalName: file.name,
+      storedPath: `raw/uploads/${storedName}`,
+      uploadedAt: result.uploadedAt,
+    })
 
     // 自动触发摄入（后台执行，不阻塞响应）
     if (extractedText) {
