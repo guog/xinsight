@@ -6,6 +6,7 @@ import { createOpenAICompatible } from "@ai-sdk/openai-compatible"
 import { mastra } from "@/mastra"
 import { buildDatasourceContext } from "@/lib/schema/build-context"
 import { CHART_SYSTEM_PROMPT } from "@/lib/chart/prompt"
+import { CROSS_SOURCE_PROMPT } from "@/lib/cross-source/prompt"
 import { getProviderForModel, getModelById, getDefaultModelId } from "@/lib/models"
 import { db } from "@/db"
 import { chats, messages } from "@/db/schema"
@@ -45,11 +46,12 @@ export async function POST(req: Request) {
     agentId as "chatAgent" | "researchAgent" | "codeAgent" | "autoAgent",
   )
 
-  // 注入数据源上下文到系统消息（图表指令仅在有数据源时注入，节省 token）
+  // 注入数据源上下文到系统消息（图表指令和跨源指引仅在有数据源时注入，节省 token）
   const dsContext = await buildDatasourceContext(agentId)
   const systemContent = [
     dsContext ? `\n\n---\n可用数据源:\n${dsContext}\n---\n` : "",
     dsContext ? CHART_SYSTEM_PROMPT : "",
+    dsContext ? CROSS_SOURCE_PROMPT : "",
   ]
     .filter(Boolean)
     .join("\n")
