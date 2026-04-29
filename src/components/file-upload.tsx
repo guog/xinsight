@@ -40,6 +40,9 @@ export function FileUpload({ onUploadComplete, disabled }: FileUploadProps) {
 
       if (!res.ok) {
         const data = await res.json()
+        if (res.status === 409 && data.duplicate) {
+          throw new Error(`文件重复：与「${data.duplicateOf.originalName}」内容相同`)
+        }
         throw new Error(data.error || "上传失败")
       }
 
