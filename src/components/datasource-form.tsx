@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import type { Datasource, DatasourceEndpoint } from "@/hooks/use-datasources"
+import { useAgents } from "@/hooks/use-agents"
 import { Plus, Trash2 } from "lucide-react"
 
 // 接入协议选项
@@ -22,12 +23,7 @@ const authOptions = [
   { value: "apikey", label: "API Key" },
 ] as const
 
-// Agent 列表
-const agentOptions = [
-  { id: "chat-agent", label: "Chat Agent" },
-  { id: "research-agent", label: "Research Agent" },
-  { id: "code-agent", label: "Code Agent" },
-]
+// Agent 列表从 Mastra 动态获取（见 useAgents hook）
 
 type ProtocolType = Datasource["type"]
 type AuthType = "none" | "bearer" | "basic" | "apikey"
@@ -38,12 +34,20 @@ interface Props {
 }
 
 function emptyEndpoint(): DatasourceEndpoint {
-  return { id: "", name: "", description: "", paramSchema: "", responseExample: "" }
+  return {
+    id: "",
+    name: "",
+    description: "",
+    paramSchema: "",
+    apiSchemaFormat: "natural",
+    responseExample: "",
+  }
 }
 
 export default function DatasourceForm({ initialData, isEdit }: Props) {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
+  const { agents: agentOptions, loading: agentsLoading } = useAgents()
 
   // 基本信息
   const [id, setId] = useState(initialData?.id ?? "")
@@ -407,13 +411,43 @@ export default function DatasourceForm({ initialData, isEdit }: Props) {
                 </div>
               </div>
               <div>
-                <label className={labelClass}>入参说明 (paramSchema)</label>
+                <div className="flex items-center gap-3 mb-1">
+                  <label className={labelClass}>入参说明 (paramSchema)</label>
+                  <div className="flex gap-1 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => updateEndpoint(i, "apiSchemaFormat", "natural")}
+                      className={`px-2 py-0.5 rounded border transition-colors ${
+                        (ep.apiSchemaFormat ?? "natural") === "natural"
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border hover:bg-muted"
+                      }`}
+                    >
+                      自然语言
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => updateEndpoint(i, "apiSchemaFormat", "openapi")}
+                      className={`px-2 py-0.5 rounded border transition-colors ${
+                        ep.apiSchemaFormat === "openapi"
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border hover:bg-muted"
+                      }`}
+                    >
+                      OpenAPI
+                    </button>
+                  </div>
+                </div>
                 <textarea
-                  className={`${inputClass} min-h-[60px]`}
+                  className={`${inputClass} min-h-[60px] font-mono`}
                   value={ep.paramSchema ?? ""}
                   onChange={(e) => updateEndpoint(i, "paramSchema", e.target.value)}
-                  placeholder='如: { "city": "string" }'
-                  rows={2}
+                  placeholder={
+                    (ep.apiSchemaFormat ?? "natural") === "natural"
+                      ? "用自然语言描述参数，如：需要 orderId (字符串) 和 status (可选，枚举：pending/completed)"
+                      : '{\n  "type": "object",\n  "properties": {\n    "orderId": { "type": "string" }\n  },\n  "required": ["orderId"]\n}'
+                  }
+                  rows={3}
                 />
               </div>
               <div>
@@ -442,19 +476,23 @@ export default function DatasourceForm({ initialData, isEdit }: Props) {
       {/* Agent 绑定 */}
       <section className={sectionClass}>
         <h2 className={sectionTitleClass}>Agent 绑定</h2>
-        <div className="flex flex-wrap gap-4">
-          {agentOptions.map(({ id: agentId, label }) => (
-            <label key={agentId} className="flex items-center gap-2 text-sm cursor-pointer">
-              <input
-                type="checkbox"
-                checked={boundAgents.has(agentId)}
-                onChange={() => toggleAgent(agentId)}
-                className="rounded"
-              />
-              {label}
-            </label>
-          ))}
-        </div>
+        {agentsLoading ? (
+          <p className="text-sm text-muted-foreground">加载 Agent 列表...</p>
+        ) : (
+          <div className="flex flex-wrap gap-4">
+            {agentOptions.map(({ id: agentId, name: agentName }) => (
+              <label key={agentId} className="flex items-center gap-2 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={boundAgents.has(agentId)}
+                  onChange={() => toggleAgent(agentId)}
+                  className="rounded"
+                />
+                {agentName} ({agentId})
+              </label>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* 提交 */}
