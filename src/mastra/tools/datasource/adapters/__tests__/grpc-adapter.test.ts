@@ -25,7 +25,7 @@ describe("GrpcAdapter", () => {
   beforeEach(() => {
     adapter = new GrpcAdapter()
     mockFetch = vi.fn()
-    vi.stubGlobal("fetch", mockFetch)
+    globalThis.fetch = mockFetch as unknown as typeof fetch
   })
 
   afterEach(() => {

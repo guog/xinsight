@@ -24,7 +24,7 @@ describe("GraphqlAdapter", () => {
   beforeEach(() => {
     adapter = new GraphqlAdapter()
     fetchMock = vi.fn()
-    vi.stubGlobal("fetch", fetchMock)
+    globalThis.fetch = fetchMock as unknown as typeof fetch
   })
 
   afterEach(() => {

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest"
-import Database from "better-sqlite3"
-import { drizzle } from "drizzle-orm/better-sqlite3"
+import { Database } from "bun:sqlite"
+import { drizzle } from "drizzle-orm/bun-sqlite"
 import * as schema from "@/db/schema"
 import { SqliteDatasourceRepository } from "../datasource-repository"
 import type { DatasourceEndpoint } from "@/mastra/tools/datasource/types"
@@ -32,7 +32,12 @@ function createTestDb() {
 }
 
 const sampleEndpoints: DatasourceEndpoint[] = [
-  { id: "ep1", name: "获取用户", description: "获取用户列表", params: { method: "GET", path: "/users" } },
+  {
+    id: "ep1",
+    name: "获取用户",
+    description: "获取用户列表",
+    params: { method: "GET", path: "/users" },
+  },
 ]
 
 const sampleInput = {

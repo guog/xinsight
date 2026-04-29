@@ -1,26 +1,28 @@
-import { describe, it, expect, vi, beforeEach } from "vitest"
+import { describe, it, expect, beforeEach, mock } from "bun:test"
 
-// Mock mastra before importing route
-vi.mock("@/mastra", () => ({
-  mastra: {
-    listAgents: vi.fn(),
-  },
+// 手动构造 mock mastra
+const mockListAgents = mock(() => ({}))
+const mockMastra = { listAgents: mockListAgents }
+
+// Mock @/mastra 模块
+mock.module("@/mastra", () => ({
+  mastra: mockMastra,
 }))
 
-import { GET } from "@/app/api/agents/route"
-import { mastra } from "@/mastra"
+// 必须在 mock.module 之后 import
+const { GET } = await import("@/app/api/agents/route")
 
 describe("GET /api/agents", () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    mockListAgents.mockReset()
   })
 
   it("返回所有已注册的 Agent 列表", async () => {
-    vi.mocked(mastra.listAgents).mockReturnValue({
+    mockListAgents.mockReturnValue({
       chatAgent: { id: "chat-agent", name: "聊天助手" },
       researchAgent: { id: "research-agent", name: "研究助手" },
       codeAgent: { id: "code-agent", name: "代码助手" },
-    } as ReturnType<typeof mastra.listAgents>)
+    })
 
     const response = await GET()
     const data = await response.json()
@@ -34,9 +36,9 @@ describe("GET /api/agents", () => {
   })
 
   it("只返回 id 和 name 字段", async () => {
-    vi.mocked(mastra.listAgents).mockReturnValue({
+    mockListAgents.mockReturnValue({
       chatAgent: { id: "chat-agent", name: "聊天助手", instructions: "some long text", tools: {} },
-    } as ReturnType<typeof mastra.listAgents>)
+    })
 
     const response = await GET()
     const data = await response.json()
@@ -46,7 +48,7 @@ describe("GET /api/agents", () => {
   })
 
   it("mastra 异常时返回 500", async () => {
-    vi.mocked(mastra.listAgents).mockImplementation(() => {
+    mockListAgents.mockImplementation(() => {
       throw new Error("mastra error")
     })
 

@@ -25,7 +25,7 @@ describe("OpcuaAdapter", () => {
   beforeEach(() => {
     adapter = new OpcuaAdapter()
     mockFetch = vi.fn()
-    vi.stubGlobal("fetch", mockFetch)
+    globalThis.fetch = mockFetch as unknown as typeof fetch
   })
 
   afterEach(() => {
