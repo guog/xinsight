@@ -125,3 +125,15 @@ export async function requireAdmin() {
   if (user.role !== "admin") throw new Error("需要管理员权限")
   return user
 }
+
+/** 将 auth 错误转为 HTTP Response，非 auth 错误返回 null */
+export function handleAuthError(error: unknown): Response | null {
+  if (
+    error instanceof Error &&
+    (error.message === "未登录" || error.message === "需要管理员权限")
+  ) {
+    const status = error.message === "未登录" ? 401 : 403
+    return Response.json({ error: error.message }, { status })
+  }
+  return null
+}

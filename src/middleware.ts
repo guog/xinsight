@@ -1,37 +1,22 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 
-const PUBLIC_PATHS = ["/login", "/register", "/api/auth/login", "/api/auth/register"]
-const SESSION_COOKIE = "xinsight_session"
-
+/**
+ * Defense-in-depth: 服务端中间件拦截未登录用户访问 /admin 路由。
+ * 注意：这里只能检查 cookie 是否存在（Edge Runtime 无法访问 DB），
+ * 完整的角色校验由各 API route 的 requireAdmin() 保证。
+ */
 export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
+  const sessionCookie = request.cookies.get("xinsight_session")
 
-  // 静态资源和公共路径跳过
-  if (
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/icons") ||
-    pathname === "/manifest.json" ||
-    pathname === "/sw.js" ||
-    PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))
-  ) {
-    return NextResponse.next()
-  }
-
-  const sessionId = request.cookies.get(SESSION_COOKIE)?.value
-  if (!sessionId) {
-    // API 返回 401
-    if (pathname.startsWith("/api/")) {
-      return NextResponse.json({ error: "未登录" }, { status: 401 })
-    }
-    // 页面重定向到登录
-    const loginUrl = new URL("/login", request.url)
-    loginUrl.searchParams.set("redirect", pathname)
-    return NextResponse.redirect(loginUrl)
+  if (!sessionCookie?.value) {
+    // 未登录，重定向到首页
+    return NextResponse.redirect(new URL("/", request.url))
   }
 
   return NextResponse.next()
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/admin/:path*"],
 }
