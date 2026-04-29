@@ -1,6 +1,7 @@
 import { Agent } from "@mastra/core/agent"
 import { datasourceQueryTool, datasourceListTool } from "../tools/datasource"
 import { datasourceBatchQueryTool } from "../tools/cross-source"
+import { wikiSearchTool, wikiReadTool, wikiIngestTool } from "../tools/wiki"
 import {
   createAnswerRelevancyScorer,
   createToxicityScorer,
