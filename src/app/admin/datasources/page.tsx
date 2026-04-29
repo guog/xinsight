@@ -115,7 +115,12 @@ export default function DatasourcesPage() {
               <div key={ds.id} className="flex items-center justify-between px-4 py-3 gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="font-medium text-sm truncate">{ds.name}</span>
+                    <Link
+                      href={`/admin/datasources/${ds.id}`}
+                      className="font-medium text-sm truncate hover:text-primary transition-colors"
+                    >
+                      {ds.name}
+                    </Link>
                     <span className={`px-2 py-0.5 text-xs rounded-full ${badge.color}`}>
                       {badge.label}
                     </span>
