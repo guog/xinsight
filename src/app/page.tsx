@@ -27,6 +27,7 @@ import { Sidebar, type ChatItem } from "@/components/sidebar"
 
 /** Agent 定义 */
 const agents = [
+  { id: "autoAgent", name: "自动", description: "智能选择最佳模式" },
   { id: "chatAgent", name: "聊天助手", description: "通用对话" },
   { id: "researchAgent", name: "研究助手", description: "深度分析" },
   { id: "codeAgent", name: "代码助手", description: "编程辅助" },
@@ -34,7 +35,7 @@ const agents = [
 
 export default function ChatPage() {
   const [input, setInput] = useState("")
-  const [agentId, setAgentId] = useState("chatAgent")
+  const [agentId, setAgentId] = useState("autoAgent")
   const [showAgentMenu, setShowAgentMenu] = useState(false)
   const [activeChatId, setActiveChatId] = useState<string | null>(null)
   const chatIdRef = useRef<string | null>(null)
@@ -174,46 +175,6 @@ export default function ChatPage() {
       <main className="flex flex-col flex-1 min-w-0 max-w-4xl mx-auto w-full px-2 py-3 sm:px-4 sm:py-4 md:px-6">
         {/* 首次使用引导 */}
         {!isOnboardingComplete && <OnboardingWizard onComplete={markComplete} />}
-        {/* 顶部工具栏 */}
-        <header className="flex items-center justify-between mb-2 sm:mb-3 pl-10 md:pl-0">
-          <div className="flex items-center gap-2">
-            {/* Agent 切换 */}
-            <div className="relative">
-              <button
-                onClick={() => setShowAgentMenu(!showAgentMenu)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border border-border hover:bg-muted transition-colors"
-              >
-                {currentAgent.name}
-                <ChevronDown className="size-3.5" />
-              </button>
-              {showAgentMenu && (
-                <div className="absolute top-full left-0 mt-1 w-48 bg-popover border border-border rounded-lg shadow-lg z-10">
-                  {agents.map((agent) => (
-                    <button
-                      key={agent.id}
-                      onClick={() => {
-                        setAgentId(agent.id)
-                        setShowAgentMenu(false)
-                      }}
-                      className={`w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors first:rounded-t-lg last:rounded-b-lg ${
-                        agentId === agent.id ? "bg-primary/10 text-primary" : ""
-                      }`}
-                    >
-                      <div className="font-medium">{agent.name}</div>
-                      <div className="text-xs text-muted-foreground">{agent.description}</div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* 模型显示 */}
-            <span className="text-xs text-muted-foreground hidden sm:inline">
-              {currentModel?.name ?? modelId}
-            </span>
-          </div>
-        </header>
-
         {/* 对话区域 */}
         <Conversation>
           <ConversationContent>
@@ -247,22 +208,60 @@ export default function ChatPage() {
         </Conversation>
 
         {/* 输入区域 */}
-        <PromptInput
-          onSubmit={handleSubmit}
-          className="mt-2 sm:mt-4 w-full max-w-2xl mx-auto relative"
-        >
-          <PromptInputTextarea
-            value={input}
-            placeholder="输入你的问题..."
-            onChange={(e) => setInput(e.currentTarget.value)}
-            className="pr-12"
-          />
-          <PromptInputSubmit
-            status={status === "streaming" ? "streaming" : "ready"}
-            disabled={!input.trim()}
-            className="absolute bottom-1 right-1"
-          />
-        </PromptInput>
+        <div className="mt-2 sm:mt-4 w-full max-w-2xl mx-auto">
+          {/* 工具栏 */}
+          <div className="flex items-center gap-2 mb-1.5 px-1">
+            {/* Agent 选择器 */}
+            <div className="relative">
+              <button
+                onClick={() => setShowAgentMenu(!showAgentMenu)}
+                className="flex items-center gap-1 px-2 py-1 text-xs rounded-md border border-border hover:bg-muted transition-colors"
+              >
+                {currentAgent.name}
+                <ChevronDown className="size-3" />
+              </button>
+              {showAgentMenu && (
+                <div className="absolute bottom-full left-0 mb-1 w-44 bg-popover border border-border rounded-lg shadow-lg z-10">
+                  {agents.map((agent) => (
+                    <button
+                      key={agent.id}
+                      onClick={() => {
+                        setAgentId(agent.id)
+                        setShowAgentMenu(false)
+                      }}
+                      className={`w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors first:rounded-t-lg last:rounded-b-lg ${
+                        agentId === agent.id ? "bg-primary/10 text-primary" : ""
+                      }`}
+                    >
+                      <div className="font-medium">{agent.name}</div>
+                      <div className="text-xs text-muted-foreground">{agent.description}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            {/* Model label */}
+            <span className="text-xs text-muted-foreground">{currentModel?.name ?? modelId}</span>
+          </div>
+
+          {/* Input */}
+          <PromptInput
+            onSubmit={handleSubmit}
+            className="relative"
+          >
+            <PromptInputTextarea
+              value={input}
+              placeholder="输入你的问题..."
+              onChange={(e) => setInput(e.currentTarget.value)}
+              className="pr-12"
+            />
+            <PromptInputSubmit
+              status={status === "streaming" ? "streaming" : "ready"}
+              disabled={!input.trim()}
+              className="absolute bottom-1 right-1"
+            />
+          </PromptInput>
+        </div>
       </main>
     </div>
   )
