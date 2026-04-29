@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { db } from "@/db"
 import { SqliteDatasourceRepository } from "@/db/repositories/datasource-repository"
-import { requireAdmin } from "@/lib/auth"
+import { requireAdmin, handleAuthError } from "@/lib/auth"
 
 /** GET /api/datasources/[id] — 获取单个数据源 */
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -33,13 +33,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const datasource = await repo.update(id, body)
     return NextResponse.json(datasource)
   } catch (error) {
-    if (
-      error instanceof Error &&
-      (error.message === "未登录" || error.message === "需要管理员权限")
-    ) {
-      const status = error.message === "未登录" ? 401 : 403
-      return Response.json({ error: error.message }, { status })
-    }
+    const authResp = handleAuthError(error)
+    if (authResp) return authResp
     console.error("更新数据源失败:", error)
     return NextResponse.json({ error: "更新数据源失败" }, { status: 500 })
   }
@@ -54,13 +49,8 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     await repo.delete(id)
     return NextResponse.json({ success: true })
   } catch (error) {
-    if (
-      error instanceof Error &&
-      (error.message === "未登录" || error.message === "需要管理员权限")
-    ) {
-      const status = error.message === "未登录" ? 401 : 403
-      return Response.json({ error: error.message }, { status })
-    }
+    const authResp = handleAuthError(error)
+    if (authResp) return authResp
     console.error("删除数据源失败:", error)
     return NextResponse.json({ error: "删除数据源失败" }, { status: 500 })
   }
