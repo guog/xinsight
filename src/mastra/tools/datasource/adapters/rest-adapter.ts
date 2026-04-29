@@ -9,6 +9,14 @@ export class RestAdapter implements DatasourceAdapter {
     params: Record<string, unknown>,
   ): Promise<DatasourceResult> {
     const start = Date.now()
+
+    // 查找 endpoint 定义（如有 endpointId）
+    const endpoint = params.endpointId
+      ? (config.endpoints.find((ep) => ep.id === params.endpointId) as
+          | Record<string, unknown>
+          | undefined)
+      : undefined
+
     const {
       path = "",
       method = "GET",
@@ -23,15 +31,29 @@ export class RestAdapter implements DatasourceAdapter {
       query?: Record<string, string>
     }
 
+    // 优先使用 endpoint 的协议专属字段
+    const resolvedMethod = (endpoint?.method as string) ?? method
+    let resolvedPath = (endpoint?.path as string) ?? path
+
+    // 替换路径中的 {param} 占位符
+    resolvedPath = resolvedPath.replace(/\{(\w+)\}/g, (_, key) => {
+      return String(params[key] ?? `{${key}}`)
+    })
+
+    // 合并 endpoint.headers
+    const endpointHeaders = (endpoint?.headers as Record<string, string>) ?? {}
+
     try {
       const restConfig = config.config as {
         baseUrl: string
         defaultHeaders?: Record<string, string>
       }
-      let url = `${restConfig.baseUrl}${path}`
+      let url = `${restConfig.baseUrl}${resolvedPath}`
 
-      // 构建 query 参数
+      // 构建 query 参数：endpoint.queryParams 为底，params.query 覆盖
       const searchParams = new URLSearchParams()
+      const endpointQueryParams = (endpoint?.queryParams as Record<string, string>) ?? {}
+      for (const [k, v] of Object.entries(endpointQueryParams)) searchParams.set(k, v)
       if (query) {
         for (const [k, v] of Object.entries(query)) searchParams.set(k, v)
       }
@@ -47,6 +69,7 @@ export class RestAdapter implements DatasourceAdapter {
       // 构建请求头
       const reqHeaders: Record<string, string> = {
         ...restConfig.defaultHeaders,
+        ...endpointHeaders,
         ...this.buildAuthHeaders(config.auth),
         ...extraHeaders,
       }
@@ -56,7 +79,7 @@ export class RestAdapter implements DatasourceAdapter {
       }
 
       const response = await fetch(url, {
-        method: method as string,
+        method: resolvedMethod as string,
         headers: reqHeaders,
         body: body ? JSON.stringify(body) : undefined,
       })

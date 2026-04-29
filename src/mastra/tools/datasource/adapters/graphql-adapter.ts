@@ -33,13 +33,26 @@ export class GraphqlAdapter implements DatasourceAdapter {
     config: DatasourceConfig,
     params: Record<string, unknown>,
   ): Promise<DatasourceResult> {
-    const endpoint = config.config.endpoint as string
-    const body: Record<string, unknown> = { query: params.query }
-    if (params.variables) body.variables = params.variables
-    if (params.operationName) body.operationName = params.operationName
+    const gqlEndpoint = config.config.endpoint as string
+
+    // 查找 endpoint 定义（如有 endpointId）
+    const endpoint = params.endpointId
+      ? (config.endpoints.find((ep) => ep.id === params.endpointId) as
+          | Record<string, unknown>
+          | undefined)
+      : undefined
+
+    // 优先使用 endpoint 的协议专属字段
+    const resolvedQuery = (endpoint?.query as string) ?? params.query
+    const resolvedOperationName = (endpoint?.operationName as string) ?? params.operationName
+    const resolvedVariables = params.variables
+
+    const body: Record<string, unknown> = { query: resolvedQuery }
+    if (resolvedVariables) body.variables = resolvedVariables
+    if (resolvedOperationName) body.operationName = resolvedOperationName
 
     try {
-      const res = await fetch(endpoint, {
+      const res = await fetch(gqlEndpoint, {
         method: "POST",
         headers: this.buildHeaders(config),
         body: JSON.stringify(body),

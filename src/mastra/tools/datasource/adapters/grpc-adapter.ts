@@ -9,6 +9,14 @@ export class GrpcAdapter implements DatasourceAdapter {
     params: Record<string, unknown>,
   ): Promise<DatasourceResult> {
     const start = Date.now()
+
+    // 查找 endpoint 定义（如有 endpointId）
+    const endpoint = params.endpointId
+      ? (config.endpoints.find((ep) => ep.id === params.endpointId) as
+          | Record<string, unknown>
+          | undefined)
+      : undefined
+
     const {
       service,
       method,
@@ -20,6 +28,10 @@ export class GrpcAdapter implements DatasourceAdapter {
       message?: unknown
       headers?: Record<string, string>
     }
+
+    // 优先使用 endpoint 的协议专属字段
+    const resolvedService = (endpoint?.service as string) ?? service
+    const resolvedMethod = (endpoint?.method as string) ?? method
 
     try {
       const grpcConfig = config.config as {
@@ -38,7 +50,7 @@ export class GrpcAdapter implements DatasourceAdapter {
       const response = await fetch(grpcConfig.address, {
         method: "POST",
         headers: reqHeaders,
-        body: JSON.stringify({ service, method, message }),
+        body: JSON.stringify({ service: resolvedService, method: resolvedMethod, message }),
       })
 
       const duration = Date.now() - start
