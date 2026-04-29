@@ -1,9 +1,9 @@
 /**
  * 集成测试用内存数据库
- * 创建临时 SQLite 内存 DB + Drizzle 实例 + SqliteDatasourceRepository
+ * 使用 bun:sqlite + drizzle-orm/bun-sqlite（Bun 原生支持）
  */
-import Database from "better-sqlite3"
-import { drizzle } from "drizzle-orm/better-sqlite3"
+import { Database } from "bun:sqlite"
+import { drizzle } from "drizzle-orm/bun-sqlite"
 import * as schema from "../../../db/schema"
 import { SqliteDatasourceRepository } from "../../../db/repositories/datasource-repository"
 
