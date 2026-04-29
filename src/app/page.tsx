@@ -23,6 +23,8 @@ import { useOnboarding } from "@/hooks/use-onboarding"
 import { OnboardingWizard } from "@/components/onboarding-wizard"
 import { WelcomeEmptyState } from "@/components/welcome-empty-state"
 import { getModelById } from "@/lib/models"
+import { parseChartBlocks } from "@/lib/chart/parse-chart-block"
+import { ChartBlock } from "@/components/chart/chart-block"
 import { Sidebar, type ChatItem } from "@/components/sidebar"
 
 /** Agent 定义 */
@@ -189,12 +191,21 @@ export default function ChatPage() {
                   <MessageContent>
                     {message.parts.map((part, i) => {
                       switch (part.type) {
-                        case "text":
-                          return (
-                            <MessageResponse key={`${message.id}-${i}`}>
-                              {part.text}
-                            </MessageResponse>
+                        case "text": {
+                          const segments = parseChartBlocks(part.text)
+                          return segments.map((seg, j) =>
+                            seg.type === "chart" ? (
+                              <ChartBlock
+                                key={`${message.id}-${i}-chart-${j}`}
+                                config={seg.config}
+                              />
+                            ) : (
+                              <MessageResponse key={`${message.id}-${i}-text-${j}`}>
+                                {seg.content}
+                              </MessageResponse>
+                            ),
                           )
+                        }
                         default:
                           return null
                       }
@@ -245,10 +256,7 @@ export default function ChatPage() {
           </div>
 
           {/* Input */}
-          <PromptInput
-            onSubmit={handleSubmit}
-            className="relative"
-          >
+          <PromptInput onSubmit={handleSubmit} className="relative">
             <PromptInputTextarea
               value={input}
               placeholder="输入你的问题..."
