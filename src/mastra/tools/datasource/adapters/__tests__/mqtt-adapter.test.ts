@@ -184,7 +184,7 @@ describe("MqttAdapter", () => {
             direction: "publish",
             qos: 1,
           },
-        ] as any,
+        ] as unknown as typeof config.endpoints,
       })
 
       const result = await adapter.query(config, { endpointId: "ep-1", payload: { cmd: "on" } })
@@ -212,7 +212,7 @@ describe("MqttAdapter", () => {
             direction: "publish",
             qos: 0,
           },
-        ] as any,
+        ] as unknown as typeof config.endpoints,
       })
 
       await adapter.query(config, { endpointId: "ep-1", topic: "custom/topic", payload: "hi" })

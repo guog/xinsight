@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { db } from "@/db"
 import { chats, messages } from "@/db/schema"
-import { eq, desc } from "drizzle-orm"
+import { eq } from "drizzle-orm"
 
 /** GET /api/chats/[id] — 获取单个对话及其消息 */
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {

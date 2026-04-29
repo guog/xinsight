@@ -2,7 +2,7 @@
  * datasource-query — endpointId 增强测试
  * 策略：用真实 in-memory DB + msw mock HTTP，测试 tool execute 逻辑
  */
-import { describe, it, expect, beforeAll, beforeEach, afterAll, afterEach } from "bun:test"
+import { describe, it, expect, beforeAll, afterAll, afterEach } from "bun:test"
 import { Database } from "bun:sqlite"
 import { drizzle } from "drizzle-orm/bun-sqlite"
 import * as schema from "@/db/schema"

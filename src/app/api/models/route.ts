@@ -9,10 +9,12 @@ export async function GET() {
     return NextResponse.json({ error: "未登录" }, { status: 401 })
   }
 
-  const providers = getProviders().map(({ apiKey, baseUrl, envKey, ...rest }) => ({
-    ...rest,
-    models: rest.models.map(({ id, name }) => ({ id, name })),
-  }))
+  const providers = getProviders().map(
+    ({ apiKey: _apiKey, baseUrl: _baseUrl, envKey: _envKey, ...rest }) => ({
+      ...rest,
+      models: rest.models.map(({ id, name }) => ({ id, name })),
+    }),
+  )
 
   const models = getModels().map(({ id, name, providerId }) => ({
     id,

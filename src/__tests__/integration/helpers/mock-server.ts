@@ -61,10 +61,10 @@ export const handlers = [
   }),
 
   // HEAD 请求 — testConnection 用
-  http.head(`${mockRestUrl}/*`, ({ request }) => {
+  http.head(`${mockRestUrl}/*`, () => {
     return new HttpResponse(null, { status: 200 })
   }),
-  http.head(mockRestUrl, ({ request }) => {
+  http.head(mockRestUrl, () => {
     return new HttpResponse(null, { status: 200 })
   }),
 ]

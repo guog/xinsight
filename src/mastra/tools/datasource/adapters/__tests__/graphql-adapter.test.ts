@@ -139,7 +139,7 @@ describe("GraphqlAdapter", () => {
           query: "query GetUser($id: ID!) { user(id: $id) { id name } }",
           operationName: "GetUser",
         },
-      ] as any
+      ] as unknown as typeof config.endpoints
 
       const result = await adapter.query(config, { endpointId: "ep-1", variables: { id: "1" } })
 

@@ -292,7 +292,7 @@ export async function lintWiki(
   }
 
   // 重复文件检查
-  for (const [_hash, files] of fileHashes) {
+  for (const [, files] of fileHashes) {
     if (files.length > 1) {
       for (const file of files) {
         issues.push({

@@ -133,7 +133,7 @@ describe("GrpcAdapter", () => {
             service: "UserService",
             method: "ListUsers",
           },
-        ] as any,
+        ] as unknown as typeof config.endpoints,
       })
 
       const result = await adapter.query(config, { endpointId: "ep-1", message: { page: 1 } })
@@ -148,7 +148,12 @@ describe("GrpcAdapter", () => {
     it("endpointId 找不到时回退到 params", async () => {
       mockFetch.mockResolvedValue(new Response(JSON.stringify({}), { status: 200 }))
 
-      await adapter.query(makeConfig(), { endpointId: "missing", service: "Svc", method: "Call", message: {} })
+      await adapter.query(makeConfig(), {
+        endpointId: "missing",
+        service: "Svc",
+        method: "Call",
+        message: {},
+      })
 
       const body = JSON.parse(mockFetch.mock.calls[0][1].body)
       expect(body.service).toBe("Svc")

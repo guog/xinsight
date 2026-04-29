@@ -18,13 +18,11 @@ const apiBase =
 
 /** 简易缓存：避免 useEffect + setState 的 lint 问题 */
 let cachedChats: Chat[] = []
-let cacheVersion = 0
 let cacheListeners: Array<() => void> = []
 let fetchPromise: Promise<void> | null = null
 const EMPTY_CHATS: Chat[] = []
 
 function notifyListeners() {
-  cacheVersion++
   for (const l of cacheListeners) l()
 }
 

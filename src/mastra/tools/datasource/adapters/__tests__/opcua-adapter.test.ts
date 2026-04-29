@@ -145,7 +145,7 @@ describe("OpcuaAdapter", () => {
             action: "read",
             nodeIds: ["ns=2;s=Temperature"],
           },
-        ] as any,
+        ] as unknown as typeof config.endpoints,
       })
 
       const result = await adapter.query(config, { endpointId: "ep-1" })
@@ -170,7 +170,7 @@ describe("OpcuaAdapter", () => {
             action: "read",
             nodeIds: ["ns=2;s=Default"],
           },
-        ] as any,
+        ] as unknown as typeof config.endpoints,
       })
 
       await adapter.query(config, { endpointId: "ep-1", nodeIds: ["ns=2;s=Override"] })

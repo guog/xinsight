@@ -24,7 +24,11 @@ const mockIntrospectionResponse = {
                 },
                 {
                   name: "offset",
-                  type: { name: null, kind: "NON_NULL", ofType: { name: "Int", kind: "SCALAR", ofType: null } },
+                  type: {
+                    name: null,
+                    kind: "NON_NULL",
+                    ofType: { name: "Int", kind: "SCALAR", ofType: null },
+                  },
                   defaultValue: null,
                 },
               ],
@@ -95,7 +99,7 @@ beforeAll(() => {
   mockFetchFn = mock(() =>
     Promise.resolve(new Response(JSON.stringify(mockIntrospectionResponse), { status: 200 })),
   )
-  globalThis.fetch = mockFetchFn as any
+  globalThis.fetch = mockFetchFn as typeof fetch
 })
 
 afterAll(() => {
@@ -157,7 +161,7 @@ describe("introspectGraphql", () => {
     const savedFetch = globalThis.fetch
     globalThis.fetch = mock(() =>
       Promise.resolve(new Response("Not Found", { status: 404, statusText: "Not Found" })),
-    ) as any
+    ) as unknown as typeof fetch
     try {
       await expect(introspectGraphql("http://example.com/graphql")).rejects.toThrow("404")
     } finally {
@@ -169,7 +173,7 @@ describe("introspectGraphql", () => {
     const savedFetch = globalThis.fetch
     globalThis.fetch = mock(() =>
       Promise.resolve(new Response(JSON.stringify({ data: {} }), { status: 200 })),
-    ) as any
+    ) as unknown as typeof fetch
     try {
       await expect(introspectGraphql("http://example.com/graphql")).rejects.toThrow("__schema")
     } finally {
@@ -191,7 +195,7 @@ describe("introspectGraphql", () => {
     }
     globalThis.fetch = mock(() =>
       Promise.resolve(new Response(JSON.stringify(emptySchema), { status: 200 })),
-    ) as any
+    ) as unknown as typeof fetch
     try {
       const result = await introspectGraphql("http://example.com/graphql")
       expect(result.queries).toHaveLength(0)
