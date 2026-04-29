@@ -38,8 +38,8 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     // 记录测试结果
     await repo.updateTestResult(
       id,
-      result.success ? "ok" : "failed",
-      result.success ? undefined : result.error,
+      result.ok ? "ok" : "failed",
+      result.ok ? undefined : result.message,
     )
     return NextResponse.json(result)
   } catch (error) {

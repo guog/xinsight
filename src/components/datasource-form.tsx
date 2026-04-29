@@ -3,9 +3,24 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import type { Datasource, DatasourceEndpoint } from "@/hooks/use-datasources"
+import type {
+  RestEndpoint,
+  GraphqlEndpoint,
+  GrpcEndpoint,
+  OpcuaEndpoint,
+  MqttEndpoint,
+} from "@/mastra/tools/datasource/types"
 import { useAgents } from "@/hooks/use-agents"
-import { Plus, Trash2 } from "lucide-react"
+import { Plus, Loader2, Download, Search } from "lucide-react"
 import { toast } from "sonner"
+
+import RestEndpointForm from "@/components/datasource/rest-endpoint-form"
+import GraphqlEndpointForm from "@/components/datasource/graphql-endpoint-form"
+import GrpcEndpointForm from "@/components/datasource/grpc-endpoint-form"
+import OpcuaEndpointForm from "@/components/datasource/opcua-endpoint-form"
+import MqttEndpointForm from "@/components/datasource/mqtt-endpoint-form"
+import ConnectionTestButton from "@/components/datasource/connection-test-button"
+import OpenApiImportDialog from "@/components/datasource/openapi-import-dialog"
 
 // 接入协议选项
 const protocolOptions = [
@@ -24,8 +39,6 @@ const authOptions = [
   { value: "apikey", label: "API Key" },
 ] as const
 
-// Agent 列表从 Mastra 动态获取（见 useAgents hook）
-
 type ProtocolType = Datasource["type"]
 type AuthType = "none" | "bearer" | "basic" | "apikey"
 
@@ -34,15 +47,24 @@ interface Props {
   isEdit?: boolean
 }
 
-function emptyEndpoint(): DatasourceEndpoint {
-  return {
-    id: "",
-    name: "",
-    description: "",
-    paramSchema: "",
-    apiSchemaFormat: "natural",
-    responseExample: "",
-  }
+function emptyRestEndpoint(): RestEndpoint {
+  return { id: "", name: "", method: "GET", path: "", description: "", apiSchemaFormat: "natural" }
+}
+
+function emptyGraphqlEndpoint(): GraphqlEndpoint {
+  return { id: "", name: "", operationType: "query", operationName: "", query: "", description: "", apiSchemaFormat: "natural" }
+}
+
+function emptyGrpcEndpoint(): GrpcEndpoint {
+  return { id: "", name: "", service: "", method: "", description: "", apiSchemaFormat: "natural" }
+}
+
+function emptyOpcuaEndpoint(): OpcuaEndpoint {
+  return { id: "", name: "", action: "read", nodeIds: [""], description: "", apiSchemaFormat: "natural" }
+}
+
+function emptyMqttEndpoint(): MqttEndpoint {
+  return { id: "", name: "", topic: "", direction: "subscribe", qos: 0, payloadFormat: "json", description: "", apiSchemaFormat: "natural" }
 }
 
 export default function DatasourceForm({ initialData, isEdit }: Props) {
@@ -84,24 +106,49 @@ export default function DatasourceForm({ initialData, isEdit }: Props) {
     ...(initialData?.auth as Record<string, string> | undefined),
   })
 
-  // 接口定义
-  const [endpoints, setEndpoints] = useState<DatasourceEndpoint[]>(
-    initialData?.endpoints ?? [emptyEndpoint()],
-  )
+  // 协议特定 endpoints
+  const [restEndpoints, setRestEndpoints] = useState<RestEndpoint[]>(() => {
+    if (initialData?.type === "rest" && initialData.endpoints?.length) {
+      return initialData.endpoints as unknown as RestEndpoint[]
+    }
+    return []
+  })
+  const [graphqlEndpoints, setGraphqlEndpoints] = useState<GraphqlEndpoint[]>(() => {
+    if (initialData?.type === "graphql" && initialData.endpoints?.length) {
+      return initialData.endpoints as unknown as GraphqlEndpoint[]
+    }
+    return []
+  })
+  const [grpcEndpoints, setGrpcEndpoints] = useState<GrpcEndpoint[]>(() => {
+    if (initialData?.type === "grpc" && initialData.endpoints?.length) {
+      return initialData.endpoints as unknown as GrpcEndpoint[]
+    }
+    return []
+  })
+  const [opcuaEndpoints, setOpcuaEndpoints] = useState<OpcuaEndpoint[]>(() => {
+    if (initialData?.type === "opcua" && initialData.endpoints?.length) {
+      return initialData.endpoints as unknown as OpcuaEndpoint[]
+    }
+    return []
+  })
+  const [mqttEndpoints, setMqttEndpoints] = useState<MqttEndpoint[]>(() => {
+    if (initialData?.type === "mqtt" && initialData.endpoints?.length) {
+      return initialData.endpoints as unknown as MqttEndpoint[]
+    }
+    return []
+  })
+
+  // OpenAPI 导入对话框
+  const [openApiDialogOpen, setOpenApiDialogOpen] = useState(false)
+
+  // GraphQL 自省
+  const [introspecting, setIntrospecting] = useState(false)
 
   // Agent 绑定
   const [boundAgents, setBoundAgents] = useState<Set<string>>(new Set(initialData?.agents ?? []))
 
   const updateConfig = (key: string, value: string) => setConfig((c) => ({ ...c, [key]: value }))
   const updateAuth = (key: string, value: string) => setAuth((a) => ({ ...a, [key]: value }))
-
-  const updateEndpoint = (index: number, field: keyof DatasourceEndpoint, value: string) => {
-    setEndpoints((prev) => prev.map((ep, i) => (i === index ? { ...ep, [field]: value } : ep)))
-  }
-
-  const addEndpoint = () => setEndpoints((prev) => [...prev, emptyEndpoint()])
-  const removeEndpoint = (index: number) =>
-    setEndpoints((prev) => prev.filter((_, i) => i !== index))
 
   const toggleAgent = (agentId: string) => {
     setBoundAgents((prev) => {
@@ -112,19 +159,68 @@ export default function DatasourceForm({ initialData, isEdit }: Props) {
     })
   }
 
+  // 获取当前协议的 endpoints（用于提交）
+  const getCurrentEndpoints = (): DatasourceEndpoint[] => {
+    const mapToGeneric = (eps: Array<Record<string, unknown>>): DatasourceEndpoint[] =>
+      eps.filter((ep) => ep.id || ep.name).map((ep) => ({
+        id: (ep.id as string) || "",
+        name: (ep.name as string) || "",
+        description: (ep.description as string) || "",
+        paramSchema: (ep.paramSchema as string) || "",
+        apiSchemaFormat: (ep.apiSchemaFormat as "natural" | "openapi") || "natural",
+        responseExample: (ep.responseExample as string) || "",
+        params: ep as Record<string, unknown>,
+      }))
+
+    switch (type) {
+      case "rest": return mapToGeneric(restEndpoints as unknown as Record<string, unknown>[])
+      case "graphql": return mapToGeneric(graphqlEndpoints as unknown as Record<string, unknown>[])
+      case "grpc": return mapToGeneric(grpcEndpoints as unknown as Record<string, unknown>[])
+      case "opcua": return mapToGeneric(opcuaEndpoints as unknown as Record<string, unknown>[])
+      case "mqtt": return mapToGeneric(mqttEndpoints as unknown as Record<string, unknown>[])
+      default: return []
+    }
+  }
+
+  // GraphQL 自省
+  const handleIntrospect = async () => {
+    const ep = config.endpoint
+    if (!ep) {
+      toast.error("请先填写 GraphQL Endpoint")
+      return
+    }
+    setIntrospecting(true)
+    try {
+      const res = await fetch("/api/datasources/introspect-graphql", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ endpoint: ep, headers: config.defaultHeaders }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || "自省失败")
+      }
+      const result = await res.json()
+      const all: GraphqlEndpoint[] = [
+        ...(result.queries || []),
+        ...(result.mutations || []),
+        ...(result.subscriptions || []),
+      ]
+      setGraphqlEndpoints((prev) => [...prev, ...all])
+      toast.success(`导入 ${all.length} 个 GraphQL 操作`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "自省失败")
+    } finally {
+      setIntrospecting(false)
+    }
+  }
+
   // 提交
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // 前端校验
-    if (!id.trim()) {
-      toast.error("请填写数据源 ID")
-      return
-    }
-    if (!name.trim()) {
-      toast.error("请填写数据源名称")
-      return
-    }
+    if (!id.trim()) { toast.error("请填写数据源 ID"); return }
+    if (!name.trim()) { toast.error("请填写数据源名称"); return }
 
     setSaving(true)
 
@@ -137,7 +233,7 @@ export default function DatasourceForm({ initialData, isEdit }: Props) {
         type,
         config: { ...config, timeout: Number(config.timeout) },
         auth: authType === "none" ? { type: "none" } : { type: authType, ...auth },
-        endpoints: endpoints.filter((ep) => ep.id || ep.name),
+        endpoints: getCurrentEndpoints(),
       }
 
       const url = isEdit ? `/api/datasources/${id}` : "/api/datasources"
@@ -203,6 +299,9 @@ export default function DatasourceForm({ initialData, isEdit }: Props) {
       { key: "defaultTopic", label: "Default Topic" },
     ],
   }
+
+  // 构建测试连接用的 auth 对象
+  const testAuth = authType === "none" ? { type: "none" as const } : { type: authType, ...auth }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-0">
@@ -279,7 +378,7 @@ export default function DatasourceForm({ initialData, isEdit }: Props) {
       {/* 连接配置 */}
       <details open className={sectionClass}>
         <summary className={`${sectionTitleClass} cursor-pointer select-none`}>连接配置</summary>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 mb-4">
           {connectionFields[type].map(({ key, label }) => (
             <div key={key}>
               <label className={labelClass}>{label}</label>
@@ -301,6 +400,7 @@ export default function DatasourceForm({ initialData, isEdit }: Props) {
             />
           </div>
         </div>
+        <ConnectionTestButton type={type} config={config} auth={testAuth} />
       </details>
 
       {/* 认证方式 */}
@@ -381,111 +481,131 @@ export default function DatasourceForm({ initialData, isEdit }: Props) {
         <summary className={`${sectionTitleClass} cursor-pointer select-none`}>
           接口定义 (Endpoints)
         </summary>
-        <div className="space-y-4">
-          {endpoints.map((ep, i) => (
-            <div key={i} className="border border-border rounded-lg p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">接口 #{i + 1}</span>
-                {endpoints.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeEndpoint(i)}
-                    className="p-1 rounded hover:bg-muted text-red-500 transition-colors"
-                  >
-                    <Trash2 className="size-4" />
-                  </button>
-                )}
-              </div>
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div>
-                  <label className={labelClass}>ID</label>
-                  <input
-                    className={inputClass}
-                    value={ep.id}
-                    onChange={(e) => updateEndpoint(i, "id", e.target.value)}
-                    placeholder="接口 ID"
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>名称</label>
-                  <input
-                    className={inputClass}
-                    value={ep.name}
-                    onChange={(e) => updateEndpoint(i, "name", e.target.value)}
-                    placeholder="接口名称"
-                  />
-                </div>
-                <div>
-                  <label className={labelClass}>描述</label>
-                  <input
-                    className={inputClass}
-                    value={ep.description ?? ""}
-                    onChange={(e) => updateEndpoint(i, "description", e.target.value)}
-                    placeholder="接口描述"
-                  />
-                </div>
-              </div>
-              <div>
-                <div className="flex items-center gap-3 mb-1">
-                  <label className={labelClass}>入参说明 (paramSchema)</label>
-                  <div className="flex gap-1 text-xs">
-                    <button
-                      type="button"
-                      onClick={() => updateEndpoint(i, "apiSchemaFormat", "natural")}
-                      className={`px-2 py-0.5 rounded border transition-colors ${
-                        (ep.apiSchemaFormat ?? "natural") === "natural"
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border hover:bg-muted"
-                      }`}
-                    >
-                      自然语言
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => updateEndpoint(i, "apiSchemaFormat", "openapi")}
-                      className={`px-2 py-0.5 rounded border transition-colors ${
-                        ep.apiSchemaFormat === "openapi"
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border hover:bg-muted"
-                      }`}
-                    >
-                      OpenAPI
-                    </button>
-                  </div>
-                </div>
-                <textarea
-                  className={`${inputClass} min-h-[60px] font-mono`}
-                  value={ep.paramSchema ?? ""}
-                  onChange={(e) => updateEndpoint(i, "paramSchema", e.target.value)}
-                  placeholder={
-                    (ep.apiSchemaFormat ?? "natural") === "natural"
-                      ? "用自然语言描述参数，如：需要 orderId (字符串) 和 status (可选，枚举：pending/completed)"
-                      : '{\n  "type": "object",\n  "properties": {\n    "orderId": { "type": "string" }\n  },\n  "required": ["orderId"]\n}'
-                  }
-                  rows={3}
-                />
-              </div>
-              <div>
-                <label className={labelClass}>响应示例 (responseExample)</label>
-                <textarea
-                  className={`${inputClass} min-h-[60px]`}
-                  value={ep.responseExample ?? ""}
-                  onChange={(e) => updateEndpoint(i, "responseExample", e.target.value)}
-                  placeholder='如: { "temperature": 25 }'
-                  rows={2}
-                />
-              </div>
+
+        {/* REST */}
+        {type === "rest" && (
+          <div className="space-y-4">
+            <div className="flex gap-2 mb-2">
+              <button
+                type="button"
+                onClick={() => setOpenApiDialogOpen(true)}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-border hover:bg-muted transition-colors"
+              >
+                <Download className="size-4" /> 导入 OpenAPI
+              </button>
             </div>
-          ))}
-          <button
-            type="button"
-            onClick={addEndpoint}
-            className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg border border-dashed border-border hover:bg-muted transition-colors"
-          >
-            <Plus className="size-4" />
-            添加接口
-          </button>
-        </div>
+            {restEndpoints.map((ep, i) => (
+              <RestEndpointForm
+                key={i}
+                endpoint={ep}
+                onChange={(updated) => setRestEndpoints((prev) => prev.map((e, idx) => (idx === i ? updated : e)))}
+                onRemove={() => setRestEndpoints((prev) => prev.filter((_, idx) => idx !== i))}
+              />
+            ))}
+            <button
+              type="button"
+              onClick={() => setRestEndpoints((prev) => [...prev, emptyRestEndpoint()])}
+              className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg border border-dashed border-border hover:bg-muted transition-colors"
+            >
+              <Plus className="size-4" /> 添加 REST 接口
+            </button>
+          </div>
+        )}
+
+        {/* GraphQL */}
+        {type === "graphql" && (
+          <div className="space-y-4">
+            <div className="flex gap-2 mb-2">
+              <button
+                type="button"
+                onClick={handleIntrospect}
+                disabled={introspecting}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-border hover:bg-muted transition-colors disabled:opacity-50"
+              >
+                {introspecting ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />}
+                自省 Schema
+              </button>
+            </div>
+            {graphqlEndpoints.map((ep, i) => (
+              <GraphqlEndpointForm
+                key={i}
+                endpoint={ep}
+                onChange={(updated) => setGraphqlEndpoints((prev) => prev.map((e, idx) => (idx === i ? updated : e)))}
+                onRemove={() => setGraphqlEndpoints((prev) => prev.filter((_, idx) => idx !== i))}
+              />
+            ))}
+            <button
+              type="button"
+              onClick={() => setGraphqlEndpoints((prev) => [...prev, emptyGraphqlEndpoint()])}
+              className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg border border-dashed border-border hover:bg-muted transition-colors"
+            >
+              <Plus className="size-4" /> 添加 GraphQL 接口
+            </button>
+          </div>
+        )}
+
+        {/* gRPC */}
+        {type === "grpc" && (
+          <div className="space-y-4">
+            {grpcEndpoints.map((ep, i) => (
+              <GrpcEndpointForm
+                key={i}
+                endpoint={ep}
+                onChange={(updated) => setGrpcEndpoints((prev) => prev.map((e, idx) => (idx === i ? updated : e)))}
+                onRemove={() => setGrpcEndpoints((prev) => prev.filter((_, idx) => idx !== i))}
+              />
+            ))}
+            <button
+              type="button"
+              onClick={() => setGrpcEndpoints((prev) => [...prev, emptyGrpcEndpoint()])}
+              className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg border border-dashed border-border hover:bg-muted transition-colors"
+            >
+              <Plus className="size-4" /> 添加 gRPC 接口
+            </button>
+          </div>
+        )}
+
+        {/* OPC UA */}
+        {type === "opcua" && (
+          <div className="space-y-4">
+            {opcuaEndpoints.map((ep, i) => (
+              <OpcuaEndpointForm
+                key={i}
+                endpoint={ep}
+                onChange={(updated) => setOpcuaEndpoints((prev) => prev.map((e, idx) => (idx === i ? updated : e)))}
+                onRemove={() => setOpcuaEndpoints((prev) => prev.filter((_, idx) => idx !== i))}
+              />
+            ))}
+            <button
+              type="button"
+              onClick={() => setOpcuaEndpoints((prev) => [...prev, emptyOpcuaEndpoint()])}
+              className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg border border-dashed border-border hover:bg-muted transition-colors"
+            >
+              <Plus className="size-4" /> 添加 OPC UA 接口
+            </button>
+          </div>
+        )}
+
+        {/* MQTT */}
+        {type === "mqtt" && (
+          <div className="space-y-4">
+            {mqttEndpoints.map((ep, i) => (
+              <MqttEndpointForm
+                key={i}
+                endpoint={ep}
+                onChange={(updated) => setMqttEndpoints((prev) => prev.map((e, idx) => (idx === i ? updated : e)))}
+                onRemove={() => setMqttEndpoints((prev) => prev.filter((_, idx) => idx !== i))}
+              />
+            ))}
+            <button
+              type="button"
+              onClick={() => setMqttEndpoints((prev) => [...prev, emptyMqttEndpoint()])}
+              className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg border border-dashed border-border hover:bg-muted transition-colors"
+            >
+              <Plus className="size-4" /> 添加 MQTT 接口
+            </button>
+          </div>
+        )}
       </details>
 
       {/* Agent 绑定 */}
@@ -527,6 +647,17 @@ export default function DatasourceForm({ initialData, isEdit }: Props) {
           取消
         </button>
       </div>
+
+      {/* OpenAPI 导入对话框 */}
+      <OpenApiImportDialog
+        open={openApiDialogOpen}
+        onClose={() => setOpenApiDialogOpen(false)}
+        onImport={(result) => {
+          setRestEndpoints((prev) => [...prev, ...result.endpoints])
+          if (result.baseUrl) updateConfig("baseUrl", result.baseUrl)
+          toast.success(`已导入 ${result.endpoints.length} 个接口`)
+        }}
+      />
     </form>
   )
 }
