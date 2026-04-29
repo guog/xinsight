@@ -26,17 +26,16 @@ export function useTheme() {
 
   useEffect(() => {
     applyTheme(theme)
+  }, [theme])
 
-    // 监听系统主题变化
+  // 监听系统主题变化
+  useEffect(() => {
+    if (theme !== "system") return
     const mq = window.matchMedia("(prefers-color-scheme: dark)")
-    const handler = () => {
-      if ((localStorage.getItem(STORAGE_KEY) ?? "system") === "system") {
-        applyTheme("system")
-      }
-    }
+    const handler = () => applyTheme("system")
     mq.addEventListener("change", handler)
     return () => mq.removeEventListener("change", handler)
-  }, [])
+  }, [theme])
 
   const setTheme = useCallback((t: Theme) => {
     setThemeState(t)
