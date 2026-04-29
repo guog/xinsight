@@ -10,7 +10,10 @@ export async function GET() {
     return NextResponse.json(datasources)
   } catch (error) {
     console.error("获取数据源列表失败:", error)
-    return NextResponse.json({ error: "获取数据源列表失败" }, { status: 500 })
+    return NextResponse.json(
+      { error: "获取数据源列表失败", message: error instanceof Error ? error.message : "未知错误" },
+      { status: 500 },
+    )
   }
 }
 
@@ -23,6 +26,9 @@ export async function POST(request: Request) {
     return NextResponse.json(datasource, { status: 201 })
   } catch (error) {
     console.error("创建数据源失败:", error)
-    return NextResponse.json({ error: "创建数据源失败" }, { status: 500 })
+    return NextResponse.json(
+      { error: "创建数据源失败", message: error instanceof Error ? error.message : "未知错误" },
+      { status: 500 },
+    )
   }
 }

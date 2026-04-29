@@ -38,8 +38,11 @@ export async function POST(req: Request) {
           // 收集文本用于持久化
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const chunk = value as any
-          if (chunk.type === "text-delta" && typeof chunk.value === "string") {
-            assistantText += chunk.value
+          if (chunk.type === "text-delta") {
+            const text = chunk.delta ?? chunk.value ?? ""
+            if (typeof text === "string") {
+              assistantText += text
+            }
           }
           await writer.write(value)
         }

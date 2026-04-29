@@ -136,7 +136,7 @@ export default function DatasourceForm({ initialData, isEdit }: Props) {
         enabled,
         type,
         config: { ...config, timeout: Number(config.timeout) },
-        auth: authType === "none" ? undefined : { type: authType, ...auth },
+        auth: authType === "none" ? { type: "none" } : { type: authType, ...auth },
         endpoints: endpoints.filter((ep) => ep.id || ep.name),
       }
 
@@ -277,8 +277,8 @@ export default function DatasourceForm({ initialData, isEdit }: Props) {
       </section>
 
       {/* 连接配置 */}
-      <section className={sectionClass}>
-        <h2 className={sectionTitleClass}>连接配置</h2>
+      <details open className={sectionClass}>
+        <summary className={`${sectionTitleClass} cursor-pointer select-none`}>连接配置</summary>
         <div className="grid gap-4 sm:grid-cols-2">
           {connectionFields[type].map(({ key, label }) => (
             <div key={key}>
@@ -301,11 +301,11 @@ export default function DatasourceForm({ initialData, isEdit }: Props) {
             />
           </div>
         </div>
-      </section>
+      </details>
 
       {/* 认证方式 */}
-      <section className={sectionClass}>
-        <h2 className={sectionTitleClass}>认证方式</h2>
+      <details open className={sectionClass}>
+        <summary className={`${sectionTitleClass} cursor-pointer select-none`}>认证方式</summary>
         <div className="flex flex-wrap gap-2 mb-4">
           {authOptions.map(({ value, label }) => (
             <button
@@ -374,11 +374,13 @@ export default function DatasourceForm({ initialData, isEdit }: Props) {
             </div>
           </div>
         )}
-      </section>
+      </details>
 
       {/* 接口定义 */}
-      <section className={sectionClass}>
-        <h2 className={sectionTitleClass}>接口定义 (Endpoints)</h2>
+      <details open className={sectionClass}>
+        <summary className={`${sectionTitleClass} cursor-pointer select-none`}>
+          接口定义 (Endpoints)
+        </summary>
         <div className="space-y-4">
           {endpoints.map((ep, i) => (
             <div key={i} className="border border-border rounded-lg p-4 space-y-3">
@@ -484,11 +486,11 @@ export default function DatasourceForm({ initialData, isEdit }: Props) {
             添加接口
           </button>
         </div>
-      </section>
+      </details>
 
       {/* Agent 绑定 */}
-      <section className={sectionClass}>
-        <h2 className={sectionTitleClass}>Agent 绑定</h2>
+      <details open className={sectionClass}>
+        <summary className={`${sectionTitleClass} cursor-pointer select-none`}>Agent 绑定</summary>
         {agentsLoading ? (
           <p className="text-sm text-muted-foreground">加载 Agent 列表...</p>
         ) : (
@@ -506,7 +508,7 @@ export default function DatasourceForm({ initialData, isEdit }: Props) {
             ))}
           </div>
         )}
-      </section>
+      </details>
 
       {/* 提交 */}
       <div className="flex items-center gap-3">

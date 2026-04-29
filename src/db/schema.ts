@@ -53,6 +53,7 @@ export const chats = sqliteTable("chats", {
   title: text("title").notNull().default("新对话"),
   agentId: text("agent_id").notNull().default("chatAgent"),
   modelId: text("model_id"),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
 })

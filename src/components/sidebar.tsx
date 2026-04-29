@@ -9,8 +9,10 @@ import {
   PanelLeftClose,
   PanelLeft,
   Trash2,
+  LogOut,
 } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 interface ChatItem {
   id: string
@@ -35,6 +37,7 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
   const [isOpen, setIsOpen] = useState(true)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [chatList, setChatList] = useState<ChatItem[]>([])
+  const router = useRouter()
 
   // 加载对话列表
   useEffect(() => {
@@ -46,6 +49,7 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation()
+    if (!confirm("确定要删除这个对话吗？")) return
     if (onDeleteChat) {
       onDeleteChat(id)
       setChatList((prev) => prev.filter((c) => c.id !== id))
@@ -89,17 +93,26 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
           <p className="text-xs text-muted-foreground text-center py-4">暂无对话</p>
         ) : (
           chatList.map((chat) => (
-            <button
+            <div
+              role="button"
+              tabIndex={0}
               key={chat.id}
               onClick={() => {
                 onSelectChat(chat)
                 setIsMobileOpen(false)
               }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault()
+                  onSelectChat(chat)
+                  setIsMobileOpen(false)
+                }
+              }}
               className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors group ${
                 activeChatId === chat.id
                   ? "bg-primary/10 text-primary"
                   : "hover:bg-muted text-foreground"
-              }`}
+              } cursor-pointer`}
             >
               <MessageSquare className="size-3.5 shrink-0" />
               <span className="truncate flex-1 text-left">{chat.title}</span>
@@ -112,7 +125,7 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
                   <Trash2 className="size-3" />
                 </button>
               )}
-            </button>
+            </div>
           ))
         )}
       </div>
@@ -135,6 +148,18 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
           <Settings className="size-4" />
           设置
         </Link>
+        <button
+          onClick={async () => {
+            try {
+              await fetch("/api/auth/logout", { method: "POST" })
+            } catch {}
+            router.push("/login")
+          }}
+          className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-muted transition-colors w-full text-left text-destructive"
+        >
+          <LogOut className="size-4" />
+          退出登录
+        </button>
       </div>
     </div>
   )
