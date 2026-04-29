@@ -30,6 +30,11 @@ export const datasources = sqliteTable("datasources", {
   config: text("config").notNull(), // JSON string
   endpoints: text("endpoints").notNull().default("[]"), // JSON string - DatasourceEndpoint[]
   enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+  lastTestedAt: integer("last_tested_at", { mode: "timestamp" }),
+  lastTestResult: text("last_test_result"),
+  lastTestMessage: text("last_test_message"),
+  lastCalledAt: integer("last_called_at", { mode: "timestamp" }),
+  callCount: integer("call_count").notNull().default(0),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
 })
