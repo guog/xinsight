@@ -105,12 +105,16 @@ function buildProviders(): ProviderInfo[] {
     if (!apiKey) continue
 
     // 解析 baseUrl
-    const baseUrl = (entry.envBaseUrl && process.env[entry.envBaseUrl]) || entry.defaultBaseUrl || ""
+    const baseUrl =
+      (entry.envBaseUrl && process.env[entry.envBaseUrl]) || entry.defaultBaseUrl || ""
 
     // 解析模型列表
-    const modelSlugs = entry.envModels && process.env[entry.envModels]
-      ? process.env[entry.envModels]!.split(",").map((s) => s.trim()).filter(Boolean)
-      : entry.defaultModels
+    const modelSlugs =
+      entry.envModels && process.env[entry.envModels]
+        ? process.env[entry.envModels]!.split(",")
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : entry.defaultModels
 
     // 构建 ModelInfo 数组
     const models: ModelInfo[] = modelSlugs.map((slug) => ({
@@ -138,6 +142,11 @@ function resolveProviders(): ProviderInfo[] {
     _cachedProviders = buildProviders()
   }
   return _cachedProviders
+}
+
+/** 清除缓存（仅测试用） */
+export function _resetCache() {
+  _cachedProviders = null
 }
 
 // === 导出函数 ===
