@@ -1,4 +1,5 @@
 import type { DatasourceAdapter, DatasourceConfig, DatasourceResult, AuthConfig } from "../types"
+import { fetchWithRetry } from "./fetch-with-retry"
 
 /** REST 数据源适配器 */
 export class RestAdapter implements DatasourceAdapter {
@@ -47,6 +48,7 @@ export class RestAdapter implements DatasourceAdapter {
       const restConfig = config.config as {
         baseUrl: string
         defaultHeaders?: Record<string, string>
+        timeout?: number
       }
       let url = `${restConfig.baseUrl}${resolvedPath}`
 
@@ -78,21 +80,35 @@ export class RestAdapter implements DatasourceAdapter {
         reqHeaders["Content-Type"] ??= "application/json"
       }
 
-      const response = await fetch(url, {
-        method: resolvedMethod as string,
-        headers: reqHeaders,
-        body: body ? JSON.stringify(body) : undefined,
-      })
+      const timeout = restConfig.timeout ?? 30000
+      const isGet = (resolvedMethod as string).toUpperCase() === "GET"
+
+      const result = await fetchWithRetry(
+        url,
+        {
+          method: resolvedMethod as string,
+          headers: reqHeaders,
+          body: body ? JSON.stringify(body) : undefined,
+        },
+        {
+          timeout,
+          allowRetry: isGet,
+        },
+      )
 
       const duration = Date.now() - start
-      const metadata = { duration, datasourceId: config.id, datasourceName: config.name }
-
-      if (!response.ok) {
-        return { success: false, error: `HTTP ${response.status} ${response.statusText}`, metadata }
+      const metadata: Record<string, unknown> = {
+        duration,
+        datasourceId: config.id,
+        datasourceName: config.name,
       }
 
-      const data = await response.json()
-      return { success: true, data, metadata }
+      if (result.error) {
+        return { success: false, error: result.error, metadata }
+      }
+
+      if (result.metadata?.truncated) metadata.truncated = true
+      return { success: true, data: result.data, metadata }
     } catch (err) {
       const duration = Date.now() - start
       return {

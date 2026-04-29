@@ -182,6 +182,8 @@ export interface DatasourceResult {
     duration: number
     datasourceId: string
     datasourceName: string
+    truncated?: boolean
+    [key: string]: unknown
   }
 }
 
