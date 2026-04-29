@@ -80,7 +80,9 @@ export const datasourceQueryTool = createTool({
 export const datasourceListTool = createTool({
   id: "datasource-list",
   description:
-    "列出当前 Agent 可用的数据源及其接口列表。返回数据源 ID、名称、类型、描述和可调用的接口。",
+    "列出当前 Agent 可用的数据源及其接口列表。返回数据源 ID、名称、类型、描述和可调用的接口。" +
+    "每个接口包含参数说明（paramSchema）和格式类型（apiSchemaFormat: natural=自然语言 / openapi=JSON Schema）。" +
+    "请先调用此工具了解可用数据源，再用 datasource-query 查询具体数据。",
   inputSchema: z.object({}),
   outputSchema: z.object({
     datasources: z.array(
@@ -96,6 +98,7 @@ export const datasourceListTool = createTool({
             description: z.string(),
             params: z.record(z.string(), z.unknown()),
             paramSchema: z.string().optional(),
+            apiSchemaFormat: z.enum(["natural", "openapi"]).optional(),
             responseExample: z.string().optional(),
           }),
         ),
