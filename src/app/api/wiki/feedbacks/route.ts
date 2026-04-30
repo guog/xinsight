@@ -1,25 +1,25 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getSession } from "@/lib/auth"
+import { getCurrentUser } from "@/lib/auth"
 import { db } from "@/db"
 import { wikiFeedbacks } from "@/db/schema"
 import { eq, desc } from "drizzle-orm"
 
 export async function GET() {
-  const session = await getSession()
+  const session = await getCurrentUser()
   if (!session) {
     return NextResponse.json({ error: "未登录" }, { status: 401 })
   }
   const feedbacks = db
     .select()
     .from(wikiFeedbacks)
-    .where(eq(wikiFeedbacks.userId, session.userId))
+    .where(eq(wikiFeedbacks.userId, session.id))
     .orderBy(desc(wikiFeedbacks.createdAt))
     .all()
   return NextResponse.json(feedbacks)
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getSession()
+  const session = await getCurrentUser()
   if (!session) {
     return NextResponse.json({ error: "未登录" }, { status: 401 })
   }
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     .values({
       id,
       pageId,
-      userId: session.userId,
+      userId: session.id,
       type,
       content,
       status: "pending",

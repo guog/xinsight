@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getSession } from "@/lib/auth"
+import { getCurrentUser } from "@/lib/auth"
 import { taskRunner } from "@/lib/wiki/task-runner"
 import { lintWiki } from "@/lib/wiki/lint"
 import { autoFixIssues } from "@/lib/wiki/auto-fix"
 
 // 获取所有任务列表
 export async function GET() {
-  const session = await getSession()
+  const session = await getCurrentUser()
   if (session?.role !== "admin") {
     return NextResponse.json({ error: "需要管理员权限" }, { status: 403 })
   }
@@ -17,7 +17,7 @@ export async function GET() {
 
 // 创建新任务
 export async function POST(req: NextRequest) {
-  const session = await getSession()
+  const session = await getCurrentUser()
   if (session?.role !== "admin") {
     return NextResponse.json({ error: "需要管理员权限" }, { status: 403 })
   }

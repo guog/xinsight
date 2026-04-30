@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server"
-import { getSession } from "@/lib/auth"
+import { getCurrentUser } from "@/lib/auth"
 import { db } from "@/db"
 import { wikiFeedbacks, users } from "@/db/schema"
 import { desc, eq } from "drizzle-orm"
 
 export async function GET() {
-  const session = await getSession()
+  const session = await getCurrentUser()
   if (session?.role !== "admin") {
     return NextResponse.json({ error: "需要管理员权限" }, { status: 403 })
   }

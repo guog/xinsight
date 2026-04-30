@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getSession } from "@/lib/auth"
+import { getCurrentUser } from "@/lib/auth"
 import { join, relative } from "path"
 import { readdir, stat, unlink, readFile } from "fs/promises"
 import matter from "gray-matter"
@@ -35,7 +35,7 @@ async function scanPages(dir: string): Promise<Record<string, unknown>[]> {
 
 // 获取所有 wiki 页面列表
 export async function GET() {
-  const session = await getSession()
+  const session = await getCurrentUser()
   if (session?.role !== "admin") {
     return NextResponse.json({ error: "需要管理员权限" }, { status: 403 })
   }
@@ -53,7 +53,7 @@ export async function GET() {
 
 // 删除指定 wiki 页面
 export async function DELETE(req: NextRequest) {
-  const session = await getSession()
+  const session = await getCurrentUser()
   if (session?.role !== "admin") {
     return NextResponse.json({ error: "需要管理员权限" }, { status: 403 })
   }

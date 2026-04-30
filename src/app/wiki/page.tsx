@@ -20,7 +20,7 @@ export default function WikiListPage() {
   useEffect(() => {
     fetch("/api/wiki/pages")
       .then((res) => res.json())
-      .then((data) => setPages(data))
+      .then((data) => setPages(Array.isArray(data) ? data : []))
       .catch(() => setPages([]))
       .finally(() => setLoading(false))
   }, [])
