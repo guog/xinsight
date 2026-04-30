@@ -1,0 +1,10 @@
+// Next.js instrumentation hook — 服务端启动时执行
+// 用于启动语音 WebSocket 服务器等后台服务
+
+export async function register() {
+  // 仅在 Node.js 运行时中执行（排除 Edge）
+  if (process.env.NEXT_RUNTIME === "nodejs") {
+    const { startVoiceWebSocketServer } = await import("@/server/voice-ws")
+    startVoiceWebSocketServer()
+  }
+}
