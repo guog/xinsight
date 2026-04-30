@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getSession } from "@/lib/auth"
+import { getCurrentUser } from "@/lib/auth"
 import { taskRunner } from "@/lib/wiki/task-runner"
 
 // 获取单个任务详情
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getSession()
+  const session = await getCurrentUser()
   if (session?.role !== "admin") {
     return NextResponse.json({ error: "需要管理员权限" }, { status: 403 })
   }
@@ -19,7 +19,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
 // 控制任务：暂停、恢复、取消
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getSession()
+  const session = await getCurrentUser()
   if (session?.role !== "admin") {
     return NextResponse.json({ error: "需要管理员权限" }, { status: 403 })
   }

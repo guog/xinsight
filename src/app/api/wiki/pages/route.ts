@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { getSession } from "@/lib/auth"
+import { getCurrentUser } from "@/lib/auth"
 import { join, relative } from "path"
 import { readdir, stat, readFile } from "fs/promises"
 import matter from "gray-matter"
@@ -31,7 +31,7 @@ async function scanPages(dir: string): Promise<Record<string, unknown>[]> {
 }
 
 export async function GET() {
-  const session = await getSession()
+  const session = await getCurrentUser()
   if (!session) {
     return NextResponse.json({ error: "未登录" }, { status: 401 })
   }

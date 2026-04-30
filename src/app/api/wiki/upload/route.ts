@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { writeFile, mkdir } from "fs/promises"
 import { join } from "path"
 import { randomUUID } from "crypto"
-import { getSession } from "@/lib/auth"
+import { getCurrentUser } from "@/lib/auth"
 import { extractText } from "@/lib/wiki/extract-text"
 import { ingestFile } from "@/lib/wiki/ingest-pipeline"
 import { taskRunner } from "@/lib/wiki/task-runner"
@@ -25,7 +25,7 @@ const ALLOWED_TYPES = new Set([
 ])
 
 export async function POST(request: NextRequest) {
-  const session = await getSession()
+  const session = await getCurrentUser()
   if (!session) {
     return NextResponse.json({ error: "未登录" }, { status: 401 })
   }

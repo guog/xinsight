@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getSession } from "@/lib/auth"
+import { getCurrentUser } from "@/lib/auth"
 import { taskRunner } from "@/lib/wiki/task-runner"
 
 // SSE 流式推送任务进度
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getSession()
+  const session = await getCurrentUser()
   if (session?.role !== "admin") {
     return NextResponse.json({ error: "需要管理员权限" }, { status: 403 })
   }

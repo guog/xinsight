@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getSession } from "@/lib/auth"
+import { getCurrentUser } from "@/lib/auth"
 import { join } from "path"
 import { readFile, writeFile } from "fs/promises"
 
@@ -7,7 +7,7 @@ const WIKI_PATH = process.env.WIKI_PATH || join(process.cwd(), "wiki")
 
 // 读取页面内容
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ path: string }> }) {
-  const session = await getSession()
+  const session = await getCurrentUser()
   if (session?.role !== "admin") {
     return NextResponse.json({ error: "需要管理员权限" }, { status: 403 })
   }
@@ -31,7 +31,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ pat
 
 // 更新页面内容
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ path: string }> }) {
-  const session = await getSession()
+  const session = await getCurrentUser()
   if (session?.role !== "admin") {
     return NextResponse.json({ error: "需要管理员权限" }, { status: 403 })
   }

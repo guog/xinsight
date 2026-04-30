@@ -16,7 +16,7 @@ export function useUser() {
   useEffect(() => {
     fetch("/api/auth/me")
       .then((res) => (res.ok ? res.json() : null))
-      .then((data) => setUser(data?.user || null))
+      .then((data) => setUser(data?.id ? data : null))
       .finally(() => setLoading(false))
   }, [])
 

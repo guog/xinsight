@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getSession } from "@/lib/auth"
+import { getCurrentUser } from "@/lib/auth"
 import { db } from "@/db"
 import { wikiFeedbacks } from "@/db/schema"
 import { eq } from "drizzle-orm"
@@ -9,7 +9,7 @@ import { readFile, writeFile } from "fs/promises"
 const WIKI_PATH = process.env.WIKI_PATH || join(process.cwd(), "wiki")
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const session = await getSession()
+  const session = await getCurrentUser()
   if (session?.role !== "admin") {
     return NextResponse.json({ error: "需要管理员权限" }, { status: 403 })
   }
@@ -40,7 +40,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     .set({
       status,
       reviewNote: reviewNote || null,
-      reviewedBy: session.userId,
+      reviewedBy: session.id,
       reviewedAt: new Date(),
     })
     .where(eq(wikiFeedbacks.id, id))

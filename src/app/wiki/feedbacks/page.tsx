@@ -5,12 +5,18 @@ import Link from "next/link"
 
 interface Feedback {
   id: string
-  pagePath: string
-  type: "纠错" | "补充" | "建议"
+  pageId: string
+  type: "correction" | "addition" | "suggestion"
   content: string
   status: "pending" | "approved" | "rejected"
   reviewNote?: string
   createdAt: string
+}
+
+const typeMap: Record<string, string> = {
+  correction: "纠错",
+  addition: "补充",
+  suggestion: "建议",
 }
 
 const statusMap = {
@@ -50,8 +56,10 @@ export default function FeedbacksPage() {
             return (
               <div key={fb.id} className="border rounded-lg p-4">
                 <div className="flex items-center gap-3 mb-2">
-                  <span className="text-sm text-gray-500">{fb.pagePath}</span>
-                  <span className="text-xs px-2 py-0.5 rounded bg-gray-100">{fb.type}</span>
+                  <span className="text-sm text-gray-500">{fb.pageId}</span>
+                  <span className="text-xs px-2 py-0.5 rounded bg-gray-100">
+                    {typeMap[fb.type] || fb.type}
+                  </span>
                   <span className={`text-xs px-2 py-0.5 rounded ${s.className}`}>{s.label}</span>
                 </div>
                 <p className="text-sm text-gray-800 line-clamp-2">{fb.content}</p>
