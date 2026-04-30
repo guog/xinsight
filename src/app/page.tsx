@@ -1,9 +1,10 @@
 "use client"
 
 import { useState, useCallback, useRef } from "react"
+import dynamic from "next/dynamic"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
-import { ChevronDown, Square, RotateCcw } from "lucide-react"
+import { ChevronDown, Square, RotateCcw, Mic } from "lucide-react"
 import {
   Conversation,
   ConversationContent,
@@ -29,6 +30,11 @@ import { FileUpload } from "@/components/file-upload"
 import { Sidebar, type ChatItem } from "@/components/sidebar"
 import { ToolInvocation } from "@/components/tool-invocation"
 import { CodeBlockCopyProvider } from "@/components/code-block-copy"
+import { useVoiceConfig } from "@/hooks/use-voice-config"
+
+const VoiceChatPanel = dynamic(() => import("@/components/voice-chat-panel").then((m) => m.VoiceChatPanel), {
+  ssr: false,
+})
 
 /** Agent 定义 */
 const agents = [
@@ -47,6 +53,7 @@ export default function ChatPage() {
   const { modelId } = useModel()
   useTheme()
   const { isOnboardingComplete, markComplete } = useOnboarding()
+  const { voiceEnabled, isVoiceMode, enterVoiceMode, exitVoiceMode } = useVoiceConfig()
 
   const { createChat } = useChats()
 
@@ -169,6 +176,8 @@ export default function ChatPage() {
   return (
     <div className="flex h-dvh">
       <CodeBlockCopyProvider />
+      {/* 语音模式覆盖层 */}
+      {isVoiceMode && <VoiceChatPanel onClose={exitVoiceMode} />}
       {/* 侧边栏 */}
       <Sidebar
         activeChatId={activeChatId}
@@ -301,6 +310,15 @@ export default function ChatPage() {
             />
             <div className="absolute bottom-1 right-1 flex items-center gap-1">
               <FileUpload disabled={status === "streaming"} />
+              {voiceEnabled && (
+                <button
+                  onClick={enterVoiceMode}
+                  title="语音模式"
+                  className="flex items-center justify-center size-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                >
+                  <Mic className="size-4" />
+                </button>
+              )}
               {status === "streaming" ? (
                 <button
                   onClick={() => stop()}
