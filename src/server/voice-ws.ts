@@ -8,6 +8,9 @@ import { mastra } from "@/mastra"
 import { toAISdkStream } from "@mastra/ai-sdk"
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible"
 import { getProviderForModel, getModelById, getDefaultModelId } from "@/lib/models"
+import { db } from "@/db"
+import { chats, messages } from "@/db/schema"
+import { eq } from "drizzle-orm"
 
 // 客户端 → 服务端消息类型
 type ClientMessage =
@@ -156,6 +159,37 @@ async function processLLM(ws: WebSocket, state: SessionState, text: string) {
     }
 
     send(ws, { type: "llm_done", fullText })
+
+    // 持久化语音对话到数据库
+    if (state.chatId && fullText) {
+      try {
+        // 保存用户消息（标记为语音来源）
+        await db
+          .insert(messages)
+          .values({
+            id: crypto.randomUUID(),
+            chatId: state.chatId,
+            role: "user",
+            parts: JSON.stringify([{ type: "text", text }, { type: "audio" }]),
+            createdAt: new Date(),
+          })
+          .onConflictDoNothing()
+
+        // 保存 assistant 消息
+        await db.insert(messages).values({
+          id: crypto.randomUUID(),
+          chatId: state.chatId,
+          role: "assistant",
+          parts: JSON.stringify([{ type: "text", text: fullText }]),
+          createdAt: new Date(),
+        })
+
+        // 更新对话时间
+        await db.update(chats).set({ updatedAt: new Date() }).where(eq(chats.id, state.chatId))
+      } catch (dbErr) {
+        console.error("语音消息持久化失败:", dbErr)
+      }
+    }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     send(ws, { type: "error", message: `LLM 错误: ${message}` })
