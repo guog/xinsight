@@ -77,3 +77,19 @@ export const messages = sqliteTable(
   },
   (table) => [index("idx_messages_chat_id").on(table.chatId)],
 )
+
+/** 知识库反馈 */
+export const wikiFeedbacks = sqliteTable("wiki_feedbacks", {
+  id: text("id").primaryKey(),
+  pageId: text("page_id").notNull(), // wiki page relative path
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  type: text("type").notNull(), // "correction" | "addition" | "suggestion"
+  content: text("content").notNull(),
+  status: text("status").notNull().default("pending"), // "pending" | "approved" | "rejected"
+  reviewNote: text("review_note"),
+  reviewedBy: text("reviewed_by"),
+  reviewedAt: integer("reviewed_at", { mode: "timestamp" }),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+})

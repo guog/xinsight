@@ -35,7 +35,7 @@ for (const file of files) {
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e)
       // 忽略 "table already exists" 错误
-      if (!msg.includes("already exists")) {
+      if (!msg.includes("already exists") && !msg.includes("duplicate column name")) {
         console.error(`执行失败: ${stmt}\n错误: ${msg}`)
         process.exit(1)
       }

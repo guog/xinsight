@@ -5,9 +5,10 @@ import PagesTab from "./components/pages-tab"
 import UploadsTab from "./components/uploads-tab"
 import LintTab from "./components/lint-tab"
 import TasksTab from "./components/tasks-tab"
+import FeedbacksTab from "./components/feedbacks-tab"
 
 // Wiki 管理主页面
-const tabs = ["页面管理", "上传管理", "Lint 检查", "任务面板"] as const
+const tabs = ["页面管理", "上传管理", "Lint 检查", "任务面板", "反馈管理"] as const
 
 export default function WikiAdminPage() {
   const [active, setActive] = useState<string>(tabs[0])
@@ -36,6 +37,7 @@ export default function WikiAdminPage() {
       {active === "上传管理" && <UploadsTab />}
       {active === "Lint 检查" && <LintTab />}
       {active === "任务面板" && <TasksTab />}
+      {active === "反馈管理" && <FeedbacksTab />}
     </div>
   )
 }
