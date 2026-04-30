@@ -12,6 +12,7 @@ import {
   Trash2,
   LogOut,
   Search,
+  Mic,
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -214,6 +215,16 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
           >
             <Database className="size-4" />
             数据源管理
+          </Link>
+        )}
+        {isAdmin && (
+          <Link
+            href="/admin/voice"
+            className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-muted transition-colors"
+            onClick={() => setIsMobileOpen(false)}
+          >
+            <Mic className="size-4" />
+            语音配置
           </Link>
         )}
         <Link
