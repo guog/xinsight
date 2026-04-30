@@ -1,15 +1,21 @@
-import { describe, it, expect, beforeEach, vi } from "vitest"
+import { describe, it, expect, beforeEach, afterEach } from "bun:test"
 import { _resetVoiceCache } from "@/lib/voice"
 
 describe("GET /api/voice/config", () => {
+  const originalEnv = { ...process.env }
+
   beforeEach(() => {
     _resetVoiceCache()
-    vi.unstubAllEnvs()
+  })
+
+  afterEach(() => {
+    process.env = { ...originalEnv }
+    _resetVoiceCache()
   })
 
   it("VOICE_ENABLED 未设置时返回 disabled", async () => {
-    vi.stubEnv("VOICE_ENABLED", "")
-    vi.stubEnv("DASHSCOPE_API_KEY", "")
+    process.env.VOICE_ENABLED = ""
+    process.env.DASHSCOPE_API_KEY = ""
     _resetVoiceCache()
 
     const { GET } = await import("@/app/api/voice/config/route")
@@ -20,8 +26,8 @@ describe("GET /api/voice/config", () => {
   })
 
   it("启用时返回正确配置且不含 apiKey", async () => {
-    vi.stubEnv("VOICE_ENABLED", "true")
-    vi.stubEnv("DASHSCOPE_API_KEY", "sk-secret-key")
+    process.env.VOICE_ENABLED = "true"
+    process.env.DASHSCOPE_API_KEY = "***"
     _resetVoiceCache()
 
     const { GET } = await import("@/app/api/voice/config/route")
@@ -43,6 +49,6 @@ describe("GET /api/voice/config", () => {
       sampleRate: 22050,
     })
     expect(data.tts.voices).toBeDefined()
-    expect(JSON.stringify(data)).not.toContain("sk-secret-key")
+    expect(JSON.stringify(data)).not.toContain("***")
   })
 })
