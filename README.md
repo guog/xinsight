@@ -66,6 +66,17 @@ bun run dev
 # Open http://localhost:3000
 ```
 
+### Default Accounts
+
+The system automatically seeds two users on first startup:
+
+| Username | Password    | Role  | Description                    |
+| -------- | ----------- | ----- | ------------------------------ |
+| admin    | xinsight123 | admin | Full administrative privileges |
+| guest    | xinsight123 | user  | Read-only / standard user      |
+
+> Change passwords after first login.
+
 ### Environment Variables
 
 | Variable                       | Required | Description                      |

@@ -14,3 +14,7 @@ try {
   // Migration may fail if already applied, ignore
   console.warn("Migration skipped or already applied:", (e as Error).message)
 }
+
+// Seed default users (admin + guest) — idempotent
+import { seedUsers } from "./seed"
+seedUsers().catch((e) => console.warn("Seed users failed:", (e as Error).message))
