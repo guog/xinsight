@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
+import { CardGridSkeleton } from "@/components/skeleton"
 
 interface WikiPage {
   path: string
@@ -28,7 +29,7 @@ export default function WikiListPage() {
   const filtered = pages.filter((p) => p.title.toLowerCase().includes(search.toLowerCase()))
 
   return (
-    <div className="max-w-4xl mx-auto p-6 animate-in fade-in duration-300">
+    <div className="max-w-4xl mx-auto px-3 py-4 sm:p-6 pb-20 md:pb-6 animate-in fade-in duration-300">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <Link href="/" className="text-muted-foreground hover:text-foreground transition-colors">
@@ -53,7 +54,7 @@ export default function WikiListPage() {
       />
 
       {loading ? (
-        <p className="text-muted-foreground">加载中...</p>
+        <CardGridSkeleton count={4} />
       ) : filtered.length === 0 ? (
         <p className="text-muted-foreground">暂无页面</p>
       ) : (

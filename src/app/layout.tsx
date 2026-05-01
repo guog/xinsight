@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Toaster } from "sonner"
+import { MobileTabBar } from "@/components/mobile-tab-bar"
 import "./globals.css"
 
 const geistSans = Geist({
@@ -19,6 +20,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
     { media: "(prefers-color-scheme: dark)", color: "#252525" },
@@ -61,8 +63,11 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col">
-        <TooltipProvider>{children}</TooltipProvider>
+      <body className="min-h-full flex flex-col safe-top">
+        <TooltipProvider>
+          {children}
+          <MobileTabBar />
+        </TooltipProvider>
         <Toaster richColors position="top-center" />
       </body>
     </html>

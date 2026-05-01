@@ -34,7 +34,7 @@ export default function AdminVoicePage() {
   }, [])
 
   return (
-    <div className="animate-in fade-in duration-300 max-w-4xl mx-auto p-6 space-y-6">
+    <div className="animate-in fade-in duration-300 max-w-4xl mx-auto px-3 py-4 sm:p-6 space-y-6">
       <h1 className="text-2xl font-bold">语音对话配置</h1>
 
       {/* 状态卡片 */}
@@ -51,7 +51,7 @@ export default function AdminVoicePage() {
         </CardHeader>
         {config?.enabled && (
           <CardContent className="space-y-3 text-sm">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <p className="font-medium text-muted-foreground mb-1">STT（语音识别）</p>
                 <p>供应商：{config.stt?.provider ?? "—"}</p>

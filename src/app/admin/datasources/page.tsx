@@ -5,6 +5,7 @@ import Link from "next/link"
 import { Plus, Zap, Pencil, Trash2, Loader2, Copy, Search } from "lucide-react"
 import { toast } from "sonner"
 import { useDatasources } from "@/hooks/use-datasources"
+import { ListSkeleton } from "@/components/skeleton"
 
 const typeBadge: Record<string, { label: string; color: string }> = {
   rest: {
@@ -147,11 +148,7 @@ export default function DatasourcesPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
-      </div>
-    )
+    return <ListSkeleton count={5} />
   }
 
   if (error) {
@@ -265,52 +262,54 @@ export default function DatasourcesPage() {
                   ? "bg-destructive"
                   : "bg-muted-foreground/40"
             return (
-              <div key={ds.id} className="flex items-center justify-between px-4 py-3 gap-4">
-                <input
-                  type="checkbox"
-                  checked={selected.has(ds.id)}
-                  onChange={() => toggleSelect(ds.id)}
-                  className="mr-2 size-4 rounded border-border shrink-0"
-                />
-                {/* 健康状态点 */}
-                <span
-                  className={`size-2.5 rounded-full shrink-0 ${healthColor}`}
-                  title={
-                    ds.lastTestResult === "ok"
-                      ? `正常 · ${timeAgo(ds.lastTestedAt)}`
-                      : ds.lastTestResult === "failed"
-                        ? `异常 · ${timeAgo(ds.lastTestedAt)}`
-                        : "从未测试"
-                  }
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Link
-                      href={`/admin/datasources/${ds.id}`}
-                      className="font-medium text-sm truncate hover:text-primary transition-colors"
-                    >
-                      {ds.name}
-                    </Link>
-                    <span className={`px-2 py-0.5 text-xs rounded-full ${badge.color}`}>
-                      {badge.label}
-                    </span>
-                    <span
-                      className={`px-2 py-0.5 text-xs rounded-full ${ds.enabled ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}
-                    >
-                      {ds.enabled ? "启用" : "禁用"}
-                    </span>
-                    {(ds.callCount ?? 0) > 0 && (
-                      <span className="text-xs text-muted-foreground">调用 {ds.callCount} 次</span>
-                    )}
+              <div
+                key={ds.id}
+                className="flex flex-col sm:flex-row sm:items-center justify-between px-3 sm:px-4 py-3 gap-2 sm:gap-4"
+              >
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <input
+                    type="checkbox"
+                    checked={selected.has(ds.id)}
+                    onChange={() => toggleSelect(ds.id)}
+                    className="size-4 rounded border-border shrink-0"
+                  />
+                  {/* 健康状态点 */}
+                  <span
+                    className={`size-2.5 rounded-full shrink-0 ${healthColor}`}
+                    title={
+                      ds.lastTestResult === "ok"
+                        ? `正常 · ${timeAgo(ds.lastTestedAt)}`
+                        : ds.lastTestResult === "failed"
+                          ? `异常 · ${timeAgo(ds.lastTestedAt)}`
+                          : "从未测试"
+                    }
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                      <Link
+                        href={`/admin/datasources/${ds.id}`}
+                        className="font-medium text-sm truncate hover:text-primary transition-colors"
+                      >
+                        {ds.name}
+                      </Link>
+                      <span className={`px-2 py-0.5 text-xs rounded-full ${badge.color}`}>
+                        {badge.label}
+                      </span>
+                      <span
+                        className={`px-2 py-0.5 text-xs rounded-full ${ds.enabled ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}
+                      >
+                        {ds.enabled ? "启用" : "禁用"}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {ds.description || ds.id}
+                      {ds.lastTestedAt && (
+                        <span className="ml-2">· 上次测试 {timeAgo(ds.lastTestedAt)}</span>
+                      )}
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {ds.description || ds.id}
-                    {ds.lastTestedAt && (
-                      <span className="ml-2">· 上次测试 {timeAgo(ds.lastTestedAt)}</span>
-                    )}
-                  </p>
                 </div>
-                <div className="flex items-center gap-1 shrink-0">
+                <div className="flex items-center gap-1 shrink-0 ml-9 sm:ml-0">
                   {status && (
                     <span
                       className={`text-xs mr-2 ${status === "testing" ? "text-muted-foreground" : status === "ok" ? "text-primary" : "text-destructive"}`}

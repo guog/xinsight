@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import {
   Plus,
   Settings,
@@ -17,6 +17,7 @@ import {
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useUser } from "@/hooks/use-user"
+import { useSwipe } from "@/hooks/use-swipe"
 
 interface ChatItem {
   id: string
@@ -40,6 +41,14 @@ const apiBase =
 export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }: SidebarProps) {
   const [isOpen, setIsOpen] = useState(true)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
+
+  // 手势支持：从左边缘右滑打开侧边栏
+  const openSidebar = useCallback(() => setIsMobileOpen(true), [])
+  const closeSidebar = useCallback(() => setIsMobileOpen(false), [])
+  const swipeHandlers = useSwipe({
+    onSwipeRight: openSidebar,
+    onSwipeLeft: closeSidebar,
+  })
   const [chatList, setChatList] = useState<ChatItem[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -194,10 +203,10 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
                 {onDeleteChat && editingId !== chat.id && (
                   <button
                     onClick={(e) => handleDelete(e, chat.id)}
-                    className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-destructive/10 hover:text-destructive transition-opacity duration-200"
+                    className="opacity-0 group-hover:opacity-100 touch-show p-1 rounded hover:bg-destructive/10 hover:text-destructive transition-opacity duration-200"
                     title="删除对话"
                   >
-                    <Trash2 className="size-3" />
+                    <Trash2 className="size-3.5" />
                   </button>
                 )}
               </div>
@@ -261,6 +270,9 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
 
   return (
     <>
+      {/* 移动端手势感应区域（从左边缘右滑打开侧边栏） */}
+      <div className="fixed top-0 left-0 w-5 h-full z-30 md:hidden" {...swipeHandlers} />
+
       {/* 移动端展开按钮（侧边栏关闭时显示） */}
       {!isOpen && (
         <button
