@@ -46,11 +46,13 @@ export default function EditDatasourcePage() {
   }
 
   if (error || !data) {
-    return <div className="text-center py-20 text-sm text-red-500">{error || "数据源不存在"}</div>
+    return (
+      <div className="text-center py-20 text-sm text-destructive">{error || "数据源不存在"}</div>
+    )
   }
 
   return (
-    <div>
+    <div className="animate-in fade-in duration-300">
       <h2 className="text-lg font-medium mb-6">编辑数据源: {data.name}</h2>
       <DatasourceForm initialData={data} isEdit />
     </div>

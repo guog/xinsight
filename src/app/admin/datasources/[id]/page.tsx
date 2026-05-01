@@ -82,15 +82,15 @@ export default function DatasourceDetailPage() {
   }
 
   const typeBadge: Record<string, string> = {
-    rest: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-    graphql: "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
-    grpc: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
-    opcua: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
-    mqtt: "bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-300",
+    rest: "bg-primary/10 text-primary",
+    graphql: "bg-accent text-accent-foreground",
+    grpc: "bg-primary/10 text-primary",
+    opcua: "bg-accent text-accent-foreground",
+    mqtt: "bg-primary/10 text-primary",
   }
 
   return (
-    <div className="space-y-6">
+    <div className="animate-in fade-in duration-300 space-y-6">
       {/* 头部 */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -109,7 +109,7 @@ export default function DatasourceDetailPage() {
                 {ds.type.toUpperCase()}
               </span>
               <span
-                className={`px-2 py-0.5 text-xs rounded-full ${ds.enabled ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300" : "bg-muted text-muted-foreground"}`}
+                className={`px-2 py-0.5 text-xs rounded-full ${ds.enabled ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}
               >
                 {ds.enabled ? "启用" : "禁用"}
               </span>
@@ -143,7 +143,7 @@ export default function DatasourceDetailPage() {
       </div>
 
       {/* 连接配置 */}
-      <section className="border border-border rounded-lg p-4 space-y-3">
+      <section className="bg-card border border-border rounded-xl p-4 space-y-3">
         <h3 className="text-sm font-medium flex items-center gap-2">
           <Globe className="size-4" /> 连接配置
         </h3>
@@ -161,7 +161,7 @@ export default function DatasourceDetailPage() {
 
       {/* 认证信息 */}
       {ds.auth && ds.auth.type !== "none" && (
-        <section className="border border-border rounded-lg p-4 space-y-3">
+        <section className="bg-card border border-border rounded-xl p-4 space-y-3">
           <h3 className="text-sm font-medium flex items-center gap-2">
             <Key className="size-4" /> 认证配置
           </h3>
@@ -173,7 +173,7 @@ export default function DatasourceDetailPage() {
       )}
 
       {/* 接口列表 */}
-      <section className="border border-border rounded-lg p-4 space-y-3">
+      <section className="bg-card border border-border rounded-xl p-4 space-y-3">
         <h3 className="text-sm font-medium flex items-center gap-2">
           <Server className="size-4" /> 接口定义 ({ds.endpoints.length})
         </h3>

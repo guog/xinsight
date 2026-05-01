@@ -87,7 +87,7 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
     <div className="flex flex-col h-full">
       {/* 顶部 */}
       <div className="p-3 flex items-center justify-between">
-        <span className="text-sm font-semibold text-foreground">xinsight</span>
+        <span className="text-base font-bold tracking-tight text-foreground">xinsight</span>
         <button
           onClick={() => {
             setIsOpen(false)
@@ -107,7 +107,7 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
             onNewChat()
             setIsMobileOpen(false)
           }}
-          className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg border border-border hover:bg-muted transition-colors"
+          className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-200 shadow-sm"
         >
           <Plus className="size-4" />
           新对话
@@ -153,9 +153,9 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
                     setIsMobileOpen(false)
                   }
                 }}
-                className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors group ${
+                className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all duration-200 group ${
                   activeChatId === chat.id
-                    ? "bg-primary/10 text-primary"
+                    ? "bg-primary/10 text-primary font-medium"
                     : "hover:bg-muted text-foreground"
                 } cursor-pointer`}
               >
@@ -194,7 +194,7 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
                 {onDeleteChat && editingId !== chat.id && (
                   <button
                     onClick={(e) => handleDelete(e, chat.id)}
-                    className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-destructive/10 hover:text-destructive transition-all"
+                    className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-destructive/10 hover:text-destructive transition-opacity duration-200"
                     title="删除对话"
                   >
                     <Trash2 className="size-3" />
@@ -210,7 +210,7 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
         {isAdmin && (
           <Link
             href="/admin/datasources"
-            className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-muted transition-colors"
+            className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-muted transition-all duration-150"
             onClick={() => setIsMobileOpen(false)}
           >
             <Database className="size-4" />
@@ -220,7 +220,7 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
         {isAdmin && (
           <Link
             href="/admin/voice"
-            className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-muted transition-colors"
+            className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-muted transition-all duration-150"
             onClick={() => setIsMobileOpen(false)}
           >
             <Mic className="size-4" />
@@ -229,7 +229,7 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
         )}
         <Link
           href="/wiki"
-          className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-muted transition-colors"
+          className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-muted transition-all duration-150"
           onClick={() => setIsMobileOpen(false)}
         >
           <BookOpen className="size-4" />
@@ -237,7 +237,7 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
         </Link>
         <Link
           href="/settings"
-          className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-muted transition-colors"
+          className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-muted transition-all duration-150"
           onClick={() => setIsMobileOpen(false)}
         >
           <Settings className="size-4" />
@@ -250,7 +250,7 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
             } catch {}
             router.push("/login")
           }}
-          className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-muted transition-colors w-full text-left text-destructive"
+          className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-muted transition-all duration-150 w-full text-left text-destructive"
         >
           <LogOut className="size-4" />
           退出登录
@@ -283,7 +283,7 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
 
       {/* 桌面端侧边栏 */}
       {isOpen && (
-        <aside className="hidden md:flex w-64 shrink-0 border-r border-border bg-card h-dvh">
+        <aside className="hidden md:flex w-64 shrink-0 border-r border-border bg-sidebar h-dvh">
           {sidebarContent}
         </aside>
       )}
@@ -291,11 +291,11 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
       {/* 移动端抽屉遮罩 */}
       {isMobileOpen && (
         <div
-          className="fixed inset-0 z-50 bg-black/40 md:hidden"
+          className="fixed inset-0 z-50 bg-black/40 md:hidden animate-in fade-in duration-200"
           onClick={() => setIsMobileOpen(false)}
         >
           <aside
-            className="w-72 h-full bg-card border-r border-border"
+            className="w-72 h-full bg-sidebar border-r border-border animate-in slide-in-from-left duration-300"
             onClick={(e) => e.stopPropagation()}
           >
             {sidebarContent}

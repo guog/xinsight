@@ -14,7 +14,7 @@ export default function WikiAdminPage() {
   const [active, setActive] = useState<string>(tabs[0])
 
   return (
-    <div className="p-6">
+    <div className="animate-in fade-in duration-300 p-6">
       <h1 className="text-2xl font-bold mb-4">Wiki 管理</h1>
       {/* 标签栏 */}
       <div className="flex border-b mb-4">
@@ -22,10 +22,10 @@ export default function WikiAdminPage() {
           <button
             key={tab}
             onClick={() => setActive(tab)}
-            className={`px-4 py-2 -mb-px font-medium ${
+            className={`px-4 py-2 -mb-px font-medium transition-colors duration-200 ${
               active === tab
-                ? "border-b-2 border-blue-600 text-blue-600"
-                : "text-gray-500 hover:text-gray-700"
+                ? "border-b-2 border-primary text-primary"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             {tab}

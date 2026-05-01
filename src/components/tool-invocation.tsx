@@ -19,15 +19,15 @@ export function ToolInvocation({ toolName, state, args, result }: ToolInvocation
     .trim()
 
   return (
-    <div className="my-2 rounded-lg border border-border bg-muted/30 text-sm">
+    <div className="my-2 rounded-xl border border-border/50 bg-gradient-to-r from-muted/40 to-muted/20 text-sm backdrop-blur-sm transition-all duration-200 hover:border-border">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-2 w-full px-3 py-2 hover:bg-muted/50 transition-colors rounded-lg"
+        className="flex items-center gap-2 w-full px-3 py-2 hover:bg-muted/50 transition-all duration-200 rounded-xl"
       >
         {state === "result" ? (
-          <CheckCircle2 className="size-4 text-green-500 shrink-0" />
+          <CheckCircle2 className="size-4 text-green-500 drop-shadow-sm shrink-0" />
         ) : (
-          <Loader2 className="size-4 text-blue-500 animate-spin shrink-0" />
+          <Loader2 className="size-4 text-primary animate-spin shrink-0" />
         )}
         <Database className="size-3.5 text-muted-foreground shrink-0" />
         <span className="flex-1 text-left font-medium">
@@ -38,18 +38,18 @@ export function ToolInvocation({ toolName, state, args, result }: ToolInvocation
       </button>
 
       {expanded && state === "result" && (
-        <div className="px-3 pb-3 space-y-2">
+        <div className="px-3 pb-3 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
           {args && (
             <div>
               <span className="text-xs text-muted-foreground">参数:</span>
-              <pre className="mt-1 text-xs bg-background rounded p-2 overflow-x-auto max-h-32">
+              <pre className="mt-1 text-xs bg-background/80 rounded-lg p-2.5 border border-border/30 font-mono overflow-x-auto max-h-32">
                 {JSON.stringify(args, null, 2)}
               </pre>
             </div>
           )}
           <div>
             <span className="text-xs text-muted-foreground">结果:</span>
-            <pre className="mt-1 text-xs bg-background rounded p-2 overflow-x-auto max-h-48">
+            <pre className="mt-1 text-xs bg-background/80 rounded-lg p-2.5 border border-border/30 font-mono overflow-x-auto max-h-48">
               {typeof result === "string" ? result : JSON.stringify(result, null, 2)}
             </pre>
           </div>

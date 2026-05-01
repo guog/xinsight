@@ -76,13 +76,13 @@ export default function AgentsPage() {
   if (error) {
     return (
       <div className="text-center py-20">
-        <p className="text-sm text-red-500">{error}</p>
+        <p className="text-sm text-destructive">{error}</p>
       </div>
     )
   }
 
   return (
-    <div className="space-y-4">
+    <div className="animate-in fade-in duration-300 space-y-4">
       <h2 className="text-lg font-medium">Agent 列表</h2>
       <p className="text-sm text-muted-foreground">
         以下是 Mastra 中注册的所有 Agent，及其绑定的数据源。
@@ -93,7 +93,10 @@ export default function AgentsPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {agents.map((agent) => (
-            <div key={agent.id} className="border border-border rounded-lg p-4 space-y-3">
+            <div
+              key={agent.id}
+              className="bg-card border border-border rounded-xl p-4 space-y-3 transition-shadow duration-200 hover:shadow-md"
+            >
               <div className="flex items-center gap-2">
                 <Bot className="size-5 text-primary" />
                 <div>
@@ -115,7 +118,7 @@ export default function AgentsPage() {
                         key={ds.id}
                         className={`px-2 py-0.5 text-xs rounded-full ${
                           ds.enabled
-                            ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                            ? "bg-primary/10 text-primary"
                             : "bg-muted text-muted-foreground"
                         }`}
                       >
