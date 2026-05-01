@@ -33,7 +33,7 @@ export default function SettingsPage() {
   }, [])
 
   return (
-    <main className="flex flex-col h-dvh max-w-2xl mx-auto w-full px-4 py-4 animate-in fade-in duration-300">
+    <main className="flex flex-col h-dvh max-w-2xl mx-auto w-full px-4 py-4 pb-20 md:pb-4 animate-in fade-in duration-300">
       <header className="flex items-center gap-3 mb-6 pb-6 border-b border-border">
         <Link href="/" className="p-2 rounded-lg hover:bg-muted/80 transition-all duration-200">
           <ArrowLeft className="size-5" />

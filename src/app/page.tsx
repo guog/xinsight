@@ -190,7 +190,7 @@ export default function ChatPage() {
       />
 
       {/* 主内容区 */}
-      <main className="flex flex-col flex-1 min-w-0 max-w-4xl mx-auto w-full px-2 py-3 sm:px-4 sm:py-4 md:px-6">
+      <main className="flex flex-col flex-1 min-w-0 max-w-4xl mx-auto w-full px-2 py-3 sm:px-4 sm:py-4 md:px-6 pb-safe">
         {/* 首次使用引导 */}
         {!isOnboardingComplete && <OnboardingWizard onComplete={markComplete} />}
         {/* 对话区域 */}

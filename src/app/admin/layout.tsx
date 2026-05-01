@@ -29,25 +29,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return null
   }
   return (
-    <main className="flex flex-col h-dvh max-w-4xl mx-auto w-full px-4 py-4">
-      <header className="flex items-center gap-3 mb-6">
+    <main className="flex flex-col h-dvh max-w-4xl mx-auto w-full px-3 py-3 sm:px-4 sm:py-4">
+      <header className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
         <Link href="/" className="p-2 rounded-lg hover:bg-muted transition-colors">
           <ArrowLeft className="size-5" />
         </Link>
-        <h1 className="text-xl font-semibold">管理后台</h1>
-        <nav className="ml-6 flex gap-2">
+        <h1 className="text-lg sm:text-xl font-semibold">管理后台</h1>
+        <nav className="flex gap-1.5 sm:gap-2 ml-auto sm:ml-6 overflow-x-auto">
           {navItems.map(({ href, label, icon: Icon }) => (
             <Link
               key={href}
               href={href}
-              className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs sm:text-sm rounded-lg border whitespace-nowrap transition-colors ${
                 pathname?.startsWith(href)
                   ? "border-primary bg-primary/10 text-primary"
                   : "border-border hover:bg-muted"
               }`}
             >
-              <Icon className="size-4" />
-              {label}
+              <Icon className="size-3.5 sm:size-4" />
+              <span className="hidden sm:inline">{label}</span>
+              <span className="sm:hidden">{label.replace("管理", "")}</span>
             </Link>
           ))}
         </nav>

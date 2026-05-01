@@ -126,9 +126,6 @@
   }
   html {
     @apply font-sans;
-    /* 支持 iOS 安全区域 */
-    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
-      env(safe-area-inset-left);
   }
 }
 
@@ -167,7 +164,53 @@
   background: oklch(0.5 0 0 / 50%);
 }
 
+/* iOS safe area utilities */
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom), 0.75rem);
+}
+.safe-x {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Touch-friendly: show actions on mobile without hover */
+@media (hover: none) {
+  .touch-show {
+    opacity: 1 !important;
+  }
+}
+
+/* Keyboard-aware viewport */
+@supports (height: 100dvh) {
+  .h-dvh-safe {
+    height: 100dvh;
+    height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  }
+}
+
 /* Selection */
 ::selection {
   background: oklch(0.7 0.15 264 / 30%);
+}
+
+/* Skeleton loading animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--muted) 25%, var(--accent) 50%, var(--muted) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius);
 }
