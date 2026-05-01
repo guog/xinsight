@@ -17,7 +17,9 @@ export default function SettingsPage() {
   const { modelId, setModelId } = useModel()
   const { isAdmin } = useUser()
   const [providers, setProviders] = useState<{ id: string; name: string }[]>([])
-  const [models, setModels] = useState<{ id: string; name: string; description?: string; providerId: string }[]>([])
+  const [models, setModels] = useState<
+    { id: string; name: string; description?: string; providerId: string }[]
+  >([])
 
   // 从 API 获取模型列表
   useEffect(() => {
@@ -31,85 +33,106 @@ export default function SettingsPage() {
   }, [])
 
   return (
-    <main className="flex flex-col h-dvh max-w-2xl mx-auto w-full px-4 py-4">
-      <header className="flex items-center gap-3 mb-6">
-        <Link href="/" className="p-2 rounded-lg hover:bg-muted transition-colors">
+    <main className="flex flex-col h-dvh max-w-2xl mx-auto w-full px-4 py-4 animate-in fade-in duration-300">
+      <header className="flex items-center gap-3 mb-6 pb-6 border-b border-border">
+        <Link href="/" className="p-2 rounded-lg hover:bg-muted/80 transition-all duration-200">
           <ArrowLeft className="size-5" />
         </Link>
         <h1 className="text-xl font-semibold">设置</h1>
       </header>
 
       {/* 主题设置 */}
-      <section className="mb-8">
-        <h2 className="text-sm font-medium text-muted-foreground mb-3">外观</h2>
-        <div className="flex gap-2">
-          {themeOptions.map(({ value, label, icon: Icon }) => (
-            <button
-              key={value}
-              onClick={() => setTheme(value)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
-                theme === value
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "border-border hover:bg-muted"
-              }`}
-            >
-              <Icon className="size-4" />
-              {label}
-            </button>
-          ))}
+      <section className="mb-6">
+        <h2 className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">
+          外观
+        </h2>
+        <div className="bg-card rounded-xl border border-border p-4">
+          <div className="flex gap-2">
+            {themeOptions.map(({ value, label, icon: Icon }) => (
+              <button
+                key={value}
+                onClick={() => setTheme(value)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all duration-200 ${
+                  theme === value
+                    ? "border-primary bg-primary/10 text-primary shadow-sm shadow-primary/10 font-medium"
+                    : "border-border hover:bg-muted"
+                }`}
+              >
+                <Icon className="size-4" />
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* 模型选择 — 仅管理员可见 */}
-      {isAdmin && <section className="mb-8">
-        <h2 className="text-sm font-medium text-muted-foreground mb-3">默认模型</h2>
-        <div className="space-y-2">
-          {providers.map((provider) => {
-            const providerModels = models.filter((m) => m.providerId === provider.id)
-            if (providerModels.length === 0) return null
-            return (
-              <div key={provider.id}>
-                <h3 className="text-xs text-muted-foreground mb-1">{provider.name}</h3>
-                <div className="flex flex-wrap gap-2">
-                  {providerModels.map((m) => (
-                    <button
-                      key={m.id}
-                      onClick={() => setModelId(m.id)}
-                      className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
-                        modelId === m.id
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border hover:bg-muted"
-                      }`}
-                      title={m.description}
-                    >
-                      {m.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-        <p className="text-xs text-muted-foreground mt-3">
-          ℹ️ 模型提供商通过环境变量配置。如需添加或变更，请修改部署配置中的 LLM_PROVIDERS、*_API_KEY、*_MODELS 等环境变量，详见 .env.example。
-        </p>
-      </section>}
+      {isAdmin && (
+        <section className="mb-6">
+          <h2 className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">
+            默认模型
+          </h2>
+          <div className="bg-card rounded-xl border border-border p-4">
+            <div className="space-y-2">
+              {providers.map((provider) => {
+                const providerModels = models.filter((m) => m.providerId === provider.id)
+                if (providerModels.length === 0) return null
+                return (
+                  <div key={provider.id}>
+                    <h3 className="text-xs text-muted-foreground mb-1">{provider.name}</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {providerModels.map((m) => (
+                        <button
+                          key={m.id}
+                          onClick={() => setModelId(m.id)}
+                          className={`px-3 py-1.5 text-sm rounded-lg border transition-all duration-200 ${
+                            modelId === m.id
+                              ? "border-primary bg-primary/10 text-primary shadow-sm shadow-primary/10 font-medium"
+                              : "border-border hover:bg-muted"
+                          }`}
+                          title={m.description}
+                        >
+                          {m.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            <p className="text-xs text-muted-foreground mt-3">
+              ℹ️ 模型提供商通过环境变量配置。如需添加或变更，请修改部署配置中的
+              LLM_PROVIDERS、*_API_KEY、*_MODELS 等环境变量，详见 .env.example。
+            </p>
+          </div>
+        </section>
+      )}
       {/* 数据源管理 — 仅管理员可见 */}
-      {isAdmin && <section className="mb-8">
-        <h2 className="text-sm font-medium text-muted-foreground mb-3">管理</h2>
-        <Link
-          href="/admin/datasources"
-          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border hover:bg-muted transition-colors text-sm w-fit"
-        >
-          <Database className="size-4" />
-          数据源管理
-        </Link>
-      </section>}
+      {isAdmin && (
+        <section className="mb-6">
+          <h2 className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">
+            管理
+          </h2>
+          <div className="bg-card rounded-xl border border-border p-4">
+            <Link
+              href="/admin/datasources"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border hover:bg-muted/80 transition-all duration-200 text-sm w-fit"
+            >
+              <Database className="size-4" />
+              数据源管理
+            </Link>
+          </div>
+        </section>
+      )}
 
       {/* 关于 */}
       <section>
-        <h2 className="text-sm font-medium text-muted-foreground mb-3">关于</h2>
-        <p className="text-sm text-muted-foreground">xinsight v0.1.0 — 基于多 Agent 的 AI 应用</p>
+        <h2 className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">
+          关于
+        </h2>
+        <div className="bg-card rounded-xl border border-border p-4">
+          <p className="text-sm text-muted-foreground">xinsight v0.1.0 — 基于多 Agent 的 AI 应用</p>
+        </div>
       </section>
     </main>
   )

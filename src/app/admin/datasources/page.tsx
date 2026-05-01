@@ -9,21 +9,21 @@ import { useDatasources } from "@/hooks/use-datasources"
 const typeBadge: Record<string, { label: string; color: string }> = {
   rest: {
     label: "REST API",
-    color: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
+    color: "bg-primary/10 text-primary",
   },
   graphql: {
     label: "GraphQL",
-    color: "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
+    color: "bg-accent text-accent-foreground",
   },
   grpc: {
     label: "gRPC",
-    color: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
+    color: "bg-primary/10 text-primary",
   },
   opcua: {
     label: "OPC UA",
-    color: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
+    color: "bg-accent text-accent-foreground",
   },
-  mqtt: { label: "MQTT", color: "bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-300" },
+  mqtt: { label: "MQTT", color: "bg-primary/10 text-primary" },
 }
 
 const typeFilters = [
@@ -67,8 +67,7 @@ export default function DatasourcesPage() {
       const q = search.toLowerCase()
       list = list.filter(
         (ds) =>
-          ds.name.toLowerCase().includes(q) ||
-          (ds.description?.toLowerCase().includes(q) ?? false),
+          ds.name.toLowerCase().includes(q) || (ds.description?.toLowerCase().includes(q) ?? false),
       )
     }
     return list
@@ -158,7 +157,7 @@ export default function DatasourcesPage() {
   if (error) {
     return (
       <div className="text-center py-20">
-        <p className="text-sm text-red-500 mb-4">{error}</p>
+        <p className="text-sm text-destructive mb-4">{error}</p>
         <button
           onClick={refresh}
           className="px-4 py-2 rounded-lg border border-border hover:bg-muted transition-colors text-sm"
@@ -170,7 +169,7 @@ export default function DatasourcesPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="animate-in fade-in duration-300 space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-medium">数据源列表</h2>
         <Link
@@ -190,7 +189,7 @@ export default function DatasourcesPage() {
           placeholder="搜索数据源名称或描述..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+          className="w-full pl-10 pr-4 py-2 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/30 transition-shadow duration-200"
         />
       </div>
 
@@ -217,13 +216,13 @@ export default function DatasourcesPage() {
           <span className="text-muted-foreground">已选 {selected.size} 项</span>
           <button
             onClick={() => handleBatch("enable")}
-            className="px-3 py-1 rounded bg-green-100 text-green-700 hover:bg-green-200 transition-colors text-xs"
+            className="px-3 py-1 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-xs"
           >
             批量启用
           </button>
           <button
             onClick={() => handleBatch("disable")}
-            className="px-3 py-1 rounded bg-red-100 text-red-700 hover:bg-red-200 transition-colors text-xs"
+            className="px-3 py-1 rounded bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors text-xs"
           >
             批量禁用
           </button>
@@ -241,7 +240,7 @@ export default function DatasourcesPage() {
           {datasources.length === 0 ? "暂无数据源，点击上方按钮创建" : "没有匹配的数据源"}
         </div>
       ) : (
-        <div className="border border-border rounded-lg divide-y divide-border">
+        <div className="bg-card border border-border rounded-xl divide-y divide-border">
           {/* 全选 */}
           <div className="flex items-center px-4 py-2 bg-muted/50">
             <input
@@ -261,10 +260,10 @@ export default function DatasourcesPage() {
             // 健康状态指示
             const healthColor =
               ds.lastTestResult === "ok"
-                ? "bg-green-500"
+                ? "bg-primary"
                 : ds.lastTestResult === "failed"
-                  ? "bg-red-500"
-                  : "bg-gray-400"
+                  ? "bg-destructive"
+                  : "bg-muted-foreground/40"
             return (
               <div key={ds.id} className="flex items-center justify-between px-4 py-3 gap-4">
                 <input
@@ -296,14 +295,12 @@ export default function DatasourcesPage() {
                       {badge.label}
                     </span>
                     <span
-                      className={`px-2 py-0.5 text-xs rounded-full ${ds.enabled ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300" : "bg-muted text-muted-foreground"}`}
+                      className={`px-2 py-0.5 text-xs rounded-full ${ds.enabled ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}
                     >
                       {ds.enabled ? "启用" : "禁用"}
                     </span>
                     {(ds.callCount ?? 0) > 0 && (
-                      <span className="text-xs text-muted-foreground">
-                        调用 {ds.callCount} 次
-                      </span>
+                      <span className="text-xs text-muted-foreground">调用 {ds.callCount} 次</span>
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground truncate">
@@ -316,7 +313,7 @@ export default function DatasourcesPage() {
                 <div className="flex items-center gap-1 shrink-0">
                   {status && (
                     <span
-                      className={`text-xs mr-2 ${status === "testing" ? "text-muted-foreground" : status === "ok" ? "text-green-600" : "text-red-500"}`}
+                      className={`text-xs mr-2 ${status === "testing" ? "text-muted-foreground" : status === "ok" ? "text-primary" : "text-destructive"}`}
                     >
                       {status === "testing"
                         ? "测试中..."
@@ -348,7 +345,7 @@ export default function DatasourcesPage() {
                   <button
                     onClick={() => handleDelete(ds.id)}
                     title="删除"
-                    className="p-2 rounded-lg hover:bg-muted text-red-500 transition-colors"
+                    className="p-2 rounded-lg hover:bg-destructive/10 text-destructive transition-colors"
                   >
                     <Trash2 className="size-4" />
                   </button>

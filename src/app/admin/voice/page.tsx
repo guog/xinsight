@@ -34,7 +34,7 @@ export default function AdminVoicePage() {
   }, [])
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-6">
+    <div className="animate-in fade-in duration-300 max-w-4xl mx-auto p-6 space-y-6">
       <h1 className="text-2xl font-bold">语音对话配置</h1>
 
       {/* 状态卡片 */}
@@ -43,7 +43,7 @@ export default function AdminVoicePage() {
           <CardTitle className="flex items-center gap-2 text-base">
             <span
               className={`inline-block size-2.5 rounded-full ${
-                config?.enabled ? "bg-green-500" : "bg-red-500"
+                config?.enabled ? "bg-primary" : "bg-destructive"
               }`}
             />
             语音模式：{loading ? "加载中..." : config?.enabled ? "已启用" : "未启用"}

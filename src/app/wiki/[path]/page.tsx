@@ -65,29 +65,32 @@ export default function WikiDetailPage() {
   }
 
   if (loading) {
-    return <div className="max-w-4xl mx-auto p-6 text-gray-500">加载中...</div>
+    return <div className="max-w-4xl mx-auto p-6 text-muted-foreground">加载中...</div>
   }
 
   if (!page) {
-    return <div className="max-w-4xl mx-auto p-6 text-gray-500">页面未找到</div>
+    return <div className="max-w-4xl mx-auto p-6 text-muted-foreground">页面未找到</div>
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <div className="max-w-4xl mx-auto p-6 animate-in fade-in duration-300">
       <div className="flex items-center gap-3 mb-6">
-        <Link href="/wiki" className="text-gray-500 hover:text-gray-700">
+        <Link
+          href="/wiki"
+          className="text-muted-foreground hover:text-foreground transition-colors"
+        >
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <h1 className="text-2xl font-bold">{page.title}</h1>
       </div>
 
       <div className="prose max-w-none mb-10">
-        <div className="whitespace-pre-wrap bg-gray-50 rounded-lg p-6 text-sm leading-relaxed">
+        <div className="whitespace-pre-wrap bg-muted rounded-lg p-6 text-sm leading-relaxed text-foreground">
           {page.content}
         </div>
       </div>
 
-      <div className="border-t pt-6">
+      <div className="border-t border-border pt-6 rounded-lg bg-card p-6">
         <h2 className="text-lg font-semibold mb-4">提交反馈</h2>
         <div className="flex gap-2 mb-4">
           {FEEDBACK_TYPES.map((t) => (
@@ -96,8 +99,8 @@ export default function WikiDetailPage() {
               onClick={() => setFeedbackType(t.value)}
               className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
                 feedbackType === t.value
-                  ? "bg-blue-600 text-white border-blue-600"
-                  : "bg-white text-gray-700 border-gray-300 hover:border-blue-400"
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-background text-foreground border-border hover:border-primary/50"
               }`}
             >
               {t.label}
@@ -109,19 +112,19 @@ export default function WikiDetailPage() {
           onChange={(e) => setFeedbackContent(e.target.value)}
           placeholder="请输入反馈内容..."
           rows={4}
-          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+          className="w-full px-4 py-2 border border-border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-ring resize-none"
         />
         <div className="flex items-center gap-4 mt-3">
           <button
             onClick={handleSubmit}
             disabled={submitting || !feedbackContent.trim()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed text-sm transition-colors"
           >
             {submitting ? "提交中..." : "提交反馈"}
           </button>
           {message && (
             <span
-              className={`text-sm ${message.includes("成功") ? "text-green-600" : "text-red-500"}`}
+              className={`text-sm ${message.includes("成功") ? "text-green-600 dark:text-green-400" : "text-destructive"}`}
             >
               {message}
             </span>

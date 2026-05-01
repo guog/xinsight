@@ -34,23 +34,27 @@ export function WelcomeEmptyState({ agentName, onSuggestionClick }: WelcomeEmpty
   return (
     <div className="flex flex-col items-center justify-center h-full px-4">
       <div className="text-center space-y-3 mb-8">
-        <div className="mx-auto w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-          <Sparkles className="size-6 text-primary" />
+        <div className="relative mx-auto w-12 h-12 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 shadow-sm shadow-primary/10 flex items-center justify-center">
+          <div className="absolute inset-0 rounded-xl bg-[radial-gradient(circle_at_50%_50%,rgba(var(--primary)/.06),transparent_70%)]" />
+          <Sparkles className="size-6 text-primary relative" />
         </div>
-        <h2 className="text-xl font-semibold">你好，有什么可以帮你的？</h2>
+        <h2 className="text-2xl font-semibold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+          你好，有什么可以帮你的？
+        </h2>
         <p className="text-sm text-muted-foreground">
           当前使用 {agentName}，选择下方建议或直接输入你的问题
         </p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg">
-        {suggestions.map((s) => (
+        {suggestions.map((s, index) => (
           <button
             key={s.label}
             onClick={() => onSuggestionClick(s.text)}
-            className="flex items-start gap-3 p-3 rounded-xl border border-border hover:border-primary/50 hover:bg-muted/50 transition-all text-left group"
+            className="animate-in fade-in slide-in-from-bottom-2 fill-mode-both flex items-start gap-3 p-3 rounded-xl border border-border hover:border-primary/50 hover:bg-muted/50 hover:scale-[1.02] hover:shadow-md transition-all duration-200 text-left group"
+            style={{ animationDelay: `${index * 100}ms` }}
           >
-            <div className="p-1.5 rounded-lg bg-muted group-hover:bg-primary/10 transition-colors shrink-0">
+            <div className="p-1.5 rounded-lg bg-gradient-to-br from-muted to-muted/60 group-hover:from-primary/10 group-hover:to-primary/5 transition-colors shrink-0">
               <s.icon className="size-4 text-muted-foreground group-hover:text-primary transition-colors" />
             </div>
             <div>

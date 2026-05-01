@@ -45,12 +45,14 @@ function LoginForm() {
 
   return (
     <main className="flex min-h-dvh items-center justify-center p-4">
-      <div className="w-full max-w-sm space-y-6">
+      <div className="w-full max-w-sm space-y-6 bg-card border border-border rounded-2xl p-8 shadow-lg shadow-primary/5 animate-in fade-in zoom-in-95 duration-300">
         <div className="text-center space-y-2">
           <div className="flex justify-center">
-            <Sparkles className="size-10 text-primary" />
+            <div className="size-14 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+              <Sparkles className="size-7 text-primary" />
+            </div>
           </div>
-          <h1 className="text-2xl font-bold">登录 xinsight</h1>
+          <h1 className="text-2xl font-bold tracking-tight">登录 xinsight</h1>
           <p className="text-sm text-muted-foreground">AI 洞察助手</p>
         </div>
 
@@ -67,7 +69,7 @@ function LoginForm() {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-primary/30 transition-shadow duration-200"
               placeholder="输入用户名"
               autoFocus
               autoComplete="username"
@@ -80,7 +82,7 @@ function LoginForm() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-primary/30 transition-shadow duration-200"
               placeholder="输入密码"
               autoComplete="current-password"
             />
@@ -89,7 +91,7 @@ function LoginForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm hover:shadow-md disabled:opacity-50"
           >
             {loading && <Loader2 className="size-4 animate-spin" />}
             登录

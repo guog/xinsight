@@ -32,9 +32,12 @@ import { ToolInvocation } from "@/components/tool-invocation"
 import { CodeBlockCopyProvider } from "@/components/code-block-copy"
 import { useVoiceConfig } from "@/hooks/use-voice-config"
 
-const VoiceChatPanel = dynamic(() => import("@/components/voice-chat-panel").then((m) => m.VoiceChatPanel), {
-  ssr: false,
-})
+const VoiceChatPanel = dynamic(
+  () => import("@/components/voice-chat-panel").then((m) => m.VoiceChatPanel),
+  {
+    ssr: false,
+  },
+)
 
 /** Agent 定义 */
 const agents = [
@@ -250,9 +253,9 @@ export default function ChatPage() {
                     status !== "streaming" && (
                       <button
                         onClick={() => regenerate()}
-                        className="flex items-center gap-1 mt-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground rounded-md hover:bg-muted transition-colors"
+                        className="group inline-flex items-center gap-1 mt-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground rounded-md hover:bg-muted transition-all duration-200"
                       >
-                        <RotateCcw className="size-3" />
+                        <RotateCcw className="size-3 transition-transform duration-300 group-hover:-rotate-180" />
                         重新生成
                       </button>
                     )}
@@ -264,20 +267,20 @@ export default function ChatPage() {
         </Conversation>
 
         {/* 输入区域 */}
-        <div className="mt-2 sm:mt-4 w-full max-w-2xl mx-auto">
+        <div className="relative mt-2 sm:mt-4 w-full max-w-2xl mx-auto before:absolute before:inset-x-0 before:-top-6 before:h-6 before:bg-gradient-to-t before:from-background before:to-transparent before:pointer-events-none">
           {/* 工具栏 */}
           <div className="flex items-center gap-2 mb-1.5 px-1">
             {/* Agent 选择器 */}
             <div className="relative">
               <button
                 onClick={() => setShowAgentMenu(!showAgentMenu)}
-                className="flex items-center gap-1 px-2 py-1 text-xs rounded-md border border-border hover:bg-muted transition-colors"
+                className="flex items-center gap-1 px-2 py-1 text-xs rounded-md border border-border bg-muted/50 hover:bg-muted transition-all duration-200"
               >
                 {currentAgent.name}
                 <ChevronDown className="size-3" />
               </button>
               {showAgentMenu && (
-                <div className="absolute bottom-full left-0 mb-1 w-44 bg-popover border border-border rounded-lg shadow-lg z-10">
+                <div className="absolute bottom-full left-0 mb-1 w-48 bg-popover border border-border rounded-xl shadow-xl z-10 animate-in fade-in slide-in-from-bottom-2 duration-200">
                   {agents.map((agent) => (
                     <button
                       key={agent.id}
@@ -285,8 +288,10 @@ export default function ChatPage() {
                         setAgentId(agent.id)
                         setShowAgentMenu(false)
                       }}
-                      className={`w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors first:rounded-t-lg last:rounded-b-lg ${
-                        agentId === agent.id ? "bg-primary/10 text-primary" : ""
+                      className={`w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors first:rounded-t-xl last:rounded-b-xl ${
+                        agentId === agent.id
+                          ? "bg-primary/10 text-primary border-l-2 border-primary"
+                          : ""
                       }`}
                     >
                       <div className="font-medium">{agent.name}</div>
@@ -301,14 +306,17 @@ export default function ChatPage() {
           </div>
 
           {/* Input */}
-          <PromptInput onSubmit={handleSubmit} className="relative">
+          <PromptInput
+            onSubmit={handleSubmit}
+            className="relative shadow-sm hover:shadow-md focus-within:shadow-md focus-within:ring-1 focus-within:ring-ring/30 transition-all duration-200 rounded-xl"
+          >
             <PromptInputTextarea
               value={input}
               placeholder="输入你的问题..."
               onChange={(e) => setInput(e.currentTarget.value)}
               className="pr-20"
             />
-            <div className="absolute bottom-1 right-1 flex items-center gap-1">
+            <div className="absolute bottom-1 right-1 flex items-center gap-1.5">
               <FileUpload disabled={status === "streaming"} />
               {voiceEnabled && (
                 <button
@@ -322,7 +330,7 @@ export default function ChatPage() {
               {status === "streaming" ? (
                 <button
                   onClick={() => stop()}
-                  className="flex items-center justify-center size-8 rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors"
+                  className="flex items-center justify-center size-8 rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors animate-pulse shadow-sm shadow-destructive/30"
                 >
                   <Square className="size-4" />
                 </button>
