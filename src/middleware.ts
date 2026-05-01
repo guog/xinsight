@@ -1,22 +1,22 @@
-import { NextResponse } from "next/server"
-import type { NextRequest } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 
 /**
- * Defense-in-depth: 服务端中间件拦截未登录用户访问 /admin 路由。
- * 注意：这里只能检查 cookie 是否存在（Edge Runtime 无法访问 DB），
- * 完整的角色校验由各 API route 的 requireAdmin() 保证。
+ * 检测移动端 UA，设置 cookie 供客户端使用
+ * 不做重定向 —— 使用同一套路由，通过 layout 切换 UI 壳层
  */
 export function middleware(request: NextRequest) {
-  const sessionCookie = request.cookies.get("xinsight_session")
+  const ua = request.headers.get("user-agent") || ""
+  const isMobile = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua)
 
-  if (!sessionCookie?.value) {
-    // 未登录，重定向到首页
-    return NextResponse.redirect(new URL("/", request.url))
-  }
-
-  return NextResponse.next()
+  const response = NextResponse.next()
+  response.cookies.set("x-device", isMobile ? "mobile" : "desktop", {
+    path: "/",
+    httpOnly: false,
+    sameSite: "lax",
+  })
+  return response
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|manifest.json|icons).*)"],
 }

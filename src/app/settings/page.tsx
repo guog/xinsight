@@ -5,6 +5,8 @@ import { useModel } from "@/hooks/use-model"
 import { useUser } from "@/hooks/use-user"
 import { ArrowLeft, Sun, Moon, Monitor, Database } from "lucide-react"
 import Link from "next/link"
+import { useIsMobile } from "@/hooks/use-device"
+import { MobileSettingsPage } from "@/components/mobile-settings-page"
 
 const themeOptions = [
   { value: "light" as const, label: "浅色", icon: Sun },
@@ -13,6 +15,12 @@ const themeOptions = [
 ]
 
 export default function SettingsPage() {
+  const isMobile = useIsMobile()
+  if (isMobile) return <MobileSettingsPage />
+  return <DesktopSettingsPage />
+}
+
+function DesktopSettingsPage() {
   const { theme, setTheme } = useTheme()
   const { modelId, setModelId } = useModel()
   const { isAdmin } = useUser()
