@@ -31,6 +31,8 @@ import { Sidebar, type ChatItem } from "@/components/sidebar"
 import { ToolInvocation } from "@/components/tool-invocation"
 import { CodeBlockCopyProvider } from "@/components/code-block-copy"
 import { useVoiceConfig } from "@/hooks/use-voice-config"
+import { useIsMobile } from "@/hooks/use-device"
+import { MobileChatPage } from "@/components/mobile-chat-page"
 
 const VoiceChatPanel = dynamic(
   () => import("@/components/voice-chat-panel").then((m) => m.VoiceChatPanel),
@@ -48,6 +50,16 @@ const agents = [
 ]
 
 export default function ChatPage() {
+  const isMobile = useIsMobile()
+
+  if (isMobile) {
+    return <MobileChatPage />
+  }
+
+  return <DesktopChatPage />
+}
+
+function DesktopChatPage() {
   const [input, setInput] = useState("")
   const [agentId, setAgentId] = useState("autoAgent")
   const [showAgentMenu, setShowAgentMenu] = useState(false)

@@ -4,6 +4,8 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { CardGridSkeleton } from "@/components/skeleton"
+import { useIsMobile } from "@/hooks/use-device"
+import { MobileWikiPage } from "@/components/mobile-wiki-page"
 
 interface WikiPage {
   path: string
@@ -14,6 +16,12 @@ interface WikiPage {
 }
 
 export default function WikiListPage() {
+  const isMobile = useIsMobile()
+  if (isMobile) return <MobileWikiPage />
+  return <DesktopWikiPage />
+}
+
+function DesktopWikiPage() {
   const [pages, setPages] = useState<WikiPage[]>([])
   const [search, setSearch] = useState("")
   const [loading, setLoading] = useState(true)
