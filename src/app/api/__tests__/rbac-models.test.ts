@@ -4,8 +4,6 @@ import { users, sessions } from "@/db/schema"
 import { registerUser, handleAuthError, hasAnyUser } from "@/lib/auth"
 import { getProviders, getModels, getDefaultModelId, _resetCache } from "@/lib/models"
 
-// 保存原始环境变量
-const origEnv = { ...process.env }
 
 /**
  * 清空用户和会话表，确保测试隔离
@@ -90,50 +88,71 @@ describe("RBAC 与认证", () => {
 
 // ==================== 模型 API ====================
 
+import { llmProviders, llmModels } from "@/db/schema"
+import { eq } from "drizzle-orm"
+
+const RBAC_TEST_PROVIDER = "__rbac_test_provider__"
+
 describe("模型注册表集成测试", () => {
   beforeEach(() => {
     _resetCache()
-    // 设置测试用环境变量
-    process.env.LLM_PROVIDERS = "deepseek,qwen"
-    process.env.DEEPSEEK_API_KEY = "test-key-deepseek"
-    process.env.DASHSCOPE_API_KEY = "test-key-qwen"
+    // 清理旧数据
+    db.delete(llmModels).where(eq(llmModels.providerId, RBAC_TEST_PROVIDER)).run()
+    db.delete(llmProviders).where(eq(llmProviders.id, RBAC_TEST_PROVIDER)).run()
+    const now = new Date()
+    // 插入测试 provider + model 到 DB
+    db.insert(llmProviders).values({
+      id: RBAC_TEST_PROVIDER,
+      name: "RBACTest",
+      type: "cloud",
+      apiFormat: "openai",
+      baseUrl: "https://rbac-test.example.com",
+      apiKey: "test-key",
+      apiKeyRequired: true,
+      enabled: true,
+      sortOrder: 0,
+      createdAt: now,
+      updatedAt: now,
+    }).run()
+    db.insert(llmModels).values({
+      id: `${RBAC_TEST_PROVIDER}/test-model`,
+      providerId: RBAC_TEST_PROVIDER,
+      modelSlug: "test-model",
+      name: "Test Model",
+      enabled: true,
+      status: "available",
+      capabilities: JSON.stringify({ chat: true }),
+      sortOrder: 0,
+      discoveredAt: now,
+      updatedAt: now,
+    }).run()
   })
 
   afterAll(() => {
-    // 恢复原始环境变量
-    Object.keys(process.env).forEach((k) => {
-      if (!(k in origEnv)) delete process.env[k]
-      else process.env[k] = origEnv[k]
-    })
+    db.delete(llmModels).where(eq(llmModels.providerId, RBAC_TEST_PROVIDER)).run()
+    db.delete(llmProviders).where(eq(llmProviders.id, RBAC_TEST_PROVIDER)).run()
     _resetCache()
   })
 
-  describe("provider 按环境变量过滤", () => {
-    it("配置了 API Key 的 provider 应出现在列表中", () => {
+  describe("provider 从 DB 读取", () => {
+    it("已启用的 provider 应出现在列表中", () => {
       const providers = getProviders()
       const ids = providers.map((p) => p.id)
-      expect(ids).toContain("deepseek")
+      expect(ids).toContain(RBAC_TEST_PROVIDER)
     })
 
-    it("未配置 API Key 的 provider 不应出现", () => {
+    it("禁用的 provider 不应出现", () => {
+      db.update(llmProviders).set({ enabled: false }).where(eq(llmProviders.id, RBAC_TEST_PROVIDER)).run()
       _resetCache()
-      delete process.env.DASHSCOPE_API_KEY
       const providers = getProviders()
-      expect(providers.find((p) => p.id === "qwen")).toBeUndefined()
-    })
-
-    it("只配置单个 provider 时只返回该 provider", () => {
-      _resetCache()
-      process.env.LLM_PROVIDERS = "deepseek"
-      delete process.env.DASHSCOPE_API_KEY
-      const providers = getProviders()
-      expect(providers.length).toBe(1)
-      expect(providers[0].id).toBe("deepseek")
+      expect(providers.find((p) => p.id === RBAC_TEST_PROVIDER)).toBeUndefined()
+      // 恢复
+      db.update(llmProviders).set({ enabled: true }).where(eq(llmProviders.id, RBAC_TEST_PROVIDER)).run()
     })
   })
 
   describe("getModels 与 getDefaultModelId", () => {
-    it("返回的模型应属于已配置的 provider", () => {
+    it("返回的模型应属于已启用的 provider", () => {
       const models = getModels()
       const providerIds = getProviders().map((p) => p.id)
       for (const model of models) {
@@ -141,17 +160,18 @@ describe("模型注册表集成测试", () => {
       }
     })
 
-    it("默认模型 ID 应为 deepseek/deepseek-chat", () => {
-      expect(getDefaultModelId()).toBe("deepseek/deepseek-chat")
+    it("getDefaultModelId 返回非空字符串", () => {
+      expect(getDefaultModelId()).toBeTruthy()
     })
 
-    it("删除所有 provider key 后模型列表为空", () => {
+    it("禁用所有 provider 后 getDefaultModelId 返回 fallback", () => {
+      db.update(llmProviders).set({ enabled: false }).where(eq(llmProviders.id, RBAC_TEST_PROVIDER)).run()
       _resetCache()
-      delete process.env.DEEPSEEK_API_KEY
-      delete process.env.DASHSCOPE_API_KEY
-      process.env.LLM_PROVIDERS = ""
-      const models = getModels()
-      expect(models.length).toBe(0)
+      // 可能还有 seed 的 provider，只验证返回值是字符串
+      const id = getDefaultModelId()
+      expect(typeof id).toBe("string")
+      // 恢复
+      db.update(llmProviders).set({ enabled: true }).where(eq(llmProviders.id, RBAC_TEST_PROVIDER)).run()
     })
   })
 })

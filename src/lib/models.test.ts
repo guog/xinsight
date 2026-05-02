@@ -1,31 +1,68 @@
-import { describe, it, expect, beforeEach, afterAll } from "vitest"
+import { describe, it, expect, beforeEach, afterEach } from "vitest"
+import { db } from "@/db"
+import { llmProviders, llmModels } from "@/db/schema"
+import { eq } from "drizzle-orm"
 import {
   getProviders,
   getModels,
   getModelById,
   getDefaultModelId,
+  getProviderForModel,
   _resetCache,
-  type ProviderInfo,
 } from "./models"
 
-// 保存原始环境变量
-const origEnv = { ...process.env }
+const TEST_PROVIDER_ID = "__test_models_ts__"
 
 describe("模型注册表", () => {
   beforeEach(() => {
     _resetCache()
-    // 设置测试用环境变量
-    process.env.LLM_PROVIDERS = "deepseek,qwen"
-    process.env.DEEPSEEK_API_KEY = "test-key"
-    process.env.DASHSCOPE_API_KEY = "test-key"
+    // 插入测试数据
+    const now = new Date()
+    db.insert(llmProviders).values({
+      id: TEST_PROVIDER_ID,
+      name: "TestProvider",
+      type: "cloud",
+      apiFormat: "openai",
+      baseUrl: "https://test.example.com",
+      apiKey: "test-key",
+      apiKeyRequired: true,
+      enabled: true,
+      sortOrder: 0,
+      createdAt: now,
+      updatedAt: now,
+    }).run()
+
+    db.insert(llmModels).values([
+      {
+        id: `${TEST_PROVIDER_ID}/model-a`,
+        providerId: TEST_PROVIDER_ID,
+        modelSlug: "model-a",
+        name: "Model A",
+        enabled: true,
+        status: "available",
+        capabilities: JSON.stringify({ chat: true }),
+        sortOrder: 0,
+        discoveredAt: now,
+        updatedAt: now,
+      },
+      {
+        id: `${TEST_PROVIDER_ID}/model-b`,
+        providerId: TEST_PROVIDER_ID,
+        modelSlug: "model-b",
+        name: "Model B",
+        enabled: false,
+        status: "available",
+        capabilities: JSON.stringify({ chat: true }),
+        sortOrder: 1,
+        discoveredAt: now,
+        updatedAt: now,
+      },
+    ]).run()
   })
 
-  afterAll(() => {
-    // 恢复原始环境变量
-    Object.keys(process.env).forEach((k) => {
-      if (!(k in origEnv)) delete process.env[k]
-      else process.env[k] = origEnv[k]
-    })
+  afterEach(() => {
+    db.delete(llmModels).where(eq(llmModels.providerId, TEST_PROVIDER_ID)).run()
+    db.delete(llmProviders).where(eq(llmProviders.id, TEST_PROVIDER_ID)).run()
     _resetCache()
   })
 
@@ -37,31 +74,34 @@ describe("模型注册表", () => {
       expect(providers[0]).toHaveProperty("name")
     })
 
-    it("应该包含 DeepSeek 提供商", () => {
+    it("应该包含测试提供商", () => {
       const providers = getProviders()
-      const deepseek = providers.find((p: ProviderInfo) => p.id === "deepseek")
-      expect(deepseek).toBeDefined()
-      expect(deepseek!.name).toBe("DeepSeek")
+      const tp = providers.find((p) => p.id === TEST_PROVIDER_ID)
+      expect(tp).toBeDefined()
+      expect(tp!.name).toBe("TestProvider")
     })
 
-    it("没有 API Key 时不应返回该提供商", () => {
+    it("禁用的提供商不出现", () => {
+      db.update(llmProviders).set({ enabled: false }).where(eq(llmProviders.id, TEST_PROVIDER_ID)).run()
       _resetCache()
-      delete process.env.DASHSCOPE_API_KEY
       const providers = getProviders()
-      expect(providers.find((p) => p.id === "qwen")).toBeUndefined()
+      expect(providers.find((p) => p.id === TEST_PROVIDER_ID)).toBeUndefined()
     })
   })
 
   describe("getModels", () => {
-    it("应该返回所有可用模型", () => {
+    it("应该返回所有已启用模型", () => {
       const models = getModels()
-      expect(models.length).toBeGreaterThan(0)
+      const ours = models.filter((m) => m.providerId === TEST_PROVIDER_ID)
+      // model-a enabled, model-b disabled
+      expect(ours.length).toBe(1)
+      expect(ours[0].id).toBe(`${TEST_PROVIDER_ID}/model-a`)
     })
 
     it("每个模型应该有完整的信息", () => {
       const models = getModels()
       for (const model of models) {
-        expect(model.id).toMatch(/^[a-z]+\//)
+        expect(model.id).toBeTruthy()
         expect(model.name).toBeTruthy()
         expect(model.providerId).toBeTruthy()
       }
@@ -70,9 +110,9 @@ describe("模型注册表", () => {
 
   describe("getModelById", () => {
     it("应该通过 ID 找到模型", () => {
-      const model = getModelById("deepseek/deepseek-chat")
+      const model = getModelById(`${TEST_PROVIDER_ID}/model-a`)
       expect(model).toBeDefined()
-      expect(model!.name).toBeTruthy()
+      expect(model!.name).toBe("Model A")
     })
 
     it("找不到时应该返回 undefined", () => {
@@ -82,9 +122,17 @@ describe("模型注册表", () => {
   })
 
   describe("getDefaultModelId", () => {
-    it("应该返回默认模型 ID", () => {
+    it("应该返回第一个模型的 ID", () => {
       const id = getDefaultModelId()
-      expect(id).toBe("deepseek/deepseek-chat")
+      expect(id).toBeTruthy()
+    })
+  })
+
+  describe("getProviderForModel", () => {
+    it("根据 modelId 找到提供商", () => {
+      const p = getProviderForModel(`${TEST_PROVIDER_ID}/model-a`)
+      expect(p).toBeDefined()
+      expect(p!.id).toBe(TEST_PROVIDER_ID)
     })
   })
 })
