@@ -120,3 +120,39 @@ export const wikiSettings = sqliteTable("wiki_settings", {
   key: text("key").primaryKey(),
   value: text("value").notNull(),
 })
+
+/** LLM 提供商配置 */
+export const llmProviders = sqliteTable("llm_providers", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  type: text("type").notNull().default("cloud"), // "cloud" | "local"
+  apiFormat: text("api_format").notNull().default("openai"), // "openai" | "ollama"
+  baseUrl: text("base_url").notNull(),
+  apiKey: text("api_key").notNull().default(""),
+  apiKeyRequired: integer("api_key_required", { mode: "boolean" }).notNull().default(true),
+  enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+  syncedAt: integer("synced_at", { mode: "timestamp" }),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+})
+
+/** LLM 模型 */
+export const llmModels = sqliteTable(
+  "llm_models",
+  {
+    id: text("id").primaryKey(), // 格式: "providerId/modelSlug"
+    providerId: text("provider_id")
+      .notNull()
+      .references(() => llmProviders.id, { onDelete: "cascade" }),
+    modelSlug: text("model_slug").notNull(),
+    name: text("name").notNull(), // 显示名称（可自定义）
+    enabled: integer("enabled", { mode: "boolean" }).notNull().default(false),
+    status: text("status").notNull().default("available"), // "available" | "deprecated" | "offline"
+    capabilities: text("capabilities").notNull().default("{}"), // JSON: {chat,vision,tools}
+    sortOrder: integer("sort_order").notNull().default(0),
+    discoveredAt: integer("discovered_at", { mode: "timestamp" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [index("idx_llm_models_provider").on(table.providerId)],
+)

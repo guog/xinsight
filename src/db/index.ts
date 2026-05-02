@@ -18,3 +18,7 @@ try {
 // Seed default users (admin + guest) — idempotent
 import { seedUsers } from "./seed"
 seedUsers().catch((e) => console.warn("Seed users failed:", (e as Error).message))
+
+// Seed LLM providers from env vars on first startup
+import { seedProvidersFromEnv } from "@/lib/provider-seed"
+seedProvidersFromEnv().catch((e) => console.error("Provider seed failed:", e))

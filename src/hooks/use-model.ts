@@ -1,13 +1,13 @@
 "use client"
 
 import { useState, useCallback } from "react"
-import { getDefaultModelId } from "@/lib/models"
 
 const STORAGE_KEY = "xinsight:modelId"
+const FALLBACK_MODEL = "deepseek/deepseek-v4-flash"
 
 function getInitialModelId(): string {
-  if (typeof window === "undefined") return getDefaultModelId()
-  return localStorage.getItem(STORAGE_KEY) ?? getDefaultModelId()
+  if (typeof window === "undefined") return FALLBACK_MODEL
+  return localStorage.getItem(STORAGE_KEY) ?? FALLBACK_MODEL
 }
 
 export function useModel() {
