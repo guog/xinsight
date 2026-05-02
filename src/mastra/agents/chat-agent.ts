@@ -11,7 +11,7 @@ import {
  * 评估模型 — 用于对 Agent 输出进行自动评分
  * 使用较轻量的模型降低评估成本
  */
-const evalModel = "deepseek/deepseek-chat"
+const evalModel = "deepseek/deepseek-v4-flash"
 
 /**
  * 通用聊天 Agent
@@ -31,7 +31,7 @@ export const chatAgent = new Agent({
     "你是 xinsight 的 AI 助手，擅长回答用户问题并提供有价值的洞察。" +
     "请使用中文回复，除非用户明确使用其他语言。" +
     "回答应简洁、准确、有帮助。",
-  model: "deepseek/deepseek-chat",
+  model: "deepseek/deepseek-v4-flash",
   tools: { datasourceQueryTool, datasourceListTool, datasourceBatchQueryTool },
   scorers: {
     relevancy: {

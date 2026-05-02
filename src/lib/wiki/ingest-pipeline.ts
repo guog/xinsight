@@ -30,7 +30,7 @@ interface PageSpec {
 // 使用 LLM 将提取的 markdown 拆分为 wiki 页面（Karpathy 风格）
 async function splitIntoPages(markdown: string, signal?: AbortSignal): Promise<PageSpec[]> {
   const { text } = await generateText({
-    model: provider("deepseek-chat"),
+    model: provider("deepseek-v4-flash"),
     abortSignal: signal,
     system: `你是一个知识整理专家。将输入的 markdown 文档拆分为多个独立的 wiki 页面，采用 Karpathy 风格（简洁、清晰、信息密度高）。
 

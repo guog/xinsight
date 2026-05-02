@@ -52,7 +52,7 @@ const PROVIDER_REGISTRY: RegistryEntry[] = [
     envBaseUrl: "DEEPSEEK_BASE_URL",
     envModels: "DEEPSEEK_MODELS",
     defaultBaseUrl: "https://api.deepseek.com/v1",
-    defaultModels: ["deepseek-chat", "deepseek-reasoner"],
+    defaultModels: ["deepseek-v4-flash", "deepseek-v4-pro"],
   },
   {
     id: "qwen",
@@ -165,7 +165,7 @@ export function getModelById(id: string): ModelInfo | undefined {
 
 export function getDefaultModelId(): string {
   const models = getModels()
-  return models.length > 0 ? models[0].id : "deepseek/deepseek-chat"
+  return models.length > 0 ? models[0].id : "deepseek/deepseek-v4-flash"
 }
 
 export function getProviderForModel(modelId: string): ProviderInfo | undefined {
