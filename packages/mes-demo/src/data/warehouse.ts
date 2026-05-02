@@ -1,0 +1,617 @@
+// 仓库数据 - 库存、出入库记录、库位
+
+export interface InventoryRecord {
+  id: string
+  materialId: string
+  materialName: string
+  locationId: string
+  quantity: number
+  unit: string
+  lastUpdated: Date
+}
+
+export interface InOutRecord {
+  id: string
+  materialId: string
+  materialName: string
+  type: "入库" | "出库"
+  quantity: number
+  unit: string
+  orderId?: string
+  reason: string
+  operatorId: string
+  timestamp: Date
+  locationId: string
+}
+
+export interface WarehouseLocation {
+  id: string
+  zone: string
+  zoneName: string
+  slotNumber: string
+  capacity: number
+  currentLoad: number
+  materialType: "原材料" | "半成品" | "成品" | "空"
+}
+
+const today = new Date()
+const monday = new Date(today)
+monday.setDate(today.getDate() - today.getDay() + 1)
+monday.setHours(0, 0, 0, 0)
+
+function dayOf(offset: number, hour = 8): Date {
+  const d = new Date(monday)
+  d.setDate(monday.getDate() + offset)
+  d.setHours(hour, 0, 0, 0)
+  return d
+}
+
+export const warehouseLocations: WarehouseLocation[] = [
+  // A区 - 原材料区 (7个库位)
+  {
+    id: "LOC-A01",
+    zone: "A",
+    zoneName: "原材料区",
+    slotNumber: "A-01",
+    capacity: 5000,
+    currentLoad: 3200,
+    materialType: "原材料",
+  },
+  {
+    id: "LOC-A02",
+    zone: "A",
+    zoneName: "原材料区",
+    slotNumber: "A-02",
+    capacity: 5000,
+    currentLoad: 2800,
+    materialType: "原材料",
+  },
+  {
+    id: "LOC-A03",
+    zone: "A",
+    zoneName: "原材料区",
+    slotNumber: "A-03",
+    capacity: 2000,
+    currentLoad: 1500,
+    materialType: "原材料",
+  },
+  {
+    id: "LOC-A04",
+    zone: "A",
+    zoneName: "原材料区",
+    slotNumber: "A-04",
+    capacity: 1000,
+    currentLoad: 600,
+    materialType: "原材料",
+  },
+  {
+    id: "LOC-A05",
+    zone: "A",
+    zoneName: "原材料区",
+    slotNumber: "A-05",
+    capacity: 2000,
+    currentLoad: 1200,
+    materialType: "原材料",
+  },
+  {
+    id: "LOC-A06",
+    zone: "A",
+    zoneName: "原材料区",
+    slotNumber: "A-06",
+    capacity: 3000,
+    currentLoad: 0,
+    materialType: "空",
+  },
+  {
+    id: "LOC-A07",
+    zone: "A",
+    zoneName: "原材料区",
+    slotNumber: "A-07",
+    capacity: 3000,
+    currentLoad: 800,
+    materialType: "原材料",
+  },
+  // B区 - 半成品区 (6个库位)
+  {
+    id: "LOC-B01",
+    zone: "B",
+    zoneName: "半成品区",
+    slotNumber: "B-01",
+    capacity: 500,
+    currentLoad: 200,
+    materialType: "半成品",
+  },
+  {
+    id: "LOC-B02",
+    zone: "B",
+    zoneName: "半成品区",
+    slotNumber: "B-02",
+    capacity: 500,
+    currentLoad: 150,
+    materialType: "半成品",
+  },
+  {
+    id: "LOC-B03",
+    zone: "B",
+    zoneName: "半成品区",
+    slotNumber: "B-03",
+    capacity: 500,
+    currentLoad: 80,
+    materialType: "半成品",
+  },
+  {
+    id: "LOC-B04",
+    zone: "B",
+    zoneName: "半成品区",
+    slotNumber: "B-04",
+    capacity: 500,
+    currentLoad: 120,
+    materialType: "半成品",
+  },
+  {
+    id: "LOC-B05",
+    zone: "B",
+    zoneName: "半成品区",
+    slotNumber: "B-05",
+    capacity: 500,
+    currentLoad: 90,
+    materialType: "半成品",
+  },
+  {
+    id: "LOC-B06",
+    zone: "B",
+    zoneName: "半成品区",
+    slotNumber: "B-06",
+    capacity: 500,
+    currentLoad: 0,
+    materialType: "空",
+  },
+  // C区 - 成品区 (7个库位)
+  {
+    id: "LOC-C01",
+    zone: "C",
+    zoneName: "成品区",
+    slotNumber: "C-01",
+    capacity: 300,
+    currentLoad: 200,
+    materialType: "成品",
+  },
+  {
+    id: "LOC-C02",
+    zone: "C",
+    zoneName: "成品区",
+    slotNumber: "C-02",
+    capacity: 300,
+    currentLoad: 150,
+    materialType: "成品",
+  },
+  {
+    id: "LOC-C03",
+    zone: "C",
+    zoneName: "成品区",
+    slotNumber: "C-03",
+    capacity: 300,
+    currentLoad: 280,
+    materialType: "成品",
+  },
+  {
+    id: "LOC-C04",
+    zone: "C",
+    zoneName: "成品区",
+    slotNumber: "C-04",
+    capacity: 300,
+    currentLoad: 100,
+    materialType: "成品",
+  },
+  {
+    id: "LOC-C05",
+    zone: "C",
+    zoneName: "成品区",
+    slotNumber: "C-05",
+    capacity: 300,
+    currentLoad: 180,
+    materialType: "成品",
+  },
+  {
+    id: "LOC-C06",
+    zone: "C",
+    zoneName: "成品区",
+    slotNumber: "C-06",
+    capacity: 300,
+    currentLoad: 0,
+    materialType: "空",
+  },
+  {
+    id: "LOC-C07",
+    zone: "C",
+    zoneName: "成品区",
+    slotNumber: "C-07",
+    capacity: 300,
+    currentLoad: 60,
+    materialType: "成品",
+  },
+]
+
+export const inventoryRecords: InventoryRecord[] = [
+  // 原材料
+  {
+    id: "INV-001",
+    materialId: "MAT-R01",
+    materialName: "热轧钢板",
+    locationId: "LOC-A01",
+    quantity: 3200,
+    unit: "kg",
+    lastUpdated: dayOf(4),
+  },
+  {
+    id: "INV-002",
+    materialId: "MAT-R02",
+    materialName: "冷轧钢板",
+    locationId: "LOC-A02",
+    quantity: 2800,
+    unit: "kg",
+    lastUpdated: dayOf(4),
+  },
+  {
+    id: "INV-003",
+    materialId: "MAT-R03",
+    materialName: "不锈钢管",
+    locationId: "LOC-A03",
+    quantity: 1500,
+    unit: "根",
+    lastUpdated: dayOf(3),
+  },
+  {
+    id: "INV-004",
+    materialId: "MAT-R04",
+    materialName: "焊丝",
+    locationId: "LOC-A04",
+    quantity: 600,
+    unit: "盘",
+    lastUpdated: dayOf(3),
+  },
+  {
+    id: "INV-005",
+    materialId: "MAT-R05",
+    materialName: "螺栓组件",
+    locationId: "LOC-A05",
+    quantity: 1200,
+    unit: "套",
+    lastUpdated: dayOf(2),
+  },
+  // 半成品
+  {
+    id: "INV-006",
+    materialId: "MAT-S01",
+    materialName: "前保支架冲压件",
+    locationId: "LOC-B01",
+    quantity: 200,
+    unit: "件",
+    lastUpdated: dayOf(4),
+  },
+  {
+    id: "INV-007",
+    materialId: "MAT-S02",
+    materialName: "后防撞梁管件",
+    locationId: "LOC-B02",
+    quantity: 150,
+    unit: "件",
+    lastUpdated: dayOf(4),
+  },
+  {
+    id: "INV-008",
+    materialId: "MAT-S03",
+    materialName: "铰链毛坯",
+    locationId: "LOC-B03",
+    quantity: 80,
+    unit: "件",
+    lastUpdated: dayOf(3),
+  },
+  {
+    id: "INV-009",
+    materialId: "MAT-S04",
+    materialName: "支架焊接组件",
+    locationId: "LOC-B04",
+    quantity: 120,
+    unit: "件",
+    lastUpdated: dayOf(3),
+  },
+  {
+    id: "INV-010",
+    materialId: "MAT-S05",
+    materialName: "法兰冲压件",
+    locationId: "LOC-B05",
+    quantity: 90,
+    unit: "件",
+    lastUpdated: dayOf(2),
+  },
+  // 成品
+  {
+    id: "INV-011",
+    materialId: "MAT-F01",
+    materialName: "前保险杠支架",
+    locationId: "LOC-C01",
+    quantity: 200,
+    unit: "件",
+    lastUpdated: dayOf(4),
+  },
+  {
+    id: "INV-012",
+    materialId: "MAT-F02",
+    materialName: "后防撞梁",
+    locationId: "LOC-C02",
+    quantity: 150,
+    unit: "件",
+    lastUpdated: dayOf(4),
+  },
+  {
+    id: "INV-013",
+    materialId: "MAT-F03",
+    materialName: "车门铰链",
+    locationId: "LOC-C03",
+    quantity: 280,
+    unit: "套",
+    lastUpdated: dayOf(3),
+  },
+  {
+    id: "INV-014",
+    materialId: "MAT-F04",
+    materialName: "发动机支架",
+    locationId: "LOC-C04",
+    quantity: 100,
+    unit: "件",
+    lastUpdated: dayOf(3),
+  },
+  {
+    id: "INV-015",
+    materialId: "MAT-F05",
+    materialName: "排气管法兰",
+    locationId: "LOC-C05",
+    quantity: 180,
+    unit: "件",
+    lastUpdated: dayOf(2),
+  },
+  // 额外库存
+  {
+    id: "INV-016",
+    materialId: "MAT-R01",
+    materialName: "热轧钢板",
+    locationId: "LOC-A07",
+    quantity: 800,
+    unit: "kg",
+    lastUpdated: dayOf(1),
+  },
+  {
+    id: "INV-017",
+    materialId: "MAT-F01",
+    materialName: "前保险杠支架",
+    locationId: "LOC-C07",
+    quantity: 60,
+    unit: "件",
+    lastUpdated: dayOf(0),
+  },
+  {
+    id: "INV-018",
+    materialId: "MAT-R02",
+    materialName: "冷轧钢板",
+    locationId: "LOC-A06",
+    quantity: 0,
+    unit: "kg",
+    lastUpdated: dayOf(0),
+  },
+  {
+    id: "INV-019",
+    materialId: "MAT-S01",
+    materialName: "前保支架冲压件",
+    locationId: "LOC-B06",
+    quantity: 0,
+    unit: "件",
+    lastUpdated: dayOf(0),
+  },
+  {
+    id: "INV-020",
+    materialId: "MAT-F03",
+    materialName: "车门铰链",
+    locationId: "LOC-C06",
+    quantity: 0,
+    unit: "套",
+    lastUpdated: dayOf(0),
+  },
+]
+
+export const inOutRecords: InOutRecord[] = [
+  // 入库 - 原材料采购入库
+  {
+    id: "IO-001",
+    materialId: "MAT-R01",
+    materialName: "热轧钢板",
+    type: "入库",
+    quantity: 2000,
+    unit: "kg",
+    reason: "采购入库",
+    operatorId: "EMP-005",
+    timestamp: dayOf(0, 7),
+    locationId: "LOC-A01",
+  },
+  {
+    id: "IO-002",
+    materialId: "MAT-R03",
+    materialName: "不锈钢管",
+    type: "入库",
+    quantity: 500,
+    unit: "根",
+    reason: "采购入库",
+    operatorId: "EMP-005",
+    timestamp: dayOf(0, 9),
+    locationId: "LOC-A03",
+  },
+  {
+    id: "IO-003",
+    materialId: "MAT-R04",
+    materialName: "焊丝",
+    type: "入库",
+    quantity: 200,
+    unit: "盘",
+    reason: "采购入库",
+    operatorId: "EMP-010",
+    timestamp: dayOf(1, 7),
+    locationId: "LOC-A04",
+  },
+  // 出库 - 生产领料
+  {
+    id: "IO-004",
+    materialId: "MAT-R01",
+    materialName: "热轧钢板",
+    type: "出库",
+    quantity: 500,
+    unit: "kg",
+    orderId: "PO-001",
+    reason: "生产领料",
+    operatorId: "EMP-002",
+    timestamp: dayOf(0, 6),
+    locationId: "LOC-A01",
+  },
+  {
+    id: "IO-005",
+    materialId: "MAT-R02",
+    materialName: "冷轧钢板",
+    type: "出库",
+    quantity: 400,
+    unit: "kg",
+    orderId: "PO-003",
+    reason: "生产领料",
+    operatorId: "EMP-003",
+    timestamp: dayOf(1, 6),
+    locationId: "LOC-A02",
+  },
+  {
+    id: "IO-006",
+    materialId: "MAT-R03",
+    materialName: "不锈钢管",
+    type: "出库",
+    quantity: 300,
+    unit: "根",
+    orderId: "PO-002",
+    reason: "生产领料",
+    operatorId: "EMP-007",
+    timestamp: dayOf(0, 6),
+    locationId: "LOC-A03",
+  },
+  {
+    id: "IO-007",
+    materialId: "MAT-R01",
+    materialName: "热轧钢板",
+    type: "出库",
+    quantity: 300,
+    unit: "kg",
+    orderId: "PO-004",
+    reason: "生产领料",
+    operatorId: "EMP-008",
+    timestamp: dayOf(1, 6),
+    locationId: "LOC-A01",
+  },
+  // 入库 - 成品入库
+  {
+    id: "IO-008",
+    materialId: "MAT-F01",
+    materialName: "前保险杠支架",
+    type: "入库",
+    quantity: 200,
+    unit: "件",
+    orderId: "PO-001",
+    reason: "成品入库",
+    operatorId: "EMP-002",
+    timestamp: dayOf(0, 18),
+    locationId: "LOC-C01",
+  },
+  {
+    id: "IO-009",
+    materialId: "MAT-F02",
+    materialName: "后防撞梁",
+    type: "入库",
+    quantity: 150,
+    unit: "件",
+    orderId: "PO-002",
+    reason: "成品入库",
+    operatorId: "EMP-007",
+    timestamp: dayOf(1, 18),
+    locationId: "LOC-C02",
+  },
+  {
+    id: "IO-010",
+    materialId: "MAT-F03",
+    materialName: "车门铰链",
+    type: "入库",
+    quantity: 300,
+    unit: "套",
+    orderId: "PO-003",
+    reason: "成品入库",
+    operatorId: "EMP-003",
+    timestamp: dayOf(1, 18),
+    locationId: "LOC-C03",
+  },
+  {
+    id: "IO-011",
+    materialId: "MAT-F04",
+    materialName: "发动机支架",
+    type: "入库",
+    quantity: 100,
+    unit: "件",
+    orderId: "PO-004",
+    reason: "成品入库",
+    operatorId: "EMP-008",
+    timestamp: dayOf(2, 18),
+    locationId: "LOC-C04",
+  },
+  {
+    id: "IO-012",
+    materialId: "MAT-F05",
+    materialName: "排气管法兰",
+    type: "入库",
+    quantity: 250,
+    unit: "件",
+    orderId: "PO-005",
+    reason: "成品入库",
+    operatorId: "EMP-012",
+    timestamp: dayOf(2, 18),
+    locationId: "LOC-C05",
+  },
+  // 出库 - 成品发货
+  {
+    id: "IO-013",
+    materialId: "MAT-F01",
+    materialName: "前保险杠支架",
+    type: "出库",
+    quantity: 60,
+    unit: "件",
+    reason: "客户发货",
+    operatorId: "EMP-018",
+    timestamp: dayOf(3, 10),
+    locationId: "LOC-C07",
+  },
+  {
+    id: "IO-014",
+    materialId: "MAT-R01",
+    materialName: "热轧钢板",
+    type: "出库",
+    quantity: 600,
+    unit: "kg",
+    orderId: "PO-006",
+    reason: "生产领料",
+    operatorId: "EMP-012",
+    timestamp: dayOf(3, 6),
+    locationId: "LOC-A01",
+  },
+  {
+    id: "IO-015",
+    materialId: "MAT-R05",
+    materialName: "螺栓组件",
+    type: "入库",
+    quantity: 500,
+    unit: "套",
+    reason: "采购入库",
+    operatorId: "EMP-015",
+    timestamp: dayOf(2, 9),
+    locationId: "LOC-A05",
+  },
+]
