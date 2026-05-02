@@ -26,6 +26,9 @@ export async function extractText(filePath: string): Promise<{ text: string; err
       case ".docx":
         return await extractDocx(filePath)
 
+      case ".pptx":
+        return await extractPptx(filePath)
+
       default:
         // 尝试作为纯文本读取
         return { text: await readFile(filePath, "utf-8") }
@@ -37,10 +40,24 @@ export async function extractText(filePath: string): Promise<{ text: string; err
 
 async function extractPdf(filePath: string): Promise<{ text: string; error?: string }> {
   try {
-    const pdfParse = (await import("pdf-parse")).default
-    const buffer = await readFile(filePath)
-    const data = await pdfParse(buffer)
-    return { text: data.text }
+    const mod = await import("pdf-parse")
+    const PDFParse = mod.default ?? mod.PDFParse
+    const buffer = new Uint8Array(await readFile(filePath))
+    const parser = new PDFParse(buffer)
+    const data = await parser.getText()
+    // data may be a string or {pages: [{text, num}]}
+    let text: string
+    if (typeof data === "string") {
+      text = data
+    } else if (data?.pages) {
+      text = data.pages
+        .map((p: { text: string; num: number }) => p.text)
+        .filter(Boolean)
+        .join("\n\n")
+    } else {
+      text = JSON.stringify(data)
+    }
+    return { text: text || "", error: text ? undefined : "PDF 无可提取文本（可能为扫描件）" }
   } catch (err) {
     return { text: "", error: `PDF 解析失败: ${err instanceof Error ? err.message : String(err)}` }
   }
@@ -69,6 +86,45 @@ async function extractExcel(filePath: string): Promise<{ text: string; error?: s
       text: "",
       error: `Excel 解析失败: ${err instanceof Error ? err.message : String(err)}`,
     }
+  }
+}
+
+async function extractPptx(filePath: string): Promise<{ text: string; error?: string }> {
+  try {
+    const JSZip = (await import("jszip")).default
+    const buffer = await readFile(filePath)
+    const zip = await JSZip.loadAsync(buffer)
+
+    const slides: string[] = []
+    // pptx slides are in ppt/slides/slide1.xml, slide2.xml, ...
+    const slideFiles = Object.keys(zip.files)
+      .filter((f) => /^ppt\/slides\/slide\d+\.xml$/.test(f))
+      .sort((a, b) => {
+        const numA = parseInt(a.match(/slide(\d+)/)?.[1] || "0")
+        const numB = parseInt(b.match(/slide(\d+)/)?.[1] || "0")
+        return numA - numB
+      })
+
+    for (const slideFile of slideFiles) {
+      const xml = await zip.file(slideFile)?.async("string")
+      if (!xml) continue
+      const slideNum = slideFile.match(/slide(\d+)/)?.[1] || "?"
+      const text = xml
+        .replace(/<a:p[^>]*>/g, "\n")
+        .replace(/<[^>]+>/g, "")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&amp;/g, "&")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim()
+      if (text) {
+        slides.push(`## Slide ${slideNum}\n\n${text}`)
+      }
+    }
+
+    return { text: slides.join("\n\n") }
+  } catch (err) {
+    return { text: "", error: `PPTX 解析失败: ${err instanceof Error ? err.message : String(err)}` }
   }
 }
 

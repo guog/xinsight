@@ -6,4 +6,4 @@
 
 export { datasourceQueryTool, datasourceListTool } from "./datasource"
 export { datasourceBatchQueryTool } from "./cross-source"
-export { wikiSearchTool, wikiReadTool, wikiIngestTool } from "./wiki"
+export { wikiSearchTool, wikiReadTool, wikiIngestTool, wikiListTool } from "./wiki"
