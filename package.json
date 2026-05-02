@@ -24,7 +24,11 @@
     "cap:android": "cap open android",
     "prepare": "husky"
   },
+  "workspaces": [
+    "packages/*"
+  ],
   "dependencies": {
+    "@xinsight/mes-demo": "workspace:*",
     "@ai-sdk/openai-compatible": "^2.0.42",
     "@ai-sdk/react": "^3.0.172",
     "@base-ui/react": "^1.4.1",

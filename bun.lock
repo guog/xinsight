@@ -20,6 +20,7 @@
         "@streamdown/math": "^1.0.2",
         "@streamdown/mermaid": "^1.0.2",
         "@tauri-apps/api": "^2",
+        "@xinsight/mes-demo": "workspace:*",
         "ai": "^6.0.170",
         "better-sqlite3": "^12.9.0",
         "class-variance-authority": "^0.7.1",
@@ -71,6 +72,13 @@
         "tailwindcss": "^4",
         "typescript": "^5",
         "vitest": "^4.1.5",
+      },
+    },
+    "packages/mes-demo": {
+      "name": "@xinsight/mes-demo",
+      "version": "0.1.0",
+      "dependencies": {
+        "@mastra/core": "*",
       },
     },
   },
@@ -980,6 +988,8 @@
     "@vitest/utils": ["@vitest/utils@4.1.5", "https://registry.npmmirror.com/@vitest/utils/-/utils-4.1.5.tgz", { "dependencies": { "@vitest/pretty-format": "4.1.5", "convert-source-map": "^2.0.0", "tinyrainbow": "^3.1.0" } }, "sha512-76wdkrmfXfqGjueGgnb45ITPyUi1ycZ4IHgC2bhPDUfWHklY/q3MdLOAB+TF1e6xfl8NxNY0ZYaPCFNWSsw3Ug=="],
 
     "@workflow/serde": ["@workflow/serde@4.1.0-beta.2", "https://registry.npmmirror.com/@workflow/serde/-/serde-4.1.0-beta.2.tgz", {}, "sha512-8kkeoQKLDaKXefjV5dbhBj2aErfKp1Mc4pb6tj8144cF+Em5SPbyMbyLCHp+BVrFfFVCBluCtMx+jjvaFVZGww=="],
+
+    "@xinsight/mes-demo": ["@xinsight/mes-demo@workspace:packages/mes-demo"],
 
     "@xmldom/xmldom": ["@xmldom/xmldom@0.8.13", "https://registry.npmmirror.com/@xmldom/xmldom/-/xmldom-0.8.13.tgz", {}, "sha512-KRYzxepc14G/CEpEGc3Yn+JKaAeT63smlDr+vjB8jRfgTBBI9wRj/nkQEO+ucV8p8I9bfKLWp37uHgFrbntPvw=="],
 

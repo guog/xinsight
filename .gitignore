@@ -50,6 +50,7 @@ next-env.d.ts
 /ios/App/Pods/
 /ios/App/DerivedData/
 data/
+!packages/*/src/data/
 
 # 知识库私密文件（不提交）
 raw/
