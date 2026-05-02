@@ -1,3 +1,8 @@
+/**
+ * @deprecated 此模块已被 DB 方案取代（wiki_uploads 表）
+ * 保留仅为向后兼容，新代码请使用 src/db/schema.ts 中的 wikiUploads 表
+ * 启动时 initWiki() 会自动扫描并注册未入库的文件
+ */
 // 上传文件去重注册表
 // 用 JSON 文件记录所有上传文件的 SHA256 → 原始文件名映射
 import { readFile, writeFile, mkdir } from "fs/promises"

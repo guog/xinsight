@@ -81,15 +81,42 @@ export const messages = sqliteTable(
 /** 知识库反馈 */
 export const wikiFeedbacks = sqliteTable("wiki_feedbacks", {
   id: text("id").primaryKey(),
-  pageId: text("page_id").notNull(), // wiki page relative path
+  pageId: text("page_id").notNull(),
   userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  type: text("type").notNull(), // "correction" | "addition" | "suggestion"
+  type: text("type").notNull(),
   content: text("content").notNull(),
-  status: text("status").notNull().default("pending"), // "pending" | "approved" | "rejected"
+  status: text("status").notNull().default("pending"),
   reviewNote: text("review_note"),
   reviewedBy: text("reviewed_by"),
   reviewedAt: integer("reviewed_at", { mode: "timestamp" }),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+})
+
+/** 知识库文件上传记录 */
+export const wikiUploads = sqliteTable("wiki_uploads", {
+  id: text("id").primaryKey(),
+  originalName: text("original_name").notNull(),
+  storedPath: text("stored_path").notNull().unique(),
+  mimeType: text("mime_type").notNull(),
+  size: integer("size").notNull(),
+  sha256: text("sha256").notNull().unique(),
+  status: text("status").notNull().default("pending"), // "pending" | "processing" | "done" | "failed" | "invalid"
+  ingestTaskId: text("ingest_task_id"),
+  ingestProgress: integer("ingest_progress").notNull().default(0),
+  ingestError: text("ingest_error"),
+  invalidReason: text("invalid_reason"),
+  pagesCreated: text("pages_created"), // JSON string
+  source: text("source").notNull().default("upload"),
+  uploadedAt: integer("uploaded_at", { mode: "timestamp" }).notNull(),
+  ingestedAt: integer("ingested_at", { mode: "timestamp" }),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+})
+
+/** 知识库配置键值对 */
+export const wikiSettings = sqliteTable("wiki_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
 })
