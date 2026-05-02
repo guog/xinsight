@@ -1,10 +1,14 @@
 // 自动摄入管线：上传 → 提取 → 写入 wiki
 import { generateText } from "ai"
 import { createOpenAI } from "@ai-sdk/openai"
-import { readFile, writeFile, mkdir } from "fs/promises"
+import { readFile, writeFile, mkdir, access } from "fs/promises"
 import { join, relative, basename } from "path"
 import { createHash } from "crypto"
 import { glob } from "glob"
+import { eq } from "drizzle-orm"
+import type { BunSQLiteDatabase } from "drizzle-orm/bun-sqlite"
+import type { TaskRunner } from "./task-runner"
+import type { wikiUploads as WikiUploadsTable } from "@/db/schema"
 
 // DeepSeek LLM 配置（与 auto-fix.ts 一致）
 const provider = createOpenAI({
@@ -154,4 +158,98 @@ export async function ingestAll(
   }
 
   return { totalPages, files: processedFiles }
+}
+
+// triggerIngest 的选项类型
+type TriggerIngestOptions = {
+  ingestFn?: typeof ingestFile // 依赖注入，方便测试时 mock
+}
+
+/**
+ * 从 DB 触发摄入：读取上传记录 → 更新状态 → 调用 ingestFile → 回写结果
+ * 将摄入逻辑与上传解耦，通过 uploadId 驱动
+ */
+export function triggerIngest(
+  uploadId: string,
+  db: BunSQLiteDatabase,
+  wikiUploadsTable: typeof WikiUploadsTable,
+  wikiPath: string,
+  runner: TaskRunner,
+  options?: TriggerIngestOptions,
+): { taskId: string } | { error: string } {
+  const doIngest = options?.ingestFn ?? ingestFile
+
+  // 1. 从 DB 读取上传记录
+  const rows = db.select().from(wikiUploadsTable).where(eq(wikiUploadsTable.id, uploadId)).all()
+  if (rows.length === 0) {
+    return { error: `上传记录不存在: ${uploadId}` }
+  }
+  const record = rows[0]
+
+  // 2. 构建 .extracted.md 文件路径
+  const extractedMdPath = record.storedPath.replace(/\.[^.]+$/, ".extracted.md")
+
+  // 3. 更新状态为 ingesting
+  db.update(wikiUploadsTable)
+    .set({ status: "ingesting", updatedAt: new Date() })
+    .where(eq(wikiUploadsTable.id, uploadId))
+    .run()
+
+  // 4. 创建 TaskRunner 任务
+  const task = runner.createTask("ingest", async (ctx) => {
+    // 检查 .extracted.md 文件是否存在
+    try {
+      await access(extractedMdPath)
+    } catch {
+      // 文件不存在，标记失败
+      db.update(wikiUploadsTable)
+        .set({
+          status: "failed",
+          ingestError: `提取文件不存在: ${extractedMdPath}`,
+          updatedAt: new Date(),
+        })
+        .where(eq(wikiUploadsTable.id, uploadId))
+        .run()
+      throw new Error(`提取文件不存在: ${extractedMdPath}`)
+    }
+
+    try {
+      // 5. 调用现有 ingestFile 进行 LLM 拆分
+      const result = await doIngest(extractedMdPath, wikiPath, { signal: ctx.signal })
+
+      // 6. 成功：更新状态
+      db.update(wikiUploadsTable)
+        .set({
+          status: "completed",
+          pagesCreated: JSON.stringify(result.pages),
+          ingestedAt: new Date(),
+          ingestProgress: 100,
+          updatedAt: new Date(),
+        })
+        .where(eq(wikiUploadsTable.id, uploadId))
+        .run()
+
+      return result
+    } catch (err) {
+      // 7. 失败：更新状态
+      const msg = err instanceof Error ? err.message : String(err)
+      db.update(wikiUploadsTable)
+        .set({
+          status: "failed",
+          ingestError: msg,
+          updatedAt: new Date(),
+        })
+        .where(eq(wikiUploadsTable.id, uploadId))
+        .run()
+      throw err
+    }
+  })
+
+  // 更新任务 ID 到 DB
+  db.update(wikiUploadsTable)
+    .set({ ingestTaskId: task.id, updatedAt: new Date() })
+    .where(eq(wikiUploadsTable.id, uploadId))
+    .run()
+
+  return { taskId: task.id }
 }

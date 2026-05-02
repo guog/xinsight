@@ -67,6 +67,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@ai-sdk/openai": "^3.0.58",
     "@commitlint/cli": "^20.5.2",
     "@commitlint/config-conventional": "^20.5.0",
     "@tailwindcss/postcss": "^4",

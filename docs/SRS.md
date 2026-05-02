@@ -242,15 +242,36 @@ xinsight 是一款多 Agent AI 数据洞察助手，涵盖：
 
 ### 3.4 FR-WIKI: 知识库系统
 
-#### FR-WIKI-01: 文档上传
+#### FR-WIKI-01: 文档上传与发现
 
-| 属性     | 描述                                   |
-| -------- | -------------------------------------- |
-| 端点     | POST /api/wiki/upload                  |
-| 输入     | multipart/form-data (file)             |
-| 支持格式 | .md, .txt, .pdf                        |
-| 处理     | 存储文件 → 提取文本 → 创建异步摄入任务 |
-| 输出     | 202 + { taskId }                       |
+| 属性     | 描述                                                        |
+| -------- | ----------------------------------------------------------- |
+| 端点     | POST /api/wiki/upload                                       |
+| 输入     | multipart/form-data (file)                                  |
+| 支持格式 | .md, .txt, .pdf, .docx                                      |
+| 处理     | 存储文件 → validateAndRegister() → 根据 autoIngest 决定摄入 |
+| 输出     | 200 + { id, status }                                        |
+
+三入口统一管道：
+
+- **UI 上传**: POST /api/wiki/upload
+- **文件监听**: fs.watch("raw/uploads/") 实时发现手动复制的文件
+- **启动扫描**: 程序启动时一次性扫描，覆盖停机期间放入的文件
+
+验证管道 `validateAndRegister()`: 类型校验 → 大小校验(≤10MB) → SHA256 去重 → 文本提取 → 注册到 DB
+
+#### FR-WIKI-01a: 源文件管理（Admin API）
+
+| 端点                                | 方法 | 描述                     |
+| ----------------------------------- | ---- | ------------------------ |
+| /api/wiki/admin/uploads             | GET  | 列表所有源文件（含状态） |
+| /api/wiki/admin/uploads/[id]/ingest | POST | 手动触发摄入             |
+| /api/wiki/admin/settings            | GET  | 获取知识库设置           |
+| /api/wiki/admin/settings            | PUT  | 更新设置(autoIngest 等)  |
+
+摄入状态模型: pending → ingesting → completed / failed / invalid
+
+存储: `wiki_uploads` + `wiki_settings` SQLite 表（替代旧 JSON registry）
 
 #### FR-WIKI-02: 页面管理
 

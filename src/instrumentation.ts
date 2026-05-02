@@ -6,5 +6,9 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     const { startVoiceWebSocketServer } = await import("@/server/voice-ws")
     startVoiceWebSocketServer()
+
+    // 启动知识库子系统
+    const { initWiki } = await import("@/lib/wiki/init")
+    initWiki().catch((e) => console.error("[wiki] 初始化失败:", e))
   }
 }

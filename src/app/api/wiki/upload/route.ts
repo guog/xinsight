@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
 import { writeFile, mkdir } from "fs/promises"
 import { join } from "path"
-import { randomUUID } from "crypto"
+import { randomUUID, createHash } from "crypto"
+import { eq } from "drizzle-orm"
 import { getCurrentUser } from "@/lib/auth"
 import { extractText } from "@/lib/wiki/extract-text"
-import { ingestFile } from "@/lib/wiki/ingest-pipeline"
+import { triggerIngest } from "@/lib/wiki/ingest-pipeline"
 import { taskRunner } from "@/lib/wiki/task-runner"
-import { checkDuplicate, registerUpload, computeSha256 } from "@/lib/wiki/upload-registry"
+import { db } from "@/db"
+import { wikiUploads, wikiSettings } from "@/db/schema"
 
 const WIKI_PATH = process.env.WIKI_PATH || join(process.cwd(), "wiki")
 const UPLOAD_DIR = join(WIKI_PATH, "raw", "uploads")
@@ -59,13 +61,20 @@ export async function POST(request: NextRequest) {
 
     // SHA256 去重检查
     const buffer = Buffer.from(await file.arrayBuffer())
-    const duplicate = await checkDuplicate(buffer, WIKI_PATH)
-    if (duplicate) {
+    const sha256 = createHash("sha256").update(buffer).digest("hex")
+
+    const existing = db
+      .select({ id: wikiUploads.id, originalName: wikiUploads.originalName })
+      .from(wikiUploads)
+      .where(eq(wikiUploads.sha256, sha256))
+      .all()
+
+    if (existing.length > 0) {
       return NextResponse.json(
         {
           duplicate: true,
-          message: `文件内容与已上传的「${duplicate.originalName}」重复`,
-          duplicateOf: duplicate,
+          message: `文件内容与已上传的「${existing[0].originalName}」重复`,
+          duplicateOf: existing[0],
         },
         { status: 409 },
       )
@@ -91,34 +100,49 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const now = new Date()
+    const id = randomUUID()
+    const relStoredPath = `raw/uploads/${storedName}`
+
+    // 插入 wikiUploads 记录
+    db.insert(wikiUploads)
+      .values({
+        id,
+        originalName: file.name,
+        storedPath: relStoredPath,
+        mimeType: file.type || "application/octet-stream",
+        size: file.size,
+        sha256,
+        status: "pending",
+        source: "upload",
+        uploadedAt: now,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .run()
+
     const result = {
-      id: randomUUID(),
+      id,
       originalName: file.name,
-      storedPath: `raw/uploads/${storedName}`,
+      storedPath: relStoredPath,
       extractedPath: extractedText ? `raw/uploads/${storedName}.extracted.md` : undefined,
       mimeType: file.type || "application/octet-stream",
       size: file.size,
       hasText: !!extractedText,
-      uploadedAt: new Date().toISOString(),
+      uploadedAt: now.toISOString(),
     }
 
-    // 注册到去重表
-    await registerUpload(WIKI_PATH, {
-      sha256: computeSha256(buffer),
-      originalName: file.name,
-      storedPath: `raw/uploads/${storedName}`,
-      uploadedAt: result.uploadedAt,
-    })
-
-    // 自动触发摄入（后台执行，不阻塞响应）
+    // 自动摄入：查询 wikiSettings 是否开启 autoIngest
     if (extractedText) {
-      const extractedPath = storedPath + ".extracted.md"
-      taskRunner.createTask("ingest", async (ctx) => {
-        ctx.reportProgress(0, 1, file.name)
-        const ingestResult = await ingestFile(extractedPath, WIKI_PATH, { signal: ctx.signal })
-        ctx.reportProgress(1, 1, file.name)
-        return ingestResult
-      })
+      const settings = db
+        .select({ value: wikiSettings.value })
+        .from(wikiSettings)
+        .where(eq(wikiSettings.key, "autoIngest"))
+        .all()
+
+      if (settings.length > 0 && settings[0].value === "true") {
+        triggerIngest(id, db, wikiUploads, WIKI_PATH, taskRunner)
+      }
     }
 
     return NextResponse.json(result, { status: 201 })
