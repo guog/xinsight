@@ -44,7 +44,7 @@ export async function POST(req: Request) {
   }
 
   const agent = mastra.getAgent(
-    agentId as "chatAgent" | "researchAgent" | "codeAgent" | "autoAgent",
+    agentId as "chatAgent" | "researchAgent" | "codeAgent" | "autoAgent" | "wikiAgent",
   )
 
   // 注入数据源上下文到系统消息（图表指令和跨源指引仅在有数据源时注入，节省 token）

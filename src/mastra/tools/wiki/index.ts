@@ -56,7 +56,7 @@ export const wikiSearchTool = createTool({
                   ? "comparisons"
                   : "queries",
           ]
-        : ["entities", "concepts", "comparisons", "queries"]
+        : ["entities", "concepts", "notes", "references", "comparisons", "queries"]
 
     const queryLower = query.toLowerCase()
     const queryTerms = queryLower.split(/\s+/).filter(Boolean)
@@ -236,6 +236,31 @@ export const wikiIngestTool = createTool({
       return { success: true, pagesCreated: created, pagesUpdated: updated }
     } catch (err) {
       return { success: false, pagesCreated: created, pagesUpdated: updated, error: String(err) }
+    }
+  },
+})
+
+/**
+ * wiki-list — 读取 index.md 目录
+ */
+export const wikiListTool = createTool({
+  id: "wiki-list",
+  description:
+    "读取知识库的 index.md 目录，获取所有页面的概览。" +
+    "这是问答的第一步：先了解知识库有哪些内容，再决定读取哪些页面。",
+  inputSchema: z.object({}),
+  outputSchema: z.object({
+    success: z.boolean(),
+    content: z.string().optional(),
+    error: z.string().optional(),
+  }),
+  execute: async () => {
+    try {
+      const indexPath = join(getWikiPath(), "index.md")
+      const content = await readFile(indexPath, "utf-8")
+      return { success: true, content }
+    } catch {
+      return { success: false, error: "index.md 不存在" }
     }
   },
 })
