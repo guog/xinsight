@@ -43,6 +43,13 @@
       "when": 1777693612420,
       "tag": "0005_equal_captain_stacy",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1777720909908,
+      "tag": "0006_late_kitty_pryde",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { getProviders, getModels, getDefaultModelId } from "@/lib/models"
+import { getProviders } from "@/lib/models"
 import { getCurrentUser } from "@/lib/auth"
 
 /** GET /api/models — 返回可用模型列表（需登录，已脱敏） */
@@ -9,20 +9,15 @@ export async function GET() {
     return NextResponse.json({ error: "未登录" }, { status: 401 })
   }
 
-  const providers = getProviders().map(
-    ({ apiKey: _apiKey, baseUrl: _baseUrl, envKey: _envKey, ...rest }) => ({
-      ...rest,
-      models: rest.models.map(({ id, name }) => ({ id, name })),
-    }),
-  )
+  const providers = getProviders()
 
-  const models = getModels().map(({ id, name, providerId }) => ({
-    id,
-    name,
-    providerId,
+  // 脱敏：移除 apiKey，保留 type 供前端展示
+  const sanitized = providers.map((p) => ({
+    id: p.id,
+    name: p.name,
+    type: p.type,
+    models: p.models,
   }))
 
-  const defaultModelId = getDefaultModelId()
-
-  return NextResponse.json({ providers, models, defaultModelId })
+  return NextResponse.json({ providers: sanitized })
 }

@@ -23,7 +23,7 @@ import { useChats } from "@/hooks/use-chats"
 import { useOnboarding } from "@/hooks/use-onboarding"
 import { OnboardingWizard } from "@/components/onboarding-wizard"
 import { WelcomeEmptyState } from "@/components/welcome-empty-state"
-import { getModelById } from "@/lib/models"
+import { useModels } from "@/hooks/use-models"
 import { parseChartBlocks } from "@/lib/chart/parse-chart-block"
 import { ChartBlock } from "@/components/chart/chart-block"
 import { FileUpload } from "@/components/file-upload"
@@ -66,6 +66,7 @@ function DesktopChatPage() {
   const [activeChatId, setActiveChatId] = useState<string | null>(null)
   const chatIdRef = useRef<string | null>(null)
   const { modelId } = useModel()
+  const { getModelById } = useModels()
   useTheme()
   const { isOnboardingComplete, markComplete } = useOnboarding()
   const { voiceEnabled, isVoiceMode, enterVoiceMode, exitVoiceMode } = useVoiceConfig()

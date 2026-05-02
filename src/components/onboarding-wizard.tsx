@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Sparkles, MessageSquare, Database, Palette, ArrowRight, Check } from "lucide-react"
 import { useTheme } from "@/hooks/use-theme"
 import { useModel } from "@/hooks/use-model"
-import { getProviders, getModels } from "@/lib/models"
+import { useModels } from "@/hooks/use-models"
 
 interface OnboardingWizardProps {
   onComplete: () => void
@@ -21,8 +21,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   const [step, setStep] = useState(0)
   const { theme, setTheme } = useTheme()
   const { modelId, setModelId } = useModel()
-  const providers = getProviders()
-  const models = getModels()
+  const { providers, models } = useModels()
 
   const next = () => {
     if (step < steps.length - 1) {

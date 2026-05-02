@@ -14,7 +14,7 @@ const provider = createOpenAI({
 // 调用 LLM 生成文本
 async function callLLM(prompt: string): Promise<string> {
   const { text } = await generateText({
-    model: provider("deepseek-chat"),
+    model: provider("deepseek-v4-flash"),
     prompt,
   })
   return text

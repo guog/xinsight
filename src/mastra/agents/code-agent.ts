@@ -14,6 +14,6 @@ export const codeAgent = new Agent({
     "你是 xinsight 的代码助手，擅长编写、审查和调试代码。" +
     "请使用中文解释代码逻辑，代码本身使用标准英文。" +
     "遵循最佳实践，代码应简洁、可读、可维护。",
-  model: "deepseek/deepseek-chat",
+  model: "deepseek/deepseek-v4-flash",
   tools: { datasourceQueryTool, datasourceListTool, datasourceBatchQueryTool },
 })
