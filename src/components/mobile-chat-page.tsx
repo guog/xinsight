@@ -4,7 +4,7 @@ import { useState, useCallback, useRef } from "react"
 import dynamic from "next/dynamic"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
-import { ChevronDown, Square, RotateCcw, Mic, Menu } from "lucide-react"
+import { Square, RotateCcw, Mic, Menu } from "lucide-react"
 import {
   Conversation,
   ConversationContent,
@@ -36,17 +36,9 @@ const VoiceChatPanel = dynamic(
   { ssr: false },
 )
 
-const agents = [
-  { id: "autoAgent", name: "自动", description: "智能选择最佳模式" },
-  { id: "chatAgent", name: "聊天助手", description: "通用对话" },
-  { id: "researchAgent", name: "研究助手", description: "深度分析" },
-  { id: "codeAgent", name: "代码助手", description: "编程辅助" },
-]
-
 export function MobileChatPage() {
   const [input, setInput] = useState("")
-  const [agentId, setAgentId] = useState("autoAgent")
-  const [showAgentMenu, setShowAgentMenu] = useState(false)
+  const agentId = "factoryDirectorAgent"
   const [showDrawer, setShowDrawer] = useState(false)
   const [activeChatId, setActiveChatId] = useState<string | null>(null)
   const chatIdRef = useRef<string | null>(null)
@@ -84,7 +76,6 @@ export function MobileChatPage() {
     async (chat: { id: string; agentId: string }) => {
       setActiveChatId(chat.id)
       chatIdRef.current = chat.id
-      setAgentId(chat.agentId)
       setShowDrawer(false)
       try {
         const apiBase = process.env.NEXT_PUBLIC_API_URL ?? ""
@@ -163,7 +154,6 @@ export function MobileChatPage() {
     [activeChatId, agentId, createChat, sendMessage],
   )
 
-  const currentAgent = agents.find((a) => a.id === agentId) ?? agents[0]
   const currentModel = getModelById(modelId)
 
   return (
@@ -180,7 +170,7 @@ export function MobileChatPage() {
           <Menu className="size-5" />
         </button>
         <div className="flex items-center gap-1.5">
-          <span className="text-sm font-medium">{currentAgent.name}</span>
+          <span className="text-sm font-medium">🏭 智能工厂助手</span>
           <span className="text-xs text-muted-foreground">{currentModel?.name ?? modelId}</span>
         </div>
         <div className="w-9" /> {/* spacer */}
@@ -203,10 +193,7 @@ export function MobileChatPage() {
       <Conversation className="flex-1 min-h-0">
         <ConversationContent>
           {messages.length === 0 ? (
-            <WelcomeEmptyState
-              agentName={currentAgent.name}
-              onSuggestionClick={handleSuggestionClick}
-            />
+            <WelcomeEmptyState agentName="智能工厂助手" onSuggestionClick={handleSuggestionClick} />
           ) : (
             messages.map((message) => (
               <Message from={message.role} key={message.id}>
@@ -271,36 +258,9 @@ export function MobileChatPage() {
 
       {/* 输入区域 — 固定底部 */}
       <div className="shrink-0 px-3 pt-2 pb-safe border-t border-border bg-background">
-        {/* Agent 切换 */}
+        {/* 标识 */}
         <div className="flex items-center gap-2 mb-1.5">
-          <div className="relative">
-            <button
-              onClick={() => setShowAgentMenu(!showAgentMenu)}
-              className="flex items-center gap-1 px-2 py-1 text-xs rounded-md border border-border bg-muted/50 active:bg-muted transition-colors"
-            >
-              {currentAgent.name}
-              <ChevronDown className="size-3" />
-            </button>
-            {showAgentMenu && (
-              <div className="absolute bottom-full left-0 mb-1 w-48 bg-popover border border-border rounded-xl shadow-xl z-10 animate-in fade-in slide-in-from-bottom-2 duration-200">
-                {agents.map((agent) => (
-                  <button
-                    key={agent.id}
-                    onClick={() => {
-                      setAgentId(agent.id)
-                      setShowAgentMenu(false)
-                    }}
-                    className={`w-full text-left px-3 py-2.5 text-sm active:bg-muted transition-colors first:rounded-t-xl last:rounded-b-xl ${
-                      agentId === agent.id ? "bg-primary/10 text-primary" : ""
-                    }`}
-                  >
-                    <div className="font-medium">{agent.name}</div>
-                    <div className="text-xs text-muted-foreground">{agent.description}</div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          <span className="text-xs text-muted-foreground">🏭 智能工厂助手</span>
         </div>
 
         <PromptInput onSubmit={handleSubmit} className="relative shadow-sm rounded-xl">

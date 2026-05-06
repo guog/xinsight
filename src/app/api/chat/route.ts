@@ -1,73 +1,28 @@
 import { createUIMessageStream, createUIMessageStreamResponse } from "ai"
 import type { UIMessage } from "ai"
 import { toAISdkStream } from "@mastra/ai-sdk"
-import { createOpenAICompatible } from "@ai-sdk/openai-compatible"
 
 import { mastra } from "@/mastra"
-import { buildDatasourceContext } from "@/lib/schema/build-context"
-import { CHART_SYSTEM_PROMPT } from "@/lib/chart/prompt"
-import { CROSS_SOURCE_PROMPT } from "@/lib/cross-source/prompt"
-import { WIKI_SYSTEM_PROMPT } from "@/lib/wiki/prompt"
-import { getProviderForModel, getModelById, getDefaultModelId } from "@/lib/models"
 import { db } from "@/db"
 import { chats, messages } from "@/db/schema"
 import { eq } from "drizzle-orm"
 
-// 允许流式响应最长 60 秒
-export const maxDuration = 60
+// 允许流式响应最长 120 秒（Supervisor 多轮调度可能需要更长时间）
+export const maxDuration = 120
 
 export async function POST(req: Request) {
   const {
     messages: chatMessages,
-    agentId = "chatAgent",
     chatId,
-    modelId,
   }: {
     messages: UIMessage[]
-    agentId?: string
     chatId?: string
-    modelId?: string
   } = await req.json()
 
-  // 动态构建模型实例
-  const effectiveModelId = modelId || getDefaultModelId()
-  const provider = getProviderForModel(effectiveModelId)
-  const modelInfo = getModelById(effectiveModelId)
-  let modelInstance = undefined
-  if (provider && modelInfo) {
-    const client = createOpenAICompatible({
-      name: provider.id,
-      baseURL: provider.baseUrl,
-      apiKey: provider.apiKey,
-    })
-    modelInstance = client.chatModel(modelInfo.modelSlug)
-  }
+  // 始终使用厂长 Supervisor Agent — 用户无需选择
+  const agent = mastra.getAgent("factoryDirectorAgent")
 
-  const agent = mastra.getAgent(
-    agentId as "chatAgent" | "researchAgent" | "codeAgent" | "autoAgent" | "wikiAgent",
-  )
-
-  // 注入数据源上下文到系统消息（图表指令和跨源指引仅在有数据源时注入，节省 token）
-  const dsContext = await buildDatasourceContext(agentId)
-  const systemContent = [
-    WIKI_SYSTEM_PROMPT,
-    dsContext ? `\n\n---\n可用数据源:\n${dsContext}\n---\n` : "",
-    dsContext ? CHART_SYSTEM_PROMPT : "",
-    dsContext ? CROSS_SOURCE_PROMPT : "",
-  ]
-    .filter(Boolean)
-    .join("\n")
-  const messagesWithContext = systemContent
-    ? [
-        {
-          role: "system" as const,
-          content: systemContent,
-        },
-        ...chatMessages,
-      ]
-    : chatMessages
-
-  const stream = await agent.stream(messagesWithContext, { model: modelInstance })
+  const stream = await agent.stream(chatMessages)
 
   // 收集完整的 assistant 响应
   let assistantText = ""
@@ -101,7 +56,6 @@ export async function POST(req: Request) {
           // 保存用户最后一条消息
           const lastUserMsg = chatMessages[chatMessages.length - 1]
           if (lastUserMsg && lastUserMsg.role === "user") {
-            // onConflictDoNothing: 客户端重试时同一消息 ID 不重复保存（预期行为）
             await db
               .insert(messages)
               .values({
@@ -127,7 +81,6 @@ export async function POST(req: Request) {
           const updates: Record<string, unknown> = { updatedAt: new Date() }
           const msgCount = await db.select().from(messages).where(eq(messages.chatId, chatId))
           if (msgCount.length <= 2 && lastUserMsg) {
-            // 前两条消息（user + assistant），用用户消息前 30 字作为标题
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const textPart = (lastUserMsg.parts as any[])?.find((p) => p.type === "text")
             const firstText = textPart?.text as string | undefined
