@@ -22,6 +22,8 @@
     "cap:sync": "bun run build:static && cap sync",
     "cap:ios": "cap open ios",
     "cap:android": "cap open android",
+    "skills:sync:copilot": "bunx skills experimental_sync --agent github-copilot -y",
+    "skills:update:copilot": "bunx skills update -p -y && bun run skills:sync:copilot",
     "prepare": "husky"
   },
   "workspaces": [
