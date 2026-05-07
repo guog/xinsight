@@ -45,7 +45,6 @@
     "@streamdown/math": "^1.0.2",
     "@streamdown/mermaid": "^1.0.2",
     "@tauri-apps/api": "^2",
-    "@xinsight/mes-demo": "workspace:*",
     "ai": "^6.0.170",
     "better-sqlite3": "^12.9.0",
     "class-variance-authority": "^0.7.1",

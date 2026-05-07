@@ -14,13 +14,15 @@ export async function POST(req: Request) {
   const {
     messages: chatMessages,
     chatId,
+    agentId,
   }: {
     messages: UIMessage[]
     chatId?: string
+    agentId?: string
   } = await req.json()
 
-  // 始终使用厂长 Supervisor Agent — 用户无需选择
-  const agent = mastra.getAgent("factoryDirectorAgent")
+  // 根据请求选择 Agent，默认使用 chatAgent
+  const agent = mastra.getAgent(agentId || "chatAgent")
 
   const stream = await agent.stream(chatMessages)
 
