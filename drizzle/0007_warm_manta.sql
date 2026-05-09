@@ -1,0 +1,1 @@
+ALTER TABLE `agent_datasources` ADD `endpoint_ids` text;

@@ -21,8 +21,8 @@ export async function POST(req: Request) {
     agentId?: string
   } = await req.json()
 
-  // 根据请求选择 Agent，默认使用 chatAgent
-  const agent = mastra.getAgent(agentId || "chatAgent")
+  // 根据请求选择 Agent，默认使用厂长 Supervisor
+  const agent = mastra.getAgent(agentId || "factoryDirectorAgent")
 
   const stream = await agent.stream(chatMessages)
 

@@ -48,6 +48,7 @@ export const agentDatasources = sqliteTable(
       .notNull()
       .references(() => datasources.id, { onDelete: "cascade" }),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+    endpointIds: text("endpoint_ids"), // JSON 字符串，允许访问的 endpoint ID 列表，null = 全部
   },
   (table) => [primaryKey({ columns: [table.agentId, table.datasourceId] })],
 )

@@ -55,3 +55,5 @@ data/
 # 知识库私密文件（不提交）
 raw/
 /wiki/
+.mastra/
+sqlite.db

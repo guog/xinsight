@@ -50,6 +50,13 @@
       "when": 1777720909908,
       "tag": "0006_late_kitty_pryde",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1778318490283,
+      "tag": "0007_warm_manta",
+      "breakpoints": true
     }
   ]
 }
