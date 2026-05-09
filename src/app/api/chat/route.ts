@@ -32,7 +32,11 @@ export async function POST(req: Request) {
   const uiMessageStream = createUIMessageStream({
     originalMessages: chatMessages,
     execute: async ({ writer }) => {
-      const reader = toAISdkStream(stream, { from: "agent", version: "v6" }).getReader()
+      const reader = toAISdkStream(stream, {
+        from: "agent",
+        version: "v6",
+        sendReasoning: true,
+      }).getReader()
       try {
         for (;;) {
           const { done, value } = await reader.read()
