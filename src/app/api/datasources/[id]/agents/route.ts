@@ -21,12 +21,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   try {
     await requireAdmin()
     const { id } = await params
-    const { agentId } = await request.json()
+    const { agentId, endpointIds } = await request.json()
     if (!agentId) {
       return NextResponse.json({ error: "缺少 agentId" }, { status: 400 })
     }
     const repo = new SqliteDatasourceRepository(db)
-    await repo.bindAgent(agentId, id)
+    await repo.bindAgent(agentId, id, endpointIds)
     return NextResponse.json({ success: true }, { status: 201 })
   } catch (error) {
     const authResp = handleAuthError(error)

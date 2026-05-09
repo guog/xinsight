@@ -54,9 +54,19 @@ export const datasourceQueryTool = createTool({
 
     // 权限检查 — 只允许绑定的数据源
     if (agentId) {
-      const bindings = await repo.getAgentBindings(agentId)
-      if (bindings.length > 0 && !bindings.includes(datasourceId)) {
+      const bindings = await repo.getAgentEndpointBindings(agentId)
+      if (bindings.length > 0 && !bindings.find((b) => b.datasourceId === datasourceId)) {
         return { success: false, error: `当前 Agent 无权访问数据源 "${config.name}"` }
+      }
+      // 端点级权限检查
+      if (endpointId && bindings.length > 0) {
+        const binding = bindings.find((b) => b.datasourceId === datasourceId)
+        if (binding?.endpointIds && !binding.endpointIds.includes(endpointId)) {
+          return {
+            success: false,
+            error: `当前 Agent 无权访问数据源 "${config.name}" 的接口 "${endpointId}"`,
+          }
+        }
       }
     }
 
@@ -123,6 +133,8 @@ export const datasourceListTool = createTool({
   }),
   execute: async (_inputData, context) => {
     const agentId = (context as unknown as { resourceId?: string })?.resourceId
+    // 获取端点级绑定信息，用于过滤 endpoints
+    const endpointBindings = agentId ? await repo.getAgentEndpointBindings(agentId) : null
     const list = agentId ? await repo.findByAgentId(agentId) : await repo.findAllEnabled()
     return {
       datasources: list.map((ds) => ({
@@ -130,21 +142,29 @@ export const datasourceListTool = createTool({
         name: ds.name,
         type: ds.type,
         description: ds.description,
-        endpoints: (ds.endpoints ?? []).map((ep: Record<string, unknown>) => {
-          const base: Record<string, unknown> = { ...ep }
-          if (ep.responseSchema && typeof ep.responseSchema === "object") {
-            const schema = ep.responseSchema as Record<string, unknown>
-            const fieldsArr = (schema.fields ?? []) as Array<Record<string, unknown>>
-            const fields = fieldsArr.slice(0, 20).map((f) => ({
-              name: (f.name as string) ?? "unknown",
-              type: (f.type as string) ?? "unknown",
-            }))
-            if (fields.length > 0) {
-              base.responseFields = fields
+        endpoints: (ds.endpoints ?? [])
+          .filter((ep: Record<string, unknown>) => {
+            // 按端点级绑定过滤：如果设置了 endpointIds，只展示允许的接口
+            if (!endpointBindings) return true
+            const binding = endpointBindings.find((b) => b.datasourceId === ds.id)
+            if (!binding || !binding.endpointIds) return true
+            return binding.endpointIds.includes(ep.id as string)
+          })
+          .map((ep: Record<string, unknown>) => {
+            const base: Record<string, unknown> = { ...ep }
+            if (ep.responseSchema && typeof ep.responseSchema === "object") {
+              const schema = ep.responseSchema as Record<string, unknown>
+              const fieldsArr = (schema.fields ?? []) as Array<Record<string, unknown>>
+              const fields = fieldsArr.slice(0, 20).map((f) => ({
+                name: (f.name as string) ?? "unknown",
+                type: (f.type as string) ?? "unknown",
+              }))
+              if (fields.length > 0) {
+                base.responseFields = fields
+              }
             }
-          }
-          return base
-        }),
+            return base
+          }),
       })),
     }
   },

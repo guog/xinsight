@@ -54,9 +54,12 @@ export interface DatasourceRepository {
   findByAgentId(agentId: string): Promise<DatasourceRecord[]>
   update(id: string, input: UpdateDatasourceInput): Promise<DatasourceRecord>
   delete(id: string): Promise<void>
-  bindAgent(agentId: string, datasourceId: string): Promise<void>
+  bindAgent(agentId: string, datasourceId: string, endpointIds?: string[]): Promise<void>
   unbindAgent(agentId: string, datasourceId: string): Promise<void>
   getAgentBindings(agentId: string): Promise<string[]>
+  getAgentEndpointBindings(
+    agentId: string,
+  ): Promise<{ datasourceId: string; endpointIds: string[] | null }[]>
   getDatasourceAgents(datasourceId: string): Promise<string[]>
   updateTestResult(id: string, result: "ok" | "failed", message?: string): Promise<DatasourceRecord>
   recordCall(id: string): Promise<DatasourceRecord>
@@ -147,11 +150,12 @@ export class SqliteDatasourceRepository implements DatasourceRepository {
     await this.db.delete(datasources).where(eq(datasources.id, id))
   }
 
-  async bindAgent(agentId: string, datasourceId: string): Promise<void> {
+  async bindAgent(agentId: string, datasourceId: string, endpointIds?: string[]): Promise<void> {
     await this.db.insert(agentDatasources).values({
       agentId,
       datasourceId,
       createdAt: new Date(),
+      endpointIds: endpointIds ? JSON.stringify(endpointIds) : null,
     })
   }
 
@@ -169,6 +173,23 @@ export class SqliteDatasourceRepository implements DatasourceRepository {
       .from(agentDatasources)
       .where(eq(agentDatasources.agentId, agentId))
     return rows.map((r) => r.datasourceId)
+  }
+
+  /** 获取 Agent 的端点级绑定信息 */
+  async getAgentEndpointBindings(
+    agentId: string,
+  ): Promise<{ datasourceId: string; endpointIds: string[] | null }[]> {
+    const rows = await this.db
+      .select({
+        datasourceId: agentDatasources.datasourceId,
+        endpointIds: agentDatasources.endpointIds,
+      })
+      .from(agentDatasources)
+      .where(eq(agentDatasources.agentId, agentId))
+    return rows.map((r) => ({
+      datasourceId: r.datasourceId,
+      endpointIds: r.endpointIds ? JSON.parse(r.endpointIds) : null,
+    }))
   }
 
   async getDatasourceAgents(datasourceId: string): Promise<string[]> {

@@ -7,10 +7,18 @@ import { eq } from "drizzle-orm"
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const bindings = db
-    .select({ datasourceId: agentDatasources.datasourceId })
+    .select({
+      datasourceId: agentDatasources.datasourceId,
+      endpointIds: agentDatasources.endpointIds,
+    })
     .from(agentDatasources)
     .where(eq(agentDatasources.agentId, id))
     .all()
 
-  return NextResponse.json(bindings)
+  return NextResponse.json(
+    bindings.map((b) => ({
+      datasourceId: b.datasourceId,
+      endpointIds: b.endpointIds ? JSON.parse(b.endpointIds) : null,
+    })),
+  )
 }
