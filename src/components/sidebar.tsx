@@ -55,7 +55,7 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
   const [editTitle, setEditTitle] = useState("")
   const editInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
-  const { isAdmin } = useUser()
+  const { user, isAdmin } = useUser()
 
   // 加载对话列表
   useEffect(() => {
@@ -216,6 +216,16 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
 
       {/* 底部导航 */}
       <div className="p-3 border-t border-border space-y-1">
+        {user && (
+          <div className="flex items-center gap-2 px-3 py-2 mb-1">
+            <div className="size-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-medium shrink-0">
+              {(user.displayName || user.username).charAt(0).toUpperCase()}
+            </div>
+            <span className="text-sm font-medium truncate">
+              {user.displayName || user.username}
+            </span>
+          </div>
+        )}
         {isAdmin && (
           <Link
             href="/admin/datasources"
