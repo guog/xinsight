@@ -27,7 +27,7 @@ import { parseChartBlocks } from "@/lib/chart/parse-chart-block"
 import { ChartBlock } from "@/components/chart/chart-block"
 import { FileUpload } from "@/components/file-upload"
 import { AgentMessage } from "@/components/agent-message"
-import { ThinkingBlock } from "@/components/thinking-block"
+import { Reasoning, ReasoningTrigger, ReasoningContent } from "@/components/ai-elements/reasoning"
 import { CodeBlockCopyProvider } from "@/components/code-block-copy"
 import { useVoiceConfig } from "@/hooks/use-voice-config"
 import { MobileChatDrawer } from "@/components/mobile-chat-drawer"
@@ -208,11 +208,14 @@ export function MobileChatPage() {
                           state?: "streaming" | "done"
                         }
                         return (
-                          <ThinkingBlock
+                          <Reasoning
                             key={`${message.id}-${i}-thinking`}
-                            text={rp.text}
-                            state={rp.state}
-                          />
+                            isStreaming={rp.state === "streaming"}
+                            className="rounded-xl border border-purple-200/50 bg-gradient-to-r from-purple-50/50 to-violet-50/30 dark:border-purple-800/30 dark:from-purple-950/20 dark:to-violet-950/10"
+                          >
+                            <ReasoningTrigger />
+                            <ReasoningContent>{rp.text}</ReasoningContent>
+                          </Reasoning>
                         )
                       }
                       case "text": {

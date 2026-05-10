@@ -1,6 +1,6 @@
 "use client"
 
-import { Sparkles, Code, Search, MessageSquare } from "lucide-react"
+import { Sparkles, Factory, BarChart3, AlertTriangle, Package } from "lucide-react"
 
 interface WelcomeEmptyStateProps {
   agentName: string
@@ -9,24 +9,24 @@ interface WelcomeEmptyStateProps {
 
 const suggestions = [
   {
-    icon: MessageSquare,
-    label: "解释概念",
-    text: "请用简单的语言解释什么是 RAG（检索增强生成）",
+    icon: Factory,
+    label: "生产概况",
+    text: "今天各产线的生产进度怎么样？有没有延期的工单？",
   },
   {
-    icon: Search,
-    label: "分析数据",
-    text: "帮我分析一下常见的数据可视化方案有哪些？各自的优缺点是什么？",
+    icon: BarChart3,
+    label: "质量分析",
+    text: "最近一周的质量检验合格率是多少？有哪些主要缺陷类型？",
   },
   {
-    icon: Code,
-    label: "编写代码",
-    text: "用 TypeScript 写一个简单的事件总线（EventBus）实现",
+    icon: AlertTriangle,
+    label: "设备状态",
+    text: "当前有哪些设备告警？需要安排维护的设备有哪些？",
   },
   {
-    icon: Sparkles,
-    label: "头脑风暴",
-    text: "我想做一个面向开发者的效率工具，帮我想想有什么方向",
+    icon: Package,
+    label: "库存预警",
+    text: "目前有哪些物料库存不足需要补货？出入库情况如何？",
   },
 ]
 
