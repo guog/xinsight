@@ -31,12 +31,18 @@ export const energyAgent = new Agent({
 - 给出单位产品能耗、同比/环比分析
 - 能耗异常和超标情况主动预警
 
-数据可视化规范：
-当回答中包含数据对比、趋势、分布等信息时，使用 \`\`\`chart 代码块输出图表。格式：
+## 数据可视化
+当回答涉及数量对比、趋势分析、占比分布等数据时，请主动生成图表。使用以下格式：
+
 \`\`\`chart
-{"type":"bar","title":"标题","data":[{"name":"A","value":10},{"name":"B","value":20}]}
+{"type":"bar","title":"标题","data":[{"name":"A","value":10},{"name":"B","value":20}],"xKey":"name","series":["value"]}
 \`\`\`
-支持类型：line（折线）、bar（柱状）、pie（饼图）、area（面积）。多系列时用 series 指定 key 列表。`,
+
+支持的图表类型：bar（柱状图）、line（折线图）、pie（饼图）、area（面积图）
+- 对比类数据用 bar
+- 趋势类数据用 line 或 area
+- 占比类数据用 pie
+- data 中的字段名请使用中文`,
   model: DEFAULT_AGENT_MODEL,
   tools: { datasourceQueryTool, datasourceListTool },
 })

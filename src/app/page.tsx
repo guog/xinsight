@@ -4,7 +4,7 @@ import { useState, useCallback, useRef } from "react"
 import dynamic from "next/dynamic"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
-import { Square, RotateCcw, Mic } from "lucide-react"
+import { Square, RotateCcw, Mic, Brain } from "lucide-react"
 import { API_BASE } from "@/lib/api"
 import { ErrorBoundary } from "@/components/error-boundary"
 import {
@@ -204,96 +204,126 @@ function DesktopChatPage() {
                   onSuggestionClick={handleSuggestionClick}
                 />
               ) : (
-                messages.map((message) => (
-                  <Message from={message.role} key={message.id}>
-                    <MessageContent>
-                      {message.parts.map((part, i) => {
-                        switch (part.type) {
-                          case "reasoning": {
-                            const rp = part as {
-                              type: "reasoning"
-                              text: string
-                              state?: "streaming" | "done"
-                            }
-                            return (
-                              <Reasoning
-                                key={`${message.id}-${i}-thinking`}
-                                isStreaming={rp.state === "streaming"}
-                                className="rounded-xl border border-purple-200/50 bg-gradient-to-r from-purple-50/50 to-violet-50/30 dark:border-purple-800/30 dark:from-purple-950/20 dark:to-violet-950/10"
-                              >
-                                <ReasoningTrigger />
-                                <ReasoningContent>{rp.text}</ReasoningContent>
-                              </Reasoning>
-                            )
-                          }
-                          case "text": {
-                            const segments = parseChartBlocks(part.text)
-                            return segments.map((seg, j) =>
-                              seg.type === "chart" ? (
-                                <ChartBlock
-                                  key={`${message.id}-${i}-chart-${j}`}
-                                  config={seg.config}
-                                />
-                              ) : (
-                                <MessageResponse key={`${message.id}-${i}-text-${j}`}>
-                                  {seg.content}
-                                </MessageResponse>
-                              ),
-                            )
-                          }
-                          default: {
-                            // AI SDK v6: tool parts have type="tool-{toolName}"
-                            // with fields: toolCallId, toolName, state, input, output
-                            if (part.type.startsWith("tool-")) {
-                              const tp = part as unknown as {
-                                type: string
-                                toolCallId: string
-                                toolName?: string
-                                state:
-                                  | "input-streaming"
-                                  | "input-available"
-                                  | "output-available"
-                                  | "output-error"
-                                input?: unknown
-                                output?: unknown
+                messages.map((message) => {
+                  const hasToolParts =
+                    message.role === "assistant" &&
+                    message.parts.some((p: { type: string }) => p.type.startsWith("tool-"))
+                  return (
+                    <Message from={message.role} key={message.id}>
+                      <MessageContent>
+                        <div className={hasToolParts ? "flex gap-3" : ""}>
+                          {hasToolParts && (
+                            <div className="flex-shrink-0 mt-1">
+                              <div className="size-7 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs font-semibold text-slate-600 dark:text-slate-300">
+                                厂
+                              </div>
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            {message.parts.map((part, i) => {
+                              switch (part.type) {
+                                case "reasoning": {
+                                  const rp = part as {
+                                    type: "reasoning"
+                                    text: string
+                                    state?: "streaming" | "done"
+                                  }
+                                  return (
+                                    <Reasoning
+                                      key={`${message.id}-${i}-thinking`}
+                                      isStreaming={rp.state === "streaming"}
+                                      defaultOpen={rp.state === "streaming"}
+                                      className="rounded-xl border border-purple-200/50 bg-gradient-to-r from-purple-50/50 to-violet-50/30 dark:border-purple-800/30 dark:from-purple-950/20 dark:to-violet-950/10"
+                                    >
+                                      <ReasoningTrigger
+                                        getThinkingMessage={(isStreaming, duration) => (
+                                          <span className="inline-flex items-center gap-1.5">
+                                            <Brain className="size-3.5 text-purple-500 dark:text-purple-400" />
+                                            {isStreaming || duration === 0
+                                              ? "思考中…"
+                                              : `已深度思考 ${duration} 秒`}
+                                          </span>
+                                        )}
+                                      />
+                                      <ReasoningContent>{rp.text}</ReasoningContent>
+                                    </Reasoning>
+                                  )
+                                }
+                                case "text": {
+                                  const segments = parseChartBlocks(part.text)
+                                  return segments.map((seg, j) =>
+                                    seg.type === "chart" ? (
+                                      <ChartBlock
+                                        key={`${message.id}-${i}-chart-${j}`}
+                                        config={seg.config}
+                                      />
+                                    ) : (
+                                      <MessageResponse key={`${message.id}-${i}-text-${j}`}>
+                                        {seg.content}
+                                      </MessageResponse>
+                                    ),
+                                  )
+                                }
+                                default: {
+                                  // AI SDK v6: tool parts have type="tool-{toolName}"
+                                  // with fields: toolCallId, toolName, state, input, output
+                                  if (part.type.startsWith("tool-")) {
+                                    const tp = part as unknown as {
+                                      type: string
+                                      toolCallId: string
+                                      toolName?: string
+                                      state:
+                                        | "input-streaming"
+                                        | "input-available"
+                                        | "output-available"
+                                        | "output-error"
+                                      input?: unknown
+                                      output?: unknown
+                                    }
+                                    // Extract toolName from type: "tool-agent-productionAgent" → "agent-productionAgent"
+                                    const toolName =
+                                      tp.toolName ?? tp.type.split("-").slice(1).join("-")
+                                    // Map v6 states to AgentMessage states
+                                    const stateMap: Record<
+                                      string,
+                                      "call" | "partial-call" | "result"
+                                    > = {
+                                      "input-streaming": "partial-call",
+                                      "input-available": "call",
+                                      "output-available": "result",
+                                      "output-error": "result",
+                                    }
+                                    return (
+                                      <AgentMessage
+                                        key={`${message.id}-${i}-tool`}
+                                        toolName={toolName}
+                                        state={stateMap[tp.state] ?? "call"}
+                                        args={tp.input as Record<string, unknown>}
+                                        result={tp.output}
+                                      />
+                                    )
+                                  }
+                                  return null
+                                }
                               }
-                              // Extract toolName from type: "tool-agent-productionAgent" → "agent-productionAgent"
-                              const toolName = tp.toolName ?? tp.type.split("-").slice(1).join("-")
-                              // Map v6 states to AgentMessage states
-                              const stateMap: Record<string, "call" | "partial-call" | "result"> = {
-                                "input-streaming": "partial-call",
-                                "input-available": "call",
-                                "output-available": "result",
-                                "output-error": "result",
-                              }
-                              return (
-                                <AgentMessage
-                                  key={`${message.id}-${i}-tool`}
-                                  toolName={toolName}
-                                  state={stateMap[tp.state] ?? "call"}
-                                  args={tp.input as Record<string, unknown>}
-                                  result={tp.output}
-                                />
-                              )
-                            }
-                            return null
-                          }
-                        }
-                      })}
-                    </MessageContent>
-                    {message.role === "assistant" &&
-                      message === messages[messages.length - 1] &&
-                      status !== "streaming" && (
-                        <button
-                          onClick={() => regenerate()}
-                          className="group inline-flex items-center gap-1 mt-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground rounded-md hover:bg-muted transition-all duration-200"
-                        >
-                          <RotateCcw className="size-3 transition-transform duration-300 group-hover:-rotate-180" />
-                          重新生成
-                        </button>
-                      )}
-                  </Message>
-                ))
+                            })}
+                          </div>
+                        </div>
+                      </MessageContent>
+                      {message.role === "assistant" &&
+                        message === messages[messages.length - 1] &&
+                        status !== "streaming" && (
+                          <button
+                            onClick={() => regenerate()}
+                            className="group inline-flex items-center gap-1 mt-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground rounded-md hover:bg-muted transition-all duration-200"
+                          >
+                            <RotateCcw className="size-3 transition-transform duration-300 group-hover:-rotate-180" />
+                            重新生成
+                          </button>
+                        )}
+                    </Message>
+                  )
+                })
               )}
             </ConversationContent>
             <ConversationScrollButton />
