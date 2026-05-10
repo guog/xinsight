@@ -28,7 +28,8 @@ import { parseChartBlocks } from "@/lib/chart/parse-chart-block"
 import { ChartBlock } from "@/components/chart/chart-block"
 import { FileUpload } from "@/components/file-upload"
 import { Sidebar, type ChatItem } from "@/components/sidebar"
-import { ToolInvocation } from "@/components/tool-invocation"
+import { AgentMessage } from "@/components/agent-message"
+import { ThinkingBlock } from "@/components/thinking-block"
 import { CodeBlockCopyProvider } from "@/components/code-block-copy"
 import { useVoiceConfig } from "@/hooks/use-voice-config"
 import { useIsMobile } from "@/hooks/use-device"
@@ -209,6 +210,20 @@ function DesktopChatPage() {
                   <MessageContent>
                     {message.parts.map((part, i) => {
                       switch (part.type) {
+                        case "reasoning": {
+                          const rp = part as {
+                            type: "reasoning"
+                            text: string
+                            state?: "streaming" | "done"
+                          }
+                          return (
+                            <ThinkingBlock
+                              key={`${message.id}-${i}-thinking`}
+                              text={rp.text}
+                              state={rp.state}
+                            />
+                          )
+                        }
                         case "text": {
                           const segments = parseChartBlocks(part.text)
                           return segments.map((seg, j) =>
@@ -236,7 +251,7 @@ function DesktopChatPage() {
                             }
                           ).toolInvocation
                           return (
-                            <ToolInvocation
+                            <AgentMessage
                               key={`${message.id}-${i}-tool`}
                               toolName={inv.toolName}
                               state={inv.state}
