@@ -45,6 +45,7 @@ export const DatasourceEndpointSchema = z.object({
   paramSchema: z.string().optional(), // 入参说明 (自然语言描述 或 OpenAPI JSON Schema，由 apiSchemaFormat 决定)
   apiSchemaFormat: ApiSchemaFormat, // "natural" = 自然语言，"openapi" = 结构化 OpenAPI JSON Schema
   responseExample: z.string().optional(), // 响应示例
+  structuredParams: z.array(StructuredParamSchema).optional(),
 })
 export type DatasourceEndpoint = z.infer<typeof DatasourceEndpointSchema>
 
@@ -65,6 +66,19 @@ export type FieldDefinition = {
   children?: FieldDefinition[]
 }
 
+/** 结构化参数定义 — 替代自由文本 paramSchema */
+export const StructuredParamSchema = z.object({
+  name: z.string().min(1),
+  type: z.enum(["string", "number", "boolean", "date", "enum", "object", "array"]),
+  required: z.boolean().default(false),
+  description: z.string().optional(),
+  default: z.unknown().optional(),
+  enum: z.array(z.string()).optional(),
+  example: z.unknown().optional(),
+  format: z.string().optional(),
+})
+export type StructuredParam = z.infer<typeof StructuredParamSchema>
+
 /** 响应 Schema 定义 */
 export const ResponseSchemaDefinition = z.object({
   fields: z.array(FieldDefinitionSchema),
@@ -83,6 +97,7 @@ const endpointBaseFields = {
   apiSchemaFormat: ApiSchemaFormat,
   responseExample: z.string().optional(),
   responseSchema: z.optional(ResponseSchemaDefinition),
+  structuredParams: z.array(StructuredParamSchema).optional(),
 }
 
 /** REST 协议 endpoint */

@@ -90,11 +90,83 @@ export class GraphqlAdapter implements DatasourceAdapter {
     }
   }
 
-  async testConnection(config: DatasourceConfig): Promise<{ ok: boolean; message: string }> {
-    const result = await this.query(config, { query: "{ __typename }" })
-    return {
-      ok: result.success,
-      message: result.success ? "连接成功" : (result.error ?? "未知错误"),
+  async testConnection(
+    config: DatasourceConfig,
+  ): Promise<{
+    ok: boolean
+    message: string
+    statusCode?: number
+    latency?: number
+    responsePreview?: string
+    diagnosis?: string
+  }> {
+    const start = Date.now()
+    try {
+      const gqlEndpoint = config.config.endpoint as string
+      const controller = new AbortController()
+      const timeout =
+        ((config.config as Record<string, unknown>)?.timeout as number | undefined) ?? 10000
+      const timer = setTimeout(() => controller.abort(), timeout)
+
+      const res = await fetch(gqlEndpoint, {
+        method: "POST",
+        signal: controller.signal,
+        headers: this.buildHeaders(config),
+        body: JSON.stringify({ query: "{ __typename }" }),
+      })
+      clearTimeout(timer)
+
+      const latency = Date.now() - start
+      const statusCode = res.status
+      let responsePreview = ""
+      try {
+        const text = await res.text()
+        responsePreview = text.slice(0, 500)
+      } catch {}
+
+      const diagnosis = this.diagnoseStatus(statusCode)
+
+      if (res.ok) {
+        return {
+          ok: true,
+          message: `连接成功 (${statusCode})`,
+          statusCode,
+          latency,
+          responsePreview,
+        }
+      }
+      return {
+        ok: false,
+        message: `HTTP ${statusCode}`,
+        statusCode,
+        latency,
+        responsePreview,
+        diagnosis,
+      }
+    } catch (err) {
+      const latency = Date.now() - start
+      const message = err instanceof Error ? err.message : String(err)
+      return { ok: false, message, latency, diagnosis: this.diagnoseError(message) }
     }
+  }
+
+  private diagnoseStatus(status: number): string {
+    if (status === 401) return "认证失败，请检查 Token 或 API Key 是否正确"
+    if (status === 403) return "无权访问，请检查账号权限"
+    if (status === 404) return "API 地址不存在，请检查 GraphQL endpoint 是否正确"
+    if (status === 500) return "服务器内部错误，请联系数据源管理员"
+    if (status === 502 || status === 503) return "服务不可用，可能正在维护中"
+    if (status === 429) return "请求频率过高，请稍后重试"
+    return ""
+  }
+
+  private diagnoseError(message: string): string {
+    if (message.includes("ECONNREFUSED")) return "无法连接服务器，请确认地址和端口是否正确"
+    if (message.includes("ENOTFOUND")) return "域名解析失败，请检查 URL 是否拼写正确"
+    if (message.includes("ETIMEDOUT") || message.includes("timeout") || message.includes("abort"))
+      return "连接超时，请检查网络或增大超时时间"
+    if (message.includes("CERT") || message.includes("SSL"))
+      return "SSL 证书错误，请检查 HTTPS 配置"
+    return "未知错误，请检查网络连接"
   }
 }

@@ -4,6 +4,7 @@ import { toAISdkStream } from "@mastra/ai-sdk"
 
 import { mastra } from "@/mastra"
 import { persistMessages, autoGenerateTitle } from "@/db/repositories/chat-repo"
+import { buildDatasourceContext } from "@/lib/schema/build-context"
 
 // 允许流式响应最长 120 秒（Supervisor 多轮调度可能需要更长时间）
 export const maxDuration = 120
@@ -31,13 +32,30 @@ export async function POST(req: Request) {
     // Memory 需要 resourceId + threadId 来关联对话上下文
     const memoryOptions = chatId ? { resourceId: "user", threadId: chatId } : undefined
 
+    // 动态注入数据源上下文到 Agent 提示词
+    let datasourceContext = ""
+    try {
+      datasourceContext = await buildDatasourceContext(agentId || "factoryDirectorAgent")
+    } catch {
+      // 降级处理：DB 查询失败时不影响对话
+    }
+    const contextSuffix = datasourceContext
+      ? `\n\n## 当前可用数据源\n以下是你可以查询的数据源和接口，直接使用 datasource-query 调用，无需先调用 datasource-list：\n${datasourceContext}`
+      : ""
+
     let stream
     try {
-      stream = await agent.stream(chatMessages, memoryOptions)
+      stream = await agent.stream(chatMessages, {
+        ...memoryOptions,
+        ...(contextSuffix ? { instructions: contextSuffix } : {}),
+      })
     } catch (e) {
       console.warn("[chat] first attempt failed, retrying...", e)
       await new Promise((r) => setTimeout(r, 1000))
-      stream = await agent.stream(chatMessages, memoryOptions)
+      stream = await agent.stream(chatMessages, {
+        ...memoryOptions,
+        ...(contextSuffix ? { instructions: contextSuffix } : {}),
+      })
     }
 
     // 收集完整的 assistant 响应

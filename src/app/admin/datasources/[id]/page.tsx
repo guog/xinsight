@@ -33,6 +33,12 @@ export default function DatasourceDetailPage() {
   const [ds, setDs] = useState<Datasource | null>(null)
   const [loading, setLoading] = useState(true)
   const [testStatus, setTestStatus] = useState<"idle" | "testing" | "ok" | "failed">("idle")
+  const [testDetails, setTestDetails] = useState<{
+    statusCode?: number
+    latency?: number
+    responsePreview?: string
+    diagnosis?: string
+  } | null>(null)
 
   useEffect(() => {
     fetch(`/api/datasources/${id}`)
@@ -58,11 +64,20 @@ export default function DatasourceDetailPage() {
 
   const handleTest = async () => {
     setTestStatus("testing")
+    setTestDetails(null)
     try {
       const res = await fetch(`/api/datasources/${id}/test`, { method: "POST" })
       const data = await res.json()
       setTestStatus(data.ok ? "ok" : "failed")
-      toast[data.ok ? "success" : "error"](data.ok ? "连接成功" : "连接失败")
+      setTestDetails({
+        statusCode: data.statusCode,
+        latency: data.latency,
+        responsePreview: data.responsePreview,
+        diagnosis: data.diagnosis,
+      })
+      toast[data.ok ? "success" : "error"](
+        data.ok ? `连接成功 (${data.latency ?? 0}ms)` : data.diagnosis || "连接失败",
+      )
     } catch {
       setTestStatus("failed")
       toast.error("测试连接失败")
@@ -141,6 +156,41 @@ export default function DatasourceDetailPage() {
           </Link>
         </div>
       </div>
+      {testDetails && (
+        <div
+          className={`mt-3 p-3 rounded-lg border text-xs space-y-1 ${
+            testStatus === "ok"
+              ? "border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950"
+              : "border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950"
+          }`}
+        >
+          <div className="flex gap-4">
+            {testDetails.statusCode && (
+              <span>
+                状态码: <strong>{testDetails.statusCode}</strong>
+              </span>
+            )}
+            {testDetails.latency !== undefined && (
+              <span>
+                延迟: <strong>{testDetails.latency}ms</strong>
+              </span>
+            )}
+          </div>
+          {testDetails.diagnosis && (
+            <p className="text-muted-foreground">诊断: {testDetails.diagnosis}</p>
+          )}
+          {testDetails.responsePreview && (
+            <details>
+              <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+                响应预览
+              </summary>
+              <pre className="mt-1 p-2 bg-muted rounded overflow-x-auto max-h-32">
+                {testDetails.responsePreview}
+              </pre>
+            </details>
+          )}
+        </div>
+      )}
 
       {/* 连接配置 */}
       <section className="bg-card border border-border rounded-xl p-4 space-y-3">
@@ -200,6 +250,38 @@ export default function DatasourceDetailPage() {
                     <pre className="mt-1 text-xs bg-muted p-2 rounded overflow-x-auto">
                       {ep.paramSchema}
                     </pre>
+                  </div>
+                )}
+                {(ep as Record<string, unknown>).structuredParams && (
+                  <div>
+                    <span className="text-xs text-muted-foreground">结构化参数：</span>
+                    <div className="mt-1 space-y-0.5">
+                      {(
+                        (ep as Record<string, unknown>).structuredParams as Array<{
+                          name: string
+                          type: string
+                          required?: boolean
+                          description?: string
+                          enum?: string[]
+                          format?: string
+                          example?: unknown
+                        }>
+                      ).map((p, pi) => (
+                        <div key={pi} className="text-xs flex items-center gap-1.5">
+                          <code className="bg-muted px-1 rounded">{p.name}</code>
+                          <span className="text-muted-foreground">{p.type}</span>
+                          {p.required && <span className="text-red-500 text-[10px]">必填</span>}
+                          {p.description && (
+                            <span className="text-muted-foreground">- {p.description}</span>
+                          )}
+                          {p.enum && (
+                            <span className="text-muted-foreground">
+                              [可选: {p.enum.join(", ")}]
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
                 {ep.responseExample && (

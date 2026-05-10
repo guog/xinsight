@@ -3,6 +3,8 @@ import { z } from "zod"
 import { getAdapter } from "./adapters"
 import { db } from "@/db"
 import { SqliteDatasourceRepository } from "@/db/repositories/datasource-repository"
+import { validateParams, formatParamHints } from "./validate-params"
+import type { StructuredParam } from "./types"
 
 export { type DatasourceAdapter, type DatasourceResult } from "./types"
 import type { DatasourceConfig } from "./types"
@@ -78,6 +80,29 @@ export const datasourceQueryTool = createTool({
         return { success: false, error: `数据源 "${config.name}" 中未找到接口 "${endpointId}"` }
       }
       mergedParams = { ...endpoint.params, ...params }
+    }
+
+    // 参数预校验
+    if (endpointId) {
+      const endpoint = config.endpoints?.find((ep: { id: string }) => ep.id === endpointId)
+      const sParams = (endpoint as Record<string, unknown>)?.structuredParams as
+        | StructuredParam[]
+        | undefined
+      if (sParams && sParams.length > 0) {
+        const validation = validateParams(sParams, mergedParams)
+        if (!validation.valid) {
+          return {
+            success: false,
+            error: `参数校验失败:\n${validation.errors.join("\n")}`,
+            metadata: {
+              duration: 0,
+              datasourceId,
+              datasourceName: config.name,
+              paramHints: formatParamHints(sParams),
+            },
+          }
+        }
+      }
     }
 
     const adapter = getAdapter(config.type)
@@ -162,6 +187,9 @@ export const datasourceListTool = createTool({
               if (fields.length > 0) {
                 base.responseFields = fields
               }
+            }
+            if (ep.structuredParams && Array.isArray(ep.structuredParams)) {
+              base.structuredParams = ep.structuredParams
             }
             return base
           }),
