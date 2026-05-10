@@ -4,6 +4,10 @@
 export async function register() {
   // 仅在 Node.js 运行时中执行（排除 Edge）
   if (process.env.NEXT_RUNTIME === "nodejs") {
+    // 初始化数据库：迁移 + 种子数据
+    const { initDatabase } = await import("@/db/init")
+    await initDatabase()
+
     const { startVoiceWebSocketServer } = await import("@/server/voice-ws")
     startVoiceWebSocketServer()
 
