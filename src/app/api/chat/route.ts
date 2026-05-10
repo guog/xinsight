@@ -37,13 +37,20 @@ export async function POST(req: Request) {
         version: "v6",
         sendReasoning: true,
       }).getReader()
+
+      // 过滤掉大量冗余的 data-tool-agent / rest 中间态事件
+      // 这些事件每个 token 发一次完整 agent state，导致浏览器 OOM
+      const BLOCKED_TYPES = new Set(["data-tool-agent", "rest"])
+
       try {
         for (;;) {
           const { done, value } = await reader.read()
           if (done) break
-          // 收集文本用于持久化
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const chunk = value as any
+          // 跳过冗余中间态事件
+          if (BLOCKED_TYPES.has(chunk.type)) continue
+          // 收集文本用于持久化
           if (chunk.type === "text-delta") {
             const text = chunk.delta ?? chunk.value ?? ""
             if (typeof text === "string") {

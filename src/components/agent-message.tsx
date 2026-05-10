@@ -1,6 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
+import { Streamdown } from "streamdown"
+import { cjk } from "@streamdown/cjk"
+import { code } from "@streamdown/code"
+import { math } from "@streamdown/math"
 import {
   Loader2,
   ChevronDown,
@@ -301,6 +305,8 @@ const DEFAULT_AGENT = {
   avatarBg: "bg-muted",
 }
 
+const streamdownPlugins = { cjk, code, math }
+
 interface AgentMessageProps {
   toolName: string
   state: "call" | "partial-call" | "result"
@@ -338,6 +344,50 @@ function formatToolName(toolName: string): string {
     .replace(/([A-Z])/g, " $1")
     .replace(/_/g, " ")
     .trim()
+}
+
+/**
+ * 智能数据预览：大 JSON 截断，显示摘要
+ */
+function DataPreview({ data }: { data: unknown }) {
+  const [showFull, setShowFull] = useState(false)
+  const text = useMemo(() => {
+    if (typeof data === "string") return data
+    return JSON.stringify(data, null, 2)
+  }, [data])
+
+  const isLarge = text.length > 3000
+  const displayText = isLarge && !showFull ? text.slice(0, 3000) + "\n..." : text
+
+  // 数组摘要
+  const arraySummary = useMemo(() => {
+    if (!data || typeof data !== "object") return null
+    const d = data as Record<string, unknown>
+    // 常见模式: { data: [...] } or { text: "...", subAgentToolResults: [...] }
+    if (Array.isArray(d.data)) return `${d.data.length} 条记录`
+    if (Array.isArray(d.subAgentToolResults)) return `${d.subAgentToolResults.length} 次数据源调用`
+    if (typeof d.text === "string") return `${d.text.length} 字回复`
+    return null
+  }, [data])
+
+  return (
+    <div className="mt-1">
+      {arraySummary && (
+        <span className="text-xs text-muted-foreground/70 mb-1 block">📊 {arraySummary}</span>
+      )}
+      <pre className="text-xs bg-background/80 rounded-lg p-2.5 border border-border/30 font-mono overflow-x-auto max-h-64 overflow-y-auto">
+        {displayText}
+      </pre>
+      {isLarge && !showFull && (
+        <button
+          onClick={() => setShowFull(true)}
+          className="mt-1 text-xs text-primary/70 hover:text-primary transition-colors"
+        >
+          展开全部 ({(text.length / 1024).toFixed(1)} KB)
+        </button>
+      )}
+    </div>
+  )
 }
 
 export function AgentMessage({ toolName, state, args, result }: AgentMessageProps) {
@@ -389,10 +439,12 @@ export function AgentMessage({ toolName, state, args, result }: AgentMessageProp
             </div>
           )}
 
-          {/* 子 Agent 回复文本 */}
+          {/* 子 Agent 回复文本 — Markdown 渲染 */}
           {isDone && agentText && isDelegate && (
-            <div className="text-sm text-foreground/90 leading-relaxed mt-1 whitespace-pre-wrap">
-              {agentText.length > 200 ? agentText.slice(0, 200) + "..." : agentText}
+            <div className="text-sm text-foreground/90 leading-relaxed mt-1 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+              <Streamdown plugins={streamdownPlugins}>
+                {agentText.length > 500 ? agentText.slice(0, 500) + "\n\n..." : agentText}
+              </Streamdown>
             </div>
           )}
 
@@ -433,9 +485,7 @@ export function AgentMessage({ toolName, state, args, result }: AgentMessageProp
               )}
               <div>
                 <span className="text-xs font-medium text-muted-foreground">📥 返回数据</span>
-                <pre className="mt-1 text-xs bg-background/80 rounded-lg p-2.5 border border-border/30 font-mono overflow-x-auto max-h-64">
-                  {typeof result === "string" ? result : JSON.stringify(result, null, 2)}
-                </pre>
+                <DataPreview data={result} />
               </div>
             </div>
           )}
