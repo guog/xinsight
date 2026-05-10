@@ -12,7 +12,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "mastra:dev": "mastra dev",
-    "dev:all": "concurrently -n next,mastra -c blue,magenta \"bun run dev\" \"bun run mastra:dev\"",
+    "dev:all": "concurrently -n next,mastra,mes -c blue,magenta,green \"bun run dev\" \"bun run mastra:dev\" \"bun run --cwd packages/mes-mock-api dev\"",
     "db:push": "bun scripts/db-push.ts",
     "test": "vitest run",
     "test:watch": "vitest",

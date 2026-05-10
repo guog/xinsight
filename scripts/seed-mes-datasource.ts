@@ -12,7 +12,7 @@ import { eq } from "drizzle-orm"
 import type { RestEndpoint } from "../src/mastra/tools/datasource/types"
 
 const MES_DATASOURCE_ID = "mes-mock"
-const MES_BASE_URL = "http://localhost:3001"
+const MES_BASE_URL = process.env.MES_BASE_URL || "http://localhost:3002"
 
 // ========== 端点定义 ==========
 

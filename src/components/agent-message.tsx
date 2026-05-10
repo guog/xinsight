@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState } from "react"
 import { Streamdown } from "streamdown"
 import { cjk } from "@streamdown/cjk"
 import { code } from "@streamdown/code"
@@ -15,7 +15,6 @@ import {
   BookOpen,
   Database,
   MessageSquare,
-  Route,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
@@ -206,7 +205,6 @@ function mapToolState(state: "call" | "partial-call" | "result"): ToolState {
 
 export function AgentMessage({ toolName, state, args, result }: AgentMessageProps) {
   const isDelegate = isSupervisorDelegation(toolName)
-  const isDone = state === "result"
 
   if (isDelegate) {
     return <DelegateAgentMessage toolName={toolName} state={state} args={args} result={result} />

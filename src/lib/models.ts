@@ -101,7 +101,7 @@ export function getModelById(id: string): ModelInfo | undefined {
 
 export function getDefaultModelId(): string {
   const models = getModels()
-  return models.length > 0 ? models[0].id : "deepseek/deepseek-v4-flash"
+  return models.length > 0 ? models[0].id : (process.env.DEFAULT_MODEL_ID ?? "deepseek/deepseek-v4-flash")
 }
 
 export function getProviderForModel(modelId: string): ProviderInfo | undefined {

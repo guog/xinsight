@@ -42,6 +42,6 @@ app.doc("/api/openapi.json", {
 app.get("/api/docs", swaggerUI({ url: "/api/openapi.json" }))
 
 export default {
-  port: 3001,
+  port: Number(process.env.MES_PORT || 3002),
   fetch: app.fetch,
 }
