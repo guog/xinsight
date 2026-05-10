@@ -5,6 +5,7 @@ import dynamic from "next/dynamic"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
 import { Square, RotateCcw, Mic } from "lucide-react"
+import { API_BASE } from "@/lib/api"
 import {
   Conversation,
   ConversationContent,
@@ -65,8 +66,8 @@ function DesktopChatPage() {
 
   const { createChat } = useChats()
 
-  const chatApiUrl = process.env.NEXT_PUBLIC_API_URL
-    ? `${process.env.NEXT_PUBLIC_API_URL}/api/chat`
+  const chatApiUrl = API_BASE
+    ? `${API_BASE}/api/chat`
     : "/api/chat"
 
   const { messages, sendMessage, status, setMessages, stop, regenerate } = useChat({
@@ -95,8 +96,7 @@ function DesktopChatPage() {
       setActiveChatId(chat.id)
       chatIdRef.current = chat.id
       try {
-        const apiBase = process.env.NEXT_PUBLIC_API_URL ?? ""
-        const res = await fetch(`${apiBase}/api/chats/${chat.id}/messages`)
+        const res = await fetch(`${API_BASE}/api/chats/${chat.id}/messages`)
         if (res.ok) {
           const msgs = await res.json()
           const uiMessages = msgs.map(
@@ -120,8 +120,7 @@ function DesktopChatPage() {
   const handleDeleteChat = useCallback(
     async (id: string) => {
       try {
-        const apiBase = process.env.NEXT_PUBLIC_API_URL ?? ""
-        await fetch(`${apiBase}/api/chats/${id}`, { method: "DELETE" })
+        await fetch(`${API_BASE}/api/chats/${id}`, { method: "DELETE" })
         if (activeChatId === id) {
           setActiveChatId(null)
           chatIdRef.current = null

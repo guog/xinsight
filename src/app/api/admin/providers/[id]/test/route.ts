@@ -3,7 +3,7 @@ import { db } from "@/db"
 import { llmProviders } from "@/db/schema"
 import { eq } from "drizzle-orm"
 import { requireAdmin, handleAuthError } from "@/lib/auth"
-import { testProviderConnection } from "@/lib/provider-sync"
+import { testProviderConnection } from "@/lib/provider/sync"
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {

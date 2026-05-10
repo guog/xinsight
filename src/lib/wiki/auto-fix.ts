@@ -1,20 +1,14 @@
 import { generateText } from "ai"
-import { createOpenAI } from "@ai-sdk/openai"
+import { wikiLLMProvider, getWikiModelSlug } from "./llm"
 import { readFile, writeFile, unlink, rename, mkdir } from "fs/promises"
 import { join, dirname, basename } from "path"
 import type { LintIssue } from "./lint"
 import { extractText } from "./extract-text"
 
-// 创建 DeepSeek 兼容的 OpenAI provider
-const provider = createOpenAI({
-  baseURL: process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com/v1",
-  apiKey: process.env.DEEPSEEK_API_KEY || "",
-})
-
 // 调用 LLM 生成文本
 async function callLLM(prompt: string): Promise<string> {
   const { text } = await generateText({
-    model: provider("deepseek-v4-flash"),
+    model: wikiLLMProvider(getWikiModelSlug()),
     prompt,
   })
   return text

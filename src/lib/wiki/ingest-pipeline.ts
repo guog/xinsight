@@ -1,6 +1,6 @@
 // 自动摄入管线：上传 → 提取 → 写入 wiki
 import { generateText } from "ai"
-import { createOpenAI } from "@ai-sdk/openai"
+import { wikiLLMProvider, getWikiModelSlug } from "./llm"
 import { readFile, writeFile, mkdir, access } from "fs/promises"
 import { join, relative, basename } from "path"
 import { createHash } from "crypto"
@@ -9,12 +9,6 @@ import { eq } from "drizzle-orm"
 import type { BunSQLiteDatabase } from "drizzle-orm/bun-sqlite"
 import type { TaskRunner } from "./task-runner"
 import type { wikiUploads as WikiUploadsTable } from "@/db/schema"
-
-// DeepSeek LLM 配置（与 auto-fix.ts 一致）
-const provider = createOpenAI({
-  baseURL: process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com/v1",
-  apiKey: process.env.DEEPSEEK_API_KEY || "",
-})
 
 function sha256(content: string): string {
   return createHash("sha256").update(content).digest("hex")
@@ -30,7 +24,7 @@ interface PageSpec {
 // 使用 LLM 将提取的 markdown 拆分为 wiki 页面（Karpathy 风格）
 async function splitIntoPages(markdown: string, signal?: AbortSignal): Promise<PageSpec[]> {
   const { text } = await generateText({
-    model: provider("deepseek-v4-flash"),
+    model: wikiLLMProvider(getWikiModelSlug()),
     abortSignal: signal,
     system: `你是一个知识整理专家。将输入的 markdown 文档拆分为多个独立的 wiki 页面，采用 Karpathy 风格（简洁、清晰、信息密度高）。
 

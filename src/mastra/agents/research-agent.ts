@@ -1,4 +1,5 @@
 import { Agent } from "@mastra/core/agent"
+import { DEFAULT_AGENT_MODEL } from "./model-config"
 import { datasourceQueryTool, datasourceListTool } from "../tools/datasource"
 import { datasourceBatchQueryTool } from "../tools/cross-source"
 
@@ -14,6 +15,6 @@ export const researchAgent = new Agent({
     "你是 xinsight 的研究助手，擅长深度分析问题、整理资料并提供结构化的研究报告。" +
     "请使用中文回复，除非用户明确使用其他语言。" +
     "回答应有条理、引用可靠来源、提供多角度分析。",
-  model: "deepseek/deepseek-v4-flash",
+  model: DEFAULT_AGENT_MODEL,
   tools: { datasourceQueryTool, datasourceListTool, datasourceBatchQueryTool },
 })

@@ -16,6 +16,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { API_BASE } from "@/lib/api"
 import { useUser } from "@/hooks/use-user"
 import { useSwipe } from "@/hooks/use-swipe"
 
@@ -33,10 +34,7 @@ interface SidebarProps {
   onDeleteChat?: (id: string) => void
 }
 
-const apiBase =
-  typeof window !== "undefined" && process.env.NEXT_PUBLIC_API_URL
-    ? process.env.NEXT_PUBLIC_API_URL
-    : ""
+const apiBase = typeof window !== "undefined" && API_BASE ? API_BASE : ""
 
 export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }: SidebarProps) {
   const [isOpen, setIsOpen] = useState(true)

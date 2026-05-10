@@ -1,4 +1,5 @@
 import { Agent } from "@mastra/core/agent"
+import { DEFAULT_AGENT_MODEL } from "./model-config"
 import { datasourceQueryTool, datasourceListTool } from "../tools/datasource"
 
 /**
@@ -38,6 +39,6 @@ export const equipmentAgent = new Agent({
 {"type":"bar","title":"标题","data":[{"name":"A","value":10},{"name":"B","value":20}]}
 \`\`\`
 支持类型：line（折线）、bar（柱状）、pie（饼图）、area（面积）。多系列时用 series 指定 key 列表。`,
-  model: "deepseek/deepseek-v4-flash",
+  model: DEFAULT_AGENT_MODEL,
   tools: { datasourceQueryTool, datasourceListTool },
 })
