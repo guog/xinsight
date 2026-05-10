@@ -9,72 +9,92 @@ import { persistMessages, autoGenerateTitle } from "@/db/repositories/chat-repo"
 export const maxDuration = 120
 
 export async function POST(req: Request) {
-  const {
-    messages: chatMessages,
-    chatId,
-    agentId,
-  }: {
-    messages: UIMessage[]
-    chatId?: string
-    agentId?: string
-  } = await req.json()
+  try {
+    const {
+      messages: chatMessages,
+      chatId,
+      agentId,
+      modelId,
+    }: {
+      messages: UIMessage[]
+      chatId?: string
+      agentId?: string
+      modelId?: string
+    } = await req.json()
 
-  // 根据请求选择 Agent，默认使用厂长 Supervisor
-  const agent = mastra.getAgent(agentId || "factoryDirectorAgent")
+    if (modelId) console.log("[chat] modelId requested:", modelId)
 
-  const stream = await agent.stream(chatMessages)
+    // 根据请求选择 Agent，默认使用厂长 Supervisor
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const agent = mastra.getAgent((agentId || "factoryDirectorAgent") as any)
 
-  // 收集完整的 assistant 响应
-  let assistantText = ""
+    // Memory 需要 resourceId + threadId 来关联对话上下文
+    const memoryOptions = chatId ? { resourceId: "user", threadId: chatId } : undefined
 
-  const uiMessageStream = createUIMessageStream({
-    originalMessages: chatMessages,
-    execute: async ({ writer }) => {
-      const reader = toAISdkStream(stream, {
-        from: "agent",
-        version: "v6",
-        sendReasoning: true,
-      }).getReader()
+    let stream
+    try {
+      stream = await agent.stream(chatMessages, memoryOptions)
+    } catch (e) {
+      console.warn("[chat] first attempt failed, retrying...", e)
+      await new Promise((r) => setTimeout(r, 1000))
+      stream = await agent.stream(chatMessages, memoryOptions)
+    }
 
-      // 过滤掉大量冗余的 data-tool-agent / rest 中间态事件
-      // 这些事件每个 token 发一次完整 agent state，导致浏览器 OOM
-      const BLOCKED_TYPES = new Set(["data-tool-agent", "rest"])
+    // 收集完整的 assistant 响应
+    let assistantText = ""
 
-      try {
-        for (;;) {
-          const { done, value } = await reader.read()
-          if (done) break
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const chunk = value as any
-          // 跳过冗余中间态事件
-          if (BLOCKED_TYPES.has(chunk.type)) continue
-          // 收集文本用于持久化
-          if (chunk.type === "text-delta") {
-            const text = chunk.delta ?? chunk.value ?? ""
-            if (typeof text === "string") {
-              assistantText += text
-            }
-          }
-          await writer.write(value)
-        }
-      } finally {
-        reader.releaseLock()
-      }
+    const uiMessageStream = createUIMessageStream({
+      originalMessages: chatMessages,
+      execute: async ({ writer }) => {
+        const reader = toAISdkStream(stream, {
+          from: "agent",
+          version: "v6",
+          sendReasoning: true,
+        }).getReader()
 
-      // 流结束后持久化消息
-      if (chatId && assistantText) {
+        // 过滤掉大量冗余的 data-tool-agent / rest 中间态事件
+        // 这些事件每个 token 发一次完整 agent state，导致浏览器 OOM
+        const BLOCKED_TYPES = new Set(["data-tool-agent", "rest"])
+
         try {
-          const lastUserMsg = chatMessages[chatMessages.length - 1]
-          await persistMessages(chatId, lastUserMsg, assistantText)
-          await autoGenerateTitle(chatId, lastUserMsg)
-        } catch (e) {
-          console.error("持久化消息失败:", e)
+          for (;;) {
+            const { done, value } = await reader.read()
+            if (done) break
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const chunk = value as any
+            // 跳过冗余中间态事件
+            if (BLOCKED_TYPES.has(chunk.type)) continue
+            // 收集文本用于持久化
+            if (chunk.type === "text-delta") {
+              const text = chunk.delta ?? chunk.value ?? ""
+              if (typeof text === "string") {
+                assistantText += text
+              }
+            }
+            await writer.write(value)
+          }
+        } finally {
+          reader.releaseLock()
         }
-      }
-    },
-  })
 
-  return createUIMessageStreamResponse({
-    stream: uiMessageStream,
-  })
+        // 流结束后持久化消息
+        if (chatId && assistantText) {
+          try {
+            const lastUserMsg = chatMessages[chatMessages.length - 1]
+            await persistMessages(chatId, lastUserMsg, assistantText)
+            await autoGenerateTitle(chatId, lastUserMsg)
+          } catch (e) {
+            console.error("持久化消息失败:", e)
+          }
+        }
+      },
+    })
+
+    return createUIMessageStreamResponse({
+      stream: uiMessageStream,
+    })
+  } catch (error) {
+    console.error("[chat] unhandled error:", error)
+    return Response.json({ error: "服务器内部错误，请稍后重试" }, { status: 500 })
+  }
 }
