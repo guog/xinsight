@@ -41,6 +41,8 @@
     "@mastra/ai-sdk": "^1.4.1",
     "@mastra/core": "^1.29.1",
     "@mastra/evals": "^1.2.2",
+    "@mastra/libsql": "^1.10.0",
+    "@mastra/memory": "^1.17.5",
     "@radix-ui/react-collapsible": "^1.1.12",
     "@radix-ui/react-use-controllable-state": "^1.2.2",
     "@streamdown/cjk": "^1.0.3",

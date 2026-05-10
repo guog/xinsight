@@ -1,11 +1,4 @@
-import {
-  Factory,
-  FlaskConical,
-  Wrench,
-  Package,
-  Zap,
-  BookOpen,
-} from "lucide-react"
+import { Factory, FlaskConical, Wrench, Package, Zap, BookOpen } from "lucide-react"
 
 /**
  * Agent 信息映射：工具名 → 子 Agent 元数据
@@ -17,6 +10,7 @@ export const AGENT_MAP: Record<
     name: string
     role: string
     icon: typeof Factory
+    avatar: string
     color: string
     bgColor: string
     avatarBg: string
@@ -27,6 +21,7 @@ export const AGENT_MAP: Record<
     name: "李工",
     role: "生产管理专员",
     icon: Factory,
+    avatar: "李",
     color: "text-blue-600 dark:text-blue-400",
     bgColor: "from-blue-50/80 to-blue-50/30 dark:from-blue-950/30 dark:to-blue-950/10",
     avatarBg: "bg-blue-100 dark:bg-blue-900/50",
@@ -35,6 +30,7 @@ export const AGENT_MAP: Record<
     name: "张工",
     role: "质量管理专员",
     icon: FlaskConical,
+    avatar: "张",
     color: "text-emerald-600 dark:text-emerald-400",
     bgColor: "from-emerald-50/80 to-emerald-50/30 dark:from-emerald-950/30 dark:to-emerald-950/10",
     avatarBg: "bg-emerald-100 dark:bg-emerald-900/50",
@@ -43,6 +39,7 @@ export const AGENT_MAP: Record<
     name: "王工",
     role: "设备管理专员",
     icon: Wrench,
+    avatar: "王",
     color: "text-orange-600 dark:text-orange-400",
     bgColor: "from-orange-50/80 to-orange-50/30 dark:from-orange-950/30 dark:to-orange-950/10",
     avatarBg: "bg-orange-100 dark:bg-orange-900/50",
@@ -51,6 +48,7 @@ export const AGENT_MAP: Record<
     name: "赵工",
     role: "仓储物流专员",
     icon: Package,
+    avatar: "赵",
     color: "text-purple-600 dark:text-purple-400",
     bgColor: "from-purple-50/80 to-purple-50/30 dark:from-purple-950/30 dark:to-purple-950/10",
     avatarBg: "bg-purple-100 dark:bg-purple-900/50",
@@ -59,6 +57,7 @@ export const AGENT_MAP: Record<
     name: "陈工",
     role: "能源管理专员",
     icon: Zap,
+    avatar: "陈",
     color: "text-yellow-600 dark:text-yellow-400",
     bgColor: "from-yellow-50/80 to-yellow-50/30 dark:from-yellow-950/30 dark:to-yellow-950/10",
     avatarBg: "bg-yellow-100 dark:bg-yellow-900/50",
@@ -67,6 +66,7 @@ export const AGENT_MAP: Record<
     name: "孙工",
     role: "知识库专员",
     icon: BookOpen,
+    avatar: "孙",
     color: "text-pink-600 dark:text-pink-400",
     bgColor: "from-pink-50/80 to-pink-50/30 dark:from-pink-950/30 dark:to-pink-950/10",
     avatarBg: "bg-pink-100 dark:bg-pink-900/50",
