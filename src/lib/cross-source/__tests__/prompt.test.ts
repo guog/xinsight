@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect } from "vitest"
 import { CROSS_SOURCE_PROMPT } from "@/lib/cross-source/prompt"
 
 describe("cross-source prompt", () => {

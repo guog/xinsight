@@ -73,10 +73,11 @@ export class GraphqlAdapter implements DatasourceAdapter {
     }
 
     const json = result.data as Record<string, unknown>
-    if (json?.errors?.length) {
+    const errors = json?.errors as Array<{ message: string }> | undefined
+    if (errors?.length) {
       return {
         success: false,
-        error: json.errors.map((e: { message: string }) => e.message).join("; "),
+        error: errors.map((e) => e.message).join("; "),
       }
     }
 
@@ -87,7 +88,7 @@ export class GraphqlAdapter implements DatasourceAdapter {
       success: true,
       data: json?.data ?? json,
       ...(Object.keys(metadata).length ? { metadata } : {}),
-    }
+    } as DatasourceResult
   }
 
   async testConnection(
@@ -127,6 +128,21 @@ export class GraphqlAdapter implements DatasourceAdapter {
       const diagnosis = this.diagnoseStatus(statusCode)
 
       if (res.ok) {
+        // Check for GraphQL errors in response body
+        try {
+          const parsed = JSON.parse(responsePreview)
+          if (parsed.errors?.length) {
+            const errMsg = parsed.errors[0].message ?? "GraphQL 错误"
+            return {
+              ok: false,
+              message: errMsg,
+              statusCode,
+              latency,
+              responsePreview,
+              diagnosis: errMsg,
+            }
+          }
+        } catch {}
         return {
           ok: true,
           message: `连接成功 (${statusCode})`,

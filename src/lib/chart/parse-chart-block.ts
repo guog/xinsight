@@ -22,12 +22,21 @@ export function parseChartBlocks(text: string): Segment[] {
   for (const match of text.matchAll(CHART_BLOCK_RE)) {
     const start = match.index!
     if (start > lastIndex) {
-      segments.push({ type: "text", content: text.slice(lastIndex, start) })
+      const content = text.slice(lastIndex, start)
+      if (content.trim()) {
+        segments.push({ type: "text", content })
+      }
     }
 
     try {
       const config = JSON.parse(match[1].trim()) as ChartConfig
-      if (config.type && Array.isArray(config.data)) {
+      const validTypes = ["line", "bar", "pie", "area"]
+      if (
+        config.type &&
+        validTypes.includes(config.type) &&
+        Array.isArray(config.data) &&
+        config.data.length > 0
+      ) {
         segments.push({ type: "chart", config })
       } else {
         // Invalid chart config, keep as text
@@ -42,7 +51,10 @@ export function parseChartBlocks(text: string): Segment[] {
   }
 
   if (lastIndex < text.length) {
-    segments.push({ type: "text", content: text.slice(lastIndex) })
+    const content = text.slice(lastIndex)
+    if (content.trim()) {
+      segments.push({ type: "text", content })
+    }
   }
 
   // If no segments were created, return the whole text

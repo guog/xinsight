@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test"
+import { describe, it, expect, beforeEach, afterEach } from "vitest"
 import { _resetVoiceCache } from "@/lib/voice"
 
 describe("GET /api/voice/config", () => {

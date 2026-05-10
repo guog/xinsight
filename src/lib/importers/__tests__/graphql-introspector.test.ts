@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, mock } from "bun:test"
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest"
 import { introspectGraphql } from "../graphql-introspector"
 
 /** 模拟自省响应 */
@@ -96,7 +96,7 @@ const originalFetch = globalThis.fetch
 let mockFetchFn: ReturnType<typeof mock>
 
 beforeAll(() => {
-  mockFetchFn = mock(() =>
+  mockFetchFn = vi.fn(() =>
     Promise.resolve(new Response(JSON.stringify(mockIntrospectionResponse), { status: 200 })),
   )
   globalThis.fetch = mockFetchFn as typeof fetch
@@ -159,7 +159,7 @@ describe("introspectGraphql", () => {
 
   it("非 200 响应时抛出错误", async () => {
     const savedFetch = globalThis.fetch
-    globalThis.fetch = mock(() =>
+    globalThis.fetch = vi.fn(() =>
       Promise.resolve(new Response("Not Found", { status: 404, statusText: "Not Found" })),
     ) as unknown as typeof fetch
     try {
@@ -171,7 +171,7 @@ describe("introspectGraphql", () => {
 
   it("无效自省响应时抛出错误", async () => {
     const savedFetch = globalThis.fetch
-    globalThis.fetch = mock(() =>
+    globalThis.fetch = vi.fn(() =>
       Promise.resolve(new Response(JSON.stringify({ data: {} }), { status: 200 })),
     ) as unknown as typeof fetch
     try {
@@ -193,7 +193,7 @@ describe("introspectGraphql", () => {
         },
       },
     }
-    globalThis.fetch = mock(() =>
+    globalThis.fetch = vi.fn(() =>
       Promise.resolve(new Response(JSON.stringify(emptySchema), { status: 200 })),
     ) as unknown as typeof fetch
     try {

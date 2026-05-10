@@ -167,7 +167,7 @@ export const datasourceListTool = createTool({
         name: ds.name,
         type: ds.type,
         description: ds.description,
-        endpoints: (ds.endpoints ?? [])
+        endpoints: ((ds.endpoints ?? []) as Record<string, unknown>[])
           .filter((ep: Record<string, unknown>) => {
             // 按端点级绑定过滤：如果设置了 endpointIds，只展示允许的接口
             if (!endpointBindings) return true
@@ -192,7 +192,7 @@ export const datasourceListTool = createTool({
               base.structuredParams = ep.structuredParams
             }
             return base
-          }),
+          }) as { id: string; name: string; description: string; params: Record<string, unknown>; paramSchema?: string; apiSchemaFormat?: "natural" | "openapi"; responseExample?: string }[],
       })),
     }
   },

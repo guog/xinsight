@@ -1,4 +1,4 @@
-import { describe, test, expect, afterEach } from "bun:test"
+import { describe, test, expect, afterEach } from "vitest"
 import { startFileWatcher, stopFileWatcher } from "../file-watcher"
 import { mkdtemp, writeFile } from "fs/promises"
 import path from "path"

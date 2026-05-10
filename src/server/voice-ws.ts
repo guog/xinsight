@@ -83,8 +83,7 @@ async function processLLM(ws: WebSocket, state: SessionState, text: string) {
     modelInstance = client.chatModel(modelInfo.modelSlug)
   }
 
-  const agentId = state.agentId as "chatAgent" | "researchAgent" | "codeAgent" | "autoAgent"
-  const agent = mastra.getAgent(agentId)
+  const agent = mastra.getAgent(state.agentId as never)
 
   // 启动 TTS 会话
   let ttsSession: TTSSession | null = null
@@ -122,7 +121,7 @@ async function processLLM(ws: WebSocket, state: SessionState, text: string) {
       if (done) break
 
       // value 可能是 Uint8Array，需要解码
-      const chunk = typeof value === "string" ? value : new TextDecoder().decode(value)
+      const chunk = typeof value === "string" ? value : new TextDecoder().decode(value as unknown as Uint8Array)
       // 解析 SSE 格式的数据
       const lines = chunk.split("\n")
       for (const line of lines) {

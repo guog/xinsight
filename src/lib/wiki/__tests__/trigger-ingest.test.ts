@@ -1,14 +1,14 @@
 // triggerIngest 单元测试
-import { describe, it, expect, beforeEach, mock } from "bun:test"
+import { describe, it, expect, beforeEach, vi } from "vitest"
 
 // mock 模块 - 必须在导入 ingest-pipeline 之前
-mock.module("@ai-sdk/openai", () => ({
+vi.mock("@ai-sdk/openai", () => ({
   createOpenAI: () => () => ({}),
 }))
-mock.module("ai", () => ({
+vi.mock("ai", () => ({
   generateText: async () => ({ text: "[]" }),
 }))
-mock.module("glob", () => ({
+vi.mock("glob", () => ({
   glob: async () => [],
 }))
 

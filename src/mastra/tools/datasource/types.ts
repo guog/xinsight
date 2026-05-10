@@ -45,7 +45,7 @@ export const DatasourceEndpointSchema = z.object({
   paramSchema: z.string().optional(), // 入参说明 (自然语言描述 或 OpenAPI JSON Schema，由 apiSchemaFormat 决定)
   apiSchemaFormat: ApiSchemaFormat, // "natural" = 自然语言，"openapi" = 结构化 OpenAPI JSON Schema
   responseExample: z.string().optional(), // 响应示例
-  structuredParams: z.array(StructuredParamSchema).optional(),
+  structuredParams: z.lazy(() => z.array(StructuredParamSchema)).optional(),
 })
 export type DatasourceEndpoint = z.infer<typeof DatasourceEndpointSchema>
 
