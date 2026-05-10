@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { requireAdmin, handleAuthError } from "@/lib/auth"
-import { syncProviderModels } from "@/lib/provider-sync"
+import { syncProviderModels } from "@/lib/provider/sync"
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {

@@ -1,7 +1,7 @@
 import { db } from "@/db"
 import { llmProviders, llmModels } from "@/db/schema"
 import { count } from "drizzle-orm"
-import { PROVIDER_PRESETS } from "./provider-presets"
+import { PROVIDER_PRESETS } from "./presets"
 
 /**
  * 从环境变量种子提供商配置到 DB

@@ -10,7 +10,7 @@ import {
   invalidateModelCache,
   _resetCache,
 } from "@/lib/models"
-import { syncProviderModels } from "@/lib/provider-sync"
+import { syncProviderModels } from "@/lib/provider/sync"
 
 // === 工具函数 ===
 
@@ -96,7 +96,7 @@ describe("provider-seed: seedProvidersFromEnv", () => {
     process.env.LLM_PROVIDERS = "deepseek"
     process.env.DEEPSEEK_API_KEY = "sk-test-123"
 
-    const { seedProvidersFromEnv } = await import("@/lib/provider-seed")
+    const { seedProvidersFromEnv } = await import("@/lib/provider/seed")
     await seedProvidersFromEnv()
 
     const providers = db.select().from(llmProviders).all()
@@ -124,7 +124,7 @@ describe("provider-seed: seedProvidersFromEnv", () => {
     process.env.LLM_PROVIDERS = "deepseek"
     process.env.DEEPSEEK_API_KEY = "sk-test-123"
 
-    const { seedProvidersFromEnv } = await import("@/lib/provider-seed")
+    const { seedProvidersFromEnv } = await import("@/lib/provider/seed")
     await seedProvidersFromEnv()
 
     const providers = db.select().from(llmProviders).all()
@@ -137,7 +137,7 @@ describe("provider-seed: seedProvidersFromEnv", () => {
     process.env.LLM_PROVIDERS = "deepseek"
     delete process.env.DEEPSEEK_API_KEY
 
-    const { seedProvidersFromEnv } = await import("@/lib/provider-seed")
+    const { seedProvidersFromEnv } = await import("@/lib/provider/seed")
     await seedProvidersFromEnv()
 
     const providers = db.select().from(llmProviders).all()
