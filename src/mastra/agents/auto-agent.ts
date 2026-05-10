@@ -1,11 +1,12 @@
 import { Agent } from "@mastra/core/agent"
+import { DEFAULT_AGENT_MODEL } from "./model-config"
 import { datasourceQueryTool, datasourceListTool } from "../tools/datasource"
 import { datasourceBatchQueryTool } from "../tools/cross-source"
 
 export const autoAgent = new Agent({
   id: "auto-agent",
   name: "自动",
-  model: "deepseek/deepseek-v4-flash",
+  model: DEFAULT_AGENT_MODEL,
   instructions:
     "你是 xinsight AI 助手，能够根据用户需求自动切换工作模式：\n" +
     "\n" +

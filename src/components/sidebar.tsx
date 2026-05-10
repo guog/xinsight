@@ -16,6 +16,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { API_BASE } from "@/lib/api"
 import { useUser } from "@/hooks/use-user"
 import { useSwipe } from "@/hooks/use-swipe"
 
