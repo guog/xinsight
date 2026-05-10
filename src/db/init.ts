@@ -1,7 +1,7 @@
 import { db } from "./index"
 import { migrate } from "drizzle-orm/bun-sqlite/migrator"
 import { seedUsers } from "./seed"
-import { seedProvidersFromEnv } from "@/lib/provider-seed"
+import { seedProvidersFromEnv } from "@/lib/provider/seed"
 
 /** 显式初始化数据库：迁移 + 种子数据。只在应用启动时调用一次。 */
 export async function initDatabase() {
