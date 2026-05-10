@@ -26,6 +26,8 @@ import {
   ToolOutput,
   type ToolState,
 } from "@/components/ai-elements/tool"
+import { parseChartBlocks } from "@/lib/chart/parse-chart-block"
+import { ChartBlock } from "@/components/chart/chart-block"
 
 /**
  * Agent 信息映射：工具名 → 子 Agent 元数据
@@ -264,14 +266,26 @@ function DelegateAgentMessage({ toolName, state, args, result }: AgentMessagePro
             </div>
           )}
 
-          {/* 子 Agent 回复文本 — Markdown 渲染 */}
-          {isDone && agentText && (
-            <div className="text-sm text-foreground/90 leading-relaxed mt-1 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-              <Streamdown plugins={streamdownPlugins}>
-                {agentText.length > 800 ? agentText.slice(0, 800) + "\n\n..." : agentText}
-              </Streamdown>
-            </div>
-          )}
+          {/* 子 Agent 回复文本 — Markdown 渲染 + 图表解析 */}
+          {isDone &&
+            agentText &&
+            (() => {
+              const segments = parseChartBlocks(
+                agentText.length > 800 ? agentText.slice(0, 800) + "\n\n..." : agentText,
+              )
+              return segments.map((seg, j) =>
+                seg.type === "chart" ? (
+                  <ChartBlock key={`chart-${j}`} config={seg.config} />
+                ) : (
+                  <div
+                    key={`text-${j}`}
+                    className="text-sm text-foreground/90 leading-relaxed mt-1 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
+                  >
+                    <Streamdown plugins={streamdownPlugins}>{seg.content}</Streamdown>
+                  </div>
+                ),
+              )
+            })()}
         </div>
       </div>
 

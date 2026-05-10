@@ -242,29 +242,43 @@ function DesktopChatPage() {
                             ),
                           )
                         }
-                        case "tool-invocation": {
-                          const inv = (
-                            part as unknown as {
-                              toolInvocation: {
-                                toolName: string
-                                state: "call" | "partial-call" | "result"
-                                args?: Record<string, unknown>
-                                result?: unknown
-                              }
+                        default: {
+                          // AI SDK v6: tool parts have type="tool-{toolName}"
+                          // with fields: toolCallId, toolName, state, input, output
+                          if (part.type.startsWith("tool-")) {
+                            const tp = part as unknown as {
+                              type: string
+                              toolCallId: string
+                              toolName?: string
+                              state:
+                                | "input-streaming"
+                                | "input-available"
+                                | "output-available"
+                                | "output-error"
+                              input?: unknown
+                              output?: unknown
                             }
-                          ).toolInvocation
-                          return (
-                            <AgentMessage
-                              key={`${message.id}-${i}-tool`}
-                              toolName={inv.toolName}
-                              state={inv.state}
-                              args={inv.args}
-                              result={inv.result}
-                            />
-                          )
-                        }
-                        default:
+                            // Extract toolName from type: "tool-agent-productionAgent" → "agent-productionAgent"
+                            const toolName = tp.toolName ?? tp.type.split("-").slice(1).join("-")
+                            // Map v6 states to AgentMessage states
+                            const stateMap: Record<string, "call" | "partial-call" | "result"> = {
+                              "input-streaming": "partial-call",
+                              "input-available": "call",
+                              "output-available": "result",
+                              "output-error": "result",
+                            }
+                            return (
+                              <AgentMessage
+                                key={`${message.id}-${i}-tool`}
+                                toolName={toolName}
+                                state={stateMap[tp.state] ?? "call"}
+                                args={tp.input as Record<string, unknown>}
+                                result={tp.output}
+                              />
+                            )
+                          }
                           return null
+                        }
                       }
                     })}
                   </MessageContent>
