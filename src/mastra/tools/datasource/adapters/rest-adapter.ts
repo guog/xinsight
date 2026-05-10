@@ -104,7 +104,17 @@ export class RestAdapter implements DatasourceAdapter {
       }
 
       if (result.error) {
-        return { success: false, error: result.error, metadata }
+        const statusCode = result.response?.status
+        const diagnosis = statusCode
+          ? this.diagnoseStatus(statusCode)
+          : this.diagnoseError(result.error)
+        metadata.statusCode = statusCode
+        metadata.diagnosis = diagnosis
+        return {
+          success: false,
+          error: result.error,
+          metadata: metadata as DatasourceResult["metadata"],
+        }
       }
 
       if (result.metadata?.truncated) metadata.truncated = true
@@ -119,14 +129,81 @@ export class RestAdapter implements DatasourceAdapter {
     }
   }
 
-  async testConnection(config: DatasourceConfig): Promise<{ ok: boolean; message: string }> {
+  async testConnection(
+    config: DatasourceConfig,
+  ): Promise<{
+    ok: boolean
+    message: string
+    statusCode?: number
+    latency?: number
+    responsePreview?: string
+    diagnosis?: string
+  }> {
+    const start = Date.now()
     try {
-      const restConfig = config.config as { baseUrl: string }
-      await fetch(restConfig.baseUrl, { method: "HEAD" })
-      return { ok: true, message: "连接成功" }
+      const restConfig = config.config as { baseUrl: string; timeout?: number }
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), restConfig.timeout ?? 10000)
+
+      const res = await fetch(restConfig.baseUrl, {
+        method: "GET",
+        signal: controller.signal,
+        headers: this.buildAuthHeaders(config.auth),
+      })
+      clearTimeout(timeout)
+
+      const latency = Date.now() - start
+      const statusCode = res.status
+      let responsePreview = ""
+      try {
+        const text = await res.text()
+        responsePreview = text.slice(0, 500)
+      } catch {}
+
+      const diagnosis = this.diagnoseStatus(statusCode)
+
+      if (res.ok) {
+        return {
+          ok: true,
+          message: `连接成功 (${statusCode})`,
+          statusCode,
+          latency,
+          responsePreview,
+        }
+      }
+      return {
+        ok: false,
+        message: `HTTP ${statusCode}`,
+        statusCode,
+        latency,
+        responsePreview,
+        diagnosis,
+      }
     } catch (err) {
-      return { ok: false, message: err instanceof Error ? err.message : String(err) }
+      const latency = Date.now() - start
+      const message = err instanceof Error ? err.message : String(err)
+      return { ok: false, message, latency, diagnosis: this.diagnoseError(message) }
     }
+  }
+
+  private diagnoseStatus(status: number): string {
+    if (status === 401) return "认证失败，请检查 Token 或 API Key 是否正确"
+    if (status === 403) return "无权访问，请检查账号权限"
+    if (status === 404) return "API 地址不存在，请检查 Base URL 是否正确"
+    if (status === 500) return "服务器内部错误，请联系数据源管理员"
+    if (status === 502 || status === 503) return "服务不可用，可能正在维护中"
+    if (status === 429) return "请求频率过高，请稍后重试"
+    return ""
+  }
+
+  private diagnoseError(message: string): string {
+    if (message.includes("ECONNREFUSED")) return "无法连接服务器，请确认地址和端口是否正确"
+    if (message.includes("ENOTFOUND")) return "域名解析失败，请检查 URL 是否拼写正确"
+    if (message.includes("ETIMEDOUT") || message.includes("timeout") || message.includes("abort"))
+      return "连接超时，请检查网络或增大超时时间"
+    if (message.includes("CERT") || message.includes("SSL"))
+      return "SSL 证书错误，请检查 HTTPS 配置"
+    return "未知错误，请检查网络连接"
   }
 
   /** 根据认证配置生成请求头 */

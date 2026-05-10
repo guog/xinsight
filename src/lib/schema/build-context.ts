@@ -21,6 +21,15 @@ export interface EndpointConfig {
   path?: string
   params?: EndpointParam[]
   responseSchema?: ResponseField[]
+  structuredParams?: Array<{
+    name: string
+    type: string
+    required?: boolean
+    description?: string
+    enum?: string[]
+    format?: string
+    example?: unknown
+  }>
 }
 
 export interface DatasourceConfig {
@@ -30,7 +39,7 @@ export interface DatasourceConfig {
   endpoints?: EndpointConfig[] | null
 }
 
-const MAX_LENGTH = 2000
+const MAX_LENGTH = 4000
 const TRUNCATION_MARKER = "...更多端点省略"
 
 export function formatDatasourceContext(sources: DatasourceConfig[]): string {
@@ -54,8 +63,23 @@ export function formatDatasourceContext(sources: DatasourceConfig[]): string {
       const path = ep.path || ""
       let line = `  端点: ${method} ${path}${ep.description ? ` - ${ep.description}` : ""}\n`
 
-      if (ep.params?.length) {
-        const paramStr = ep.params.map((p) => `${p.name}(${p.type || "string"})`).join(", ")
+      // 优先使用结构化参数
+      const sParams = ep.structuredParams
+      if (sParams?.length) {
+        const paramStr = sParams
+          .map((p) => {
+            let s = `${p.name}(${p.type}${p.required ? ",必填" : ""})`
+            if (p.enum) s += `[可选:${p.enum.join("|")}]`
+            if (p.format) s += `[格式:${p.format}]`
+            if (p.description) s += `${p.description}`
+            return s
+          })
+          .join(", ")
+        line += `    参数: ${paramStr}\n`
+      } else if (ep.params?.length) {
+        const paramStr = ep.params
+          .map((p: { name: string; type?: string }) => `${p.name}(${p.type || "string"})`)
+          .join(", ")
         line += `    参数: ${paramStr}\n`
       }
 

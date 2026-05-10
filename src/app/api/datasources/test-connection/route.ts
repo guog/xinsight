@@ -36,7 +36,14 @@ export async function POST(request: Request) {
     const result = await adapter.testConnection(tempConfig)
     const latency = Date.now() - start
 
-    return NextResponse.json({ ok: result.ok, message: result.message ?? "", latency })
+    return NextResponse.json({
+      ok: result.ok,
+      message: result.message ?? "",
+      latency,
+      statusCode: (result as Record<string, unknown>).statusCode,
+      responsePreview: (result as Record<string, unknown>).responsePreview,
+      diagnosis: (result as Record<string, unknown>).diagnosis,
+    })
   } catch (error) {
     const authResp = handleAuthError(error)
     if (authResp) return authResp

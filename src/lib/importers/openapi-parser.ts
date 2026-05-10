@@ -1,5 +1,9 @@
 import YAML from "yaml"
-import type { RestEndpoint, FieldDefinition } from "@/mastra/tools/datasource/types"
+import type {
+  RestEndpoint,
+  FieldDefinition,
+  StructuredParam,
+} from "@/mastra/tools/datasource/types"
 
 export interface ParsedOpenApiResult {
   baseUrl?: string
@@ -66,6 +70,85 @@ function parseText(text: string): Record<string, unknown> {
     }
   }
   throw new Error("无法解析输入：既不是有效的 JSON 也不是有效的 YAML")
+}
+
+/** 从 OpenAPI operation 提取结构化参数 */
+function extractStructuredParams(
+  operation: Record<string, unknown>,
+  path: string,
+): StructuredParam[] {
+  const params: StructuredParam[] = []
+
+  // 1. Path 参数
+  const pathParamNames = [...path.matchAll(/\{(\w+)\}/g)].map((m) => m[1])
+
+  // 2. Operation parameters (path + query + header)
+  const parameters = operation.parameters as Array<Record<string, unknown>> | undefined
+  if (parameters) {
+    for (const param of parameters) {
+      const schema = param.schema as Record<string, unknown> | undefined
+      const paramType = mapOpenApiType(schema?.type as string)
+      const sp: StructuredParam = {
+        name: param.name as string,
+        type: paramType,
+        required: (param.required as boolean) ?? pathParamNames.includes(param.name as string),
+        description: (param.description as string) ?? undefined,
+      }
+      if (schema?.default !== undefined) sp.default = schema.default
+      if (schema?.enum) sp.enum = schema.enum as string[]
+      if (schema?.example !== undefined) sp.example = schema.example
+      if (schema?.format) sp.format = schema.format as string
+      params.push(sp)
+    }
+  }
+
+  // 3. RequestBody properties
+  const requestBody = operation.requestBody as Record<string, unknown> | undefined
+  if (requestBody) {
+    const content = requestBody.content as Record<string, Record<string, unknown>> | undefined
+    const jsonContent = content?.["application/json"]
+    if (jsonContent?.schema) {
+      const bodySchema = jsonContent.schema as Record<string, unknown>
+      if (bodySchema.properties) {
+        const required = (bodySchema.required as string[]) ?? []
+        for (const [name, prop] of Object.entries(
+          bodySchema.properties as Record<string, Record<string, unknown>>,
+        )) {
+          const paramType = mapOpenApiType(prop.type as string)
+          const sp: StructuredParam = {
+            name,
+            type: paramType,
+            required: required.includes(name),
+            description: (prop.description as string) ?? undefined,
+          }
+          if (prop.default !== undefined) sp.default = prop.default
+          if (prop.enum) sp.enum = prop.enum as string[]
+          if (prop.example !== undefined) sp.example = prop.example
+          if (prop.format) sp.format = prop.format as string
+          params.push(sp)
+        }
+      }
+    }
+  }
+
+  return params
+}
+
+function mapOpenApiType(type: string | undefined): StructuredParam["type"] {
+  switch (type) {
+    case "integer":
+      return "number"
+    case "number":
+      return "number"
+    case "boolean":
+      return "boolean"
+    case "array":
+      return "array"
+    case "object":
+      return "object"
+    default:
+      return "string"
+  }
 }
 
 function extractEndpoints(spec: Record<string, unknown>): RestEndpoint[] {
@@ -148,6 +231,8 @@ function extractEndpoints(spec: Record<string, unknown>): RestEndpoint[] {
         }
       }
 
+      const structuredParams = extractStructuredParams(operation, path)
+
       endpoints.push({
         id,
         name,
@@ -160,6 +245,7 @@ function extractEndpoints(spec: Record<string, unknown>): RestEndpoint[] {
         apiSchemaFormat: "openapi",
         responseExample,
         responseSchema,
+        structuredParams: structuredParams.length > 0 ? structuredParams : undefined,
       })
     }
   }

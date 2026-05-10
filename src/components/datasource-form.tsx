@@ -52,7 +52,15 @@ function emptyRestEndpoint(): RestEndpoint {
 }
 
 function emptyGraphqlEndpoint(): GraphqlEndpoint {
-  return { id: "", name: "", operationType: "query", operationName: "", query: "", description: "", apiSchemaFormat: "natural" }
+  return {
+    id: "",
+    name: "",
+    operationType: "query",
+    operationName: "",
+    query: "",
+    description: "",
+    apiSchemaFormat: "natural",
+  }
 }
 
 function emptyGrpcEndpoint(): GrpcEndpoint {
@@ -60,11 +68,27 @@ function emptyGrpcEndpoint(): GrpcEndpoint {
 }
 
 function emptyOpcuaEndpoint(): OpcuaEndpoint {
-  return { id: "", name: "", action: "read", nodeIds: [""], description: "", apiSchemaFormat: "natural" }
+  return {
+    id: "",
+    name: "",
+    action: "read",
+    nodeIds: [""],
+    description: "",
+    apiSchemaFormat: "natural",
+  }
 }
 
 function emptyMqttEndpoint(): MqttEndpoint {
-  return { id: "", name: "", topic: "", direction: "subscribe", qos: 0, payloadFormat: "json", description: "", apiSchemaFormat: "natural" }
+  return {
+    id: "",
+    name: "",
+    topic: "",
+    direction: "subscribe",
+    qos: 0,
+    payloadFormat: "json",
+    description: "",
+    apiSchemaFormat: "natural",
+  }
 }
 
 export default function DatasourceForm({ initialData, isEdit }: Props) {
@@ -146,6 +170,7 @@ export default function DatasourceForm({ initialData, isEdit }: Props) {
 
   // Agent 绑定
   const [boundAgents, setBoundAgents] = useState<Set<string>>(new Set(initialData?.agents ?? []))
+  const [agentEndpoints, setAgentEndpoints] = useState<Record<string, string[] | null>>({})
 
   const updateConfig = (key: string, value: string) => setConfig((c) => ({ ...c, [key]: value }))
   const updateAuth = (key: string, value: string) => setAuth((a) => ({ ...a, [key]: value }))
@@ -162,23 +187,31 @@ export default function DatasourceForm({ initialData, isEdit }: Props) {
   // 获取当前协议的 endpoints（用于提交）
   const getCurrentEndpoints = (): DatasourceEndpoint[] => {
     const mapToGeneric = (eps: Array<Record<string, unknown>>): DatasourceEndpoint[] =>
-      eps.filter((ep) => ep.id || ep.name).map((ep) => ({
-        id: (ep.id as string) || "",
-        name: (ep.name as string) || "",
-        description: (ep.description as string) || "",
-        paramSchema: (ep.paramSchema as string) || "",
-        apiSchemaFormat: (ep.apiSchemaFormat as "natural" | "openapi") || "natural",
-        responseExample: (ep.responseExample as string) || "",
-        params: ep as Record<string, unknown>,
-      }))
+      eps
+        .filter((ep) => ep.id || ep.name)
+        .map((ep) => ({
+          id: (ep.id as string) || "",
+          name: (ep.name as string) || "",
+          description: (ep.description as string) || "",
+          paramSchema: (ep.paramSchema as string) || "",
+          apiSchemaFormat: (ep.apiSchemaFormat as "natural" | "openapi") || "natural",
+          responseExample: (ep.responseExample as string) || "",
+          params: ep as Record<string, unknown>,
+        }))
 
     switch (type) {
-      case "rest": return mapToGeneric(restEndpoints as unknown as Record<string, unknown>[])
-      case "graphql": return mapToGeneric(graphqlEndpoints as unknown as Record<string, unknown>[])
-      case "grpc": return mapToGeneric(grpcEndpoints as unknown as Record<string, unknown>[])
-      case "opcua": return mapToGeneric(opcuaEndpoints as unknown as Record<string, unknown>[])
-      case "mqtt": return mapToGeneric(mqttEndpoints as unknown as Record<string, unknown>[])
-      default: return []
+      case "rest":
+        return mapToGeneric(restEndpoints as unknown as Record<string, unknown>[])
+      case "graphql":
+        return mapToGeneric(graphqlEndpoints as unknown as Record<string, unknown>[])
+      case "grpc":
+        return mapToGeneric(grpcEndpoints as unknown as Record<string, unknown>[])
+      case "opcua":
+        return mapToGeneric(opcuaEndpoints as unknown as Record<string, unknown>[])
+      case "mqtt":
+        return mapToGeneric(mqttEndpoints as unknown as Record<string, unknown>[])
+      default:
+        return []
     }
   }
 
@@ -219,8 +252,14 @@ export default function DatasourceForm({ initialData, isEdit }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!id.trim()) { toast.error("请填写数据源 ID"); return }
-    if (!name.trim()) { toast.error("请填写数据源名称"); return }
+    if (!id.trim()) {
+      toast.error("请填写数据源 ID")
+      return
+    }
+    if (!name.trim()) {
+      toast.error("请填写数据源名称")
+      return
+    }
 
     setSaving(true)
 
@@ -261,7 +300,7 @@ export default function DatasourceForm({ initialData, isEdit }: Props) {
           fetch(`/api/datasources/${dsId}/agents`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ agentId }),
+            body: JSON.stringify({ agentId, endpointIds: agentEndpoints[agentId] ?? null }),
           }),
         ),
         ...toRemove.map((agentId) =>
@@ -498,7 +537,9 @@ export default function DatasourceForm({ initialData, isEdit }: Props) {
               <RestEndpointForm
                 key={i}
                 endpoint={ep}
-                onChange={(updated) => setRestEndpoints((prev) => prev.map((e, idx) => (idx === i ? updated : e)))}
+                onChange={(updated) =>
+                  setRestEndpoints((prev) => prev.map((e, idx) => (idx === i ? updated : e)))
+                }
                 onRemove={() => setRestEndpoints((prev) => prev.filter((_, idx) => idx !== i))}
               />
             ))}
@@ -522,7 +563,11 @@ export default function DatasourceForm({ initialData, isEdit }: Props) {
                 disabled={introspecting}
                 className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-border hover:bg-muted transition-colors disabled:opacity-50"
               >
-                {introspecting ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />}
+                {introspecting ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Search className="size-4" />
+                )}
                 自省 Schema
               </button>
             </div>
@@ -530,7 +575,9 @@ export default function DatasourceForm({ initialData, isEdit }: Props) {
               <GraphqlEndpointForm
                 key={i}
                 endpoint={ep}
-                onChange={(updated) => setGraphqlEndpoints((prev) => prev.map((e, idx) => (idx === i ? updated : e)))}
+                onChange={(updated) =>
+                  setGraphqlEndpoints((prev) => prev.map((e, idx) => (idx === i ? updated : e)))
+                }
                 onRemove={() => setGraphqlEndpoints((prev) => prev.filter((_, idx) => idx !== i))}
               />
             ))}
@@ -551,7 +598,9 @@ export default function DatasourceForm({ initialData, isEdit }: Props) {
               <GrpcEndpointForm
                 key={i}
                 endpoint={ep}
-                onChange={(updated) => setGrpcEndpoints((prev) => prev.map((e, idx) => (idx === i ? updated : e)))}
+                onChange={(updated) =>
+                  setGrpcEndpoints((prev) => prev.map((e, idx) => (idx === i ? updated : e)))
+                }
                 onRemove={() => setGrpcEndpoints((prev) => prev.filter((_, idx) => idx !== i))}
               />
             ))}
@@ -572,7 +621,9 @@ export default function DatasourceForm({ initialData, isEdit }: Props) {
               <OpcuaEndpointForm
                 key={i}
                 endpoint={ep}
-                onChange={(updated) => setOpcuaEndpoints((prev) => prev.map((e, idx) => (idx === i ? updated : e)))}
+                onChange={(updated) =>
+                  setOpcuaEndpoints((prev) => prev.map((e, idx) => (idx === i ? updated : e)))
+                }
                 onRemove={() => setOpcuaEndpoints((prev) => prev.filter((_, idx) => idx !== i))}
               />
             ))}
@@ -593,7 +644,9 @@ export default function DatasourceForm({ initialData, isEdit }: Props) {
               <MqttEndpointForm
                 key={i}
                 endpoint={ep}
-                onChange={(updated) => setMqttEndpoints((prev) => prev.map((e, idx) => (idx === i ? updated : e)))}
+                onChange={(updated) =>
+                  setMqttEndpoints((prev) => prev.map((e, idx) => (idx === i ? updated : e)))
+                }
                 onRemove={() => setMqttEndpoints((prev) => prev.filter((_, idx) => idx !== i))}
               />
             ))}
@@ -614,17 +667,88 @@ export default function DatasourceForm({ initialData, isEdit }: Props) {
         {agentsLoading ? (
           <p className="text-sm text-muted-foreground">加载 Agent 列表...</p>
         ) : (
-          <div className="flex flex-wrap gap-4">
+          <div className="flex flex-col gap-3">
             {agentOptions.map(({ id: agentId, name: agentName }) => (
-              <label key={agentId} className="flex items-center gap-2 text-sm cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={boundAgents.has(agentId)}
-                  onChange={() => toggleAgent(agentId)}
-                  className="rounded"
-                />
-                {agentName} ({agentId})
-              </label>
+              <div key={agentId} className="space-y-1">
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={boundAgents.has(agentId)}
+                    onChange={() => toggleAgent(agentId)}
+                    className="rounded"
+                  />
+                  {agentName} ({agentId})
+                </label>
+                {boundAgents.has(agentId) && getCurrentEndpoints().length > 0 && (
+                  <div className="ml-6 pl-3 border-l border-border space-y-1">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                      <span>可访问端点：</span>
+                      <button
+                        type="button"
+                        onClick={() => setAgentEndpoints((prev) => ({ ...prev, [agentId]: null }))}
+                        className="text-primary hover:underline"
+                      >
+                        全部
+                      </button>
+                    </div>
+                    {getCurrentEndpoints().map(
+                      (ep: {
+                        id: string
+                        name?: string
+                        path?: string
+                        operationName?: string
+                      }) => {
+                        const epIds = agentEndpoints[agentId]
+                        const isAll = epIds === null || epIds === undefined
+                        const isChecked = isAll || epIds.includes(ep.id)
+                        return (
+                          <label
+                            key={ep.id}
+                            className="flex items-center gap-2 text-xs cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {
+                                setAgentEndpoints((prev) => {
+                                  const current = prev[agentId]
+                                  const allIds = getCurrentEndpoints().map(
+                                    (e: { id: string }) => e.id,
+                                  )
+                                  if (current === null || current === undefined) {
+                                    return {
+                                      ...prev,
+                                      [agentId]: allIds.filter((id) => id !== ep.id),
+                                    }
+                                  }
+                                  if (current.includes(ep.id)) {
+                                    return {
+                                      ...prev,
+                                      [agentId]: current.filter((id) => id !== ep.id),
+                                    }
+                                  }
+                                  const next = [...current, ep.id]
+                                  return {
+                                    ...prev,
+                                    [agentId]: next.length === allIds.length ? null : next,
+                                  }
+                                })
+                              }}
+                              className="rounded"
+                            />
+                            <span className="font-mono">{ep.id}</span>
+                            {(ep.name || ep.path || ep.operationName) && (
+                              <span className="text-muted-foreground">
+                                {ep.name || ep.path || ep.operationName}
+                              </span>
+                            )}
+                          </label>
+                        )
+                      },
+                    )}
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         )}
