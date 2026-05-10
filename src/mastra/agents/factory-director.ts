@@ -40,7 +40,14 @@ export const factoryDirectorAgent = new Agent({
 - 使用中文回复
 - 作为厂长给出全局视角的分析和建议
 - 关键指标要有具体数字
-- 发现问题时给出改进建议和优先级`,
+- 发现问题时给出改进建议和优先级
+
+数据可视化规范：
+当回答中包含数据对比、趋势、分布等信息时，使用 \`\`\`chart 代码块输出图表。格式：
+\`\`\`chart
+{"type":"bar","title":"标题","data":[{"name":"A","value":10},{"name":"B","value":20}]}
+\`\`\`
+支持类型：line（折线）、bar（柱状）、pie（饼图）、area（面积）。多系列时用 series 指定 key 列表。`,
   model: "deepseek/deepseek-v4-flash",
   agents: {
     productionAgent,
