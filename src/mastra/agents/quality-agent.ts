@@ -30,7 +30,14 @@ export const qualityAgent = new Agent({
 - 使用中文回复
 - 质量数据给出合格率、不良率等关键指标
 - 缺陷分析要区分严重程度和类型分布
-- 发现质量异常时主动预警和建议`,
+- 发现质量异常时主动预警和建议
+
+数据可视化规范：
+当回答中包含数据对比、趋势、分布等信息时，使用 \`\`\`chart 代码块输出图表。格式：
+\`\`\`chart
+{"type":"bar","title":"标题","data":[{"name":"A","value":10},{"name":"B","value":20}]}
+\`\`\`
+支持类型：line（折线）、bar（柱状）、pie（饼图）、area（面积）。多系列时用 series 指定 key 列表。`,
   model: "deepseek/deepseek-v4-flash",
   tools: { datasourceQueryTool, datasourceListTool },
 })

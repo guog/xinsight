@@ -28,7 +28,14 @@ export const productionAgent = new Agent({
 - 使用中文回复
 - 数据要有具体数字，避免空泛描述
 - 涉及产量/进度时给出百分比和对比
-- 如有异常（如延期工单、低完成率）主动提醒`,
+- 如有异常（如延期工单、低完成率）主动提醒
+
+数据可视化规范：
+当回答中包含数据对比、趋势、分布等信息时，使用 \`\`\`chart 代码块输出图表。格式：
+\`\`\`chart
+{"type":"bar","title":"标题","data":[{"name":"A","value":10},{"name":"B","value":20}]}
+\`\`\`
+支持类型：line（折线）、bar（柱状）、pie（饼图）、area（面积）。多系列时用 series 指定 key 列表。`,
   model: "deepseek/deepseek-v4-flash",
   tools: { datasourceQueryTool, datasourceListTool },
 })
