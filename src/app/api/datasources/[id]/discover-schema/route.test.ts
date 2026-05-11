@@ -1,53 +1,46 @@
-import { describe, test, expect, mock, beforeEach } from "bun:test"
+import { describe, test, expect, beforeEach, vi, type Mock } from "vitest"
+
+const mockRepo = {
+  findById: vi.fn(),
+  update: vi.fn(),
+}
 
 // Mock modules
-mock.module("@/lib/auth", () => ({
-  requireAdmin: mock(),
-  handleAuthError: mock(),
+vi.mock("@/lib/auth", () => ({
+  requireAdmin: vi.fn(),
+  handleAuthError: vi.fn(),
 }))
 
-mock.module("@/db", () => ({
+vi.mock("@/db", () => ({
   db: {},
 }))
 
-mock.module("@/db/repositories/datasource-repository", () => ({
-  SqliteDatasourceRepository: mock(),
+vi.mock("@/db/repositories/datasource-repository", () => ({
+  SqliteDatasourceRepository: function() { return mockRepo },
 }))
 
-mock.module("@/mastra/tools/datasource/adapters", () => ({
-  getAdapter: mock(),
+vi.mock("@/mastra/tools/datasource/adapters", () => ({
+  getAdapter: vi.fn(),
 }))
 
-mock.module("@/lib/schema/infer-schema", () => ({
-  inferSchema: mock(),
+vi.mock("@/lib/schema/infer-schema", () => ({
+  inferSchema: vi.fn(),
 }))
 
 import { requireAdmin, handleAuthError } from "@/lib/auth"
-import { SqliteDatasourceRepository } from "@/db/repositories/datasource-repository"
 import { getAdapter } from "@/mastra/tools/datasource/adapters"
 import { inferSchema } from "@/lib/schema/infer-schema"
 import { POST } from "./route"
 
 describe("POST /api/datasources/[id]/discover-schema", () => {
-  const mockRepo = {
-    findById: mock(),
-    update: mock(),
-  }
-
   beforeEach(() => {
-    ;(requireAdmin as ReturnType<typeof mock>).mockReset()
-    ;(handleAuthError as ReturnType<typeof mock>).mockReset()
-    ;(getAdapter as ReturnType<typeof mock>).mockReset()
-    ;(inferSchema as ReturnType<typeof mock>).mockReset()
-    mockRepo.findById.mockReset()
-    mockRepo.update.mockReset()
-    ;(SqliteDatasourceRepository as ReturnType<typeof mock>).mockImplementation(() => mockRepo)
-    ;(handleAuthError as ReturnType<typeof mock>).mockReturnValue(null)
+    vi.clearAllMocks()
+    ;(handleAuthError as Mock).mockReturnValue(null)
   })
 
   test("非管理员返回 403", async () => {
-    ;(requireAdmin as ReturnType<typeof mock>).mockRejectedValue(new Error("需要管理员权限"))
-    ;(handleAuthError as ReturnType<typeof mock>).mockReturnValue(
+    ;(requireAdmin as Mock).mockRejectedValue(new Error("需要管理员权限"))
+    ;(handleAuthError as Mock).mockReturnValue(
       Response.json({ error: "需要管理员权限" }, { status: 403 }),
     )
 
@@ -61,7 +54,7 @@ describe("POST /api/datasources/[id]/discover-schema", () => {
   })
 
   test("成功发现 schema", async () => {
-    ;(requireAdmin as ReturnType<typeof mock>).mockResolvedValue({ id: "u1", role: "admin" })
+    ;(requireAdmin as Mock).mockResolvedValue({ id: "u1", role: "admin" })
 
     const mockDs = {
       id: "ds1",
@@ -79,15 +72,15 @@ describe("POST /api/datasources/[id]/discover-schema", () => {
     mockRepo.update.mockResolvedValue(mockDs)
 
     const mockAdapter = {
-      query: mock().mockResolvedValue({ data: [{ id: 1, name: "Alice" }] }),
+      query: vi.fn().mockResolvedValue({ data: [{ id: 1, name: "Alice" }] }),
     }
-    ;(getAdapter as ReturnType<typeof mock>).mockReturnValue(mockAdapter)
+    ;(getAdapter as Mock).mockReturnValue(mockAdapter)
 
     const mockFields = [
       { name: "id", type: "number" },
       { name: "name", type: "string" },
     ]
-    ;(inferSchema as ReturnType<typeof mock>).mockReturnValue(mockFields)
+    ;(inferSchema as Mock).mockReturnValue(mockFields)
 
     const request = new Request("http://localhost/api/datasources/ds1/discover-schema", {
       method: "POST",
@@ -103,9 +96,7 @@ describe("POST /api/datasources/[id]/discover-schema", () => {
     expect(body.schema.source).toBe("inferred")
     expect(body.schema.discoveredAt).toBeDefined()
 
-    // Verify adapter was called with merged params
     expect(mockAdapter.query).toHaveBeenCalled()
-    // Verify repo update was called
     expect(mockRepo.update).toHaveBeenCalled()
   })
 })

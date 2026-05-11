@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect } from "vitest"
 import { NextRequest } from "next/server"
 import { middleware } from "@/middleware"
 

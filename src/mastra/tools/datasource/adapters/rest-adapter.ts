@@ -118,7 +118,7 @@ export class RestAdapter implements DatasourceAdapter {
       }
 
       if (result.metadata?.truncated) metadata.truncated = true
-      return { success: true, data: result.data, metadata }
+      return { success: true, data: result.data, metadata: metadata as DatasourceResult["metadata"] }
     } catch (err) {
       const duration = Date.now() - start
       return {
@@ -146,7 +146,7 @@ export class RestAdapter implements DatasourceAdapter {
       const timeout = setTimeout(() => controller.abort(), restConfig.timeout ?? 10000)
 
       const res = await fetch(restConfig.baseUrl, {
-        method: "GET",
+        method: "HEAD",
         signal: controller.signal,
         headers: this.buildAuthHeaders(config.auth),
       })

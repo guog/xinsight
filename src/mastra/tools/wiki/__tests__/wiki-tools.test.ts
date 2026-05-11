@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { describe, test, expect, beforeEach, afterEach } from "bun:test"
+import { describe, test, expect, beforeEach, afterEach } from "vitest"
 import { writeFile, mkdir, rm } from "fs/promises"
 import { join } from "path"
 import { wikiSearchTool, wikiReadTool, wikiIngestTool } from "../index"

@@ -201,7 +201,7 @@ describe("RestAdapter", () => {
             queryParams: { fields: "name,email" },
             headers: { "X-Custom": "value" },
           },
-        ] as unknown[],
+        ] as unknown as DatasourceConfig["endpoints"],
       })
 
       const result = await adapter.query(config, { endpointId: "ep-1", userId: "42" })
@@ -229,7 +229,7 @@ describe("RestAdapter", () => {
             path: "/items",
             queryParams: { page: "1", size: "10" },
           },
-        ] as unknown[],
+        ] as unknown as DatasourceConfig["endpoints"],
       })
 
       await adapter.query(config, { endpointId: "ep-2", query: { page: "2" } })

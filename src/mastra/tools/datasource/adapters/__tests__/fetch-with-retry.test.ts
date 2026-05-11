@@ -1,4 +1,4 @@
-import { describe, test, expect, mock, beforeEach } from "bun:test"
+import { describe, test, expect, vi, beforeEach } from "vitest"
 import { fetchWithRetry } from "../fetch-with-retry"
 
 const originalFetch = globalThis.fetch
@@ -17,7 +17,7 @@ function mockResponse(status: number, body: unknown = {}, headers: Record<string
 
 describe("fetchWithRetry", () => {
   test("successful request returns data", async () => {
-    globalThis.fetch = mock(() => Promise.resolve(mockResponse(200, { hello: "world" })))
+    globalThis.fetch = vi.fn(() => Promise.resolve(mockResponse(200, { hello: "world" }))) as unknown as typeof fetch
 
     const result = await fetchWithRetry("http://example.com/api", { method: "GET" })
     expect(result.error).toBeUndefined()
@@ -25,10 +25,10 @@ describe("fetchWithRetry", () => {
   })
 
   test("timeout returns error", async () => {
-    globalThis.fetch = mock(() => {
+    globalThis.fetch = vi.fn(() => {
       const err = new DOMException("Signal timed out", "TimeoutError")
       return Promise.reject(err)
-    })
+    }) as unknown as typeof fetch
 
     const result = await fetchWithRetry(
       "http://example.com/api",
@@ -40,11 +40,11 @@ describe("fetchWithRetry", () => {
 
   test("retries on 500", async () => {
     let callCount = 0
-    globalThis.fetch = mock(() => {
+    globalThis.fetch = vi.fn(() => {
       callCount++
       if (callCount < 3) return Promise.resolve(mockResponse(500))
       return Promise.resolve(mockResponse(200, { ok: true }))
-    })
+    }) as unknown as typeof fetch
 
     const result = await fetchWithRetry(
       "http://example.com/api",
@@ -57,10 +57,10 @@ describe("fetchWithRetry", () => {
 
   test("no retry on 400", async () => {
     let callCount = 0
-    globalThis.fetch = mock(() => {
+    globalThis.fetch = vi.fn(() => {
       callCount++
       return Promise.resolve(mockResponse(400))
-    })
+    }) as unknown as typeof fetch
 
     const result = await fetchWithRetry(
       "http://example.com/api",
@@ -73,11 +73,11 @@ describe("fetchWithRetry", () => {
 
   test("retries on 429", async () => {
     let callCount = 0
-    globalThis.fetch = mock(() => {
+    globalThis.fetch = vi.fn(() => {
       callCount++
       if (callCount < 2) return Promise.resolve(mockResponse(429))
       return Promise.resolve(mockResponse(200, { done: true }))
-    })
+    }) as unknown as typeof fetch
 
     const result = await fetchWithRetry(
       "http://example.com/api",
@@ -89,7 +89,7 @@ describe("fetchWithRetry", () => {
   })
 
   test("max retries exhausted returns error", async () => {
-    globalThis.fetch = mock(() => Promise.resolve(mockResponse(500)))
+    globalThis.fetch = vi.fn(() => Promise.resolve(mockResponse(500))) as unknown as typeof fetch
 
     const result = await fetchWithRetry(
       "http://example.com/api",
@@ -101,10 +101,10 @@ describe("fetchWithRetry", () => {
 
   test("no retry when allowRetry is false", async () => {
     let callCount = 0
-    globalThis.fetch = mock(() => {
+    globalThis.fetch = vi.fn(() => {
       callCount++
       return Promise.resolve(mockResponse(500))
-    })
+    }) as unknown as typeof fetch
 
     const result = await fetchWithRetry(
       "http://example.com/api",
@@ -116,9 +116,9 @@ describe("fetchWithRetry", () => {
   })
 
   test("response size limit (content-length > 5MB)", async () => {
-    globalThis.fetch = mock(() =>
+    globalThis.fetch = vi.fn(() =>
       Promise.resolve(mockResponse(200, {}, { "content-length": "6000000" })),
-    )
+    ) as unknown as typeof fetch
 
     const result = await fetchWithRetry(
       "http://example.com/api",

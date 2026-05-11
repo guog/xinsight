@@ -27,7 +27,7 @@ function createTestDb() {
   return drizzle(sqlite, { schema })
 }
 
-const mockQueryFn = mock(() =>
+const mockQueryFn = mock((..._args: unknown[]) =>
   Promise.resolve({
     success: true,
     data: { items: [{ id: 1 }] },
@@ -61,7 +61,7 @@ async function executeQuery(
   }
 
   // Use mock adapter
-  return mockQueryFn({
+  return mockQueryFn(({
     id: config.id,
     name: config.name,
     type: config.type as DatasourceConfig["type"],
@@ -71,7 +71,7 @@ async function executeQuery(
     enabled: config.enabled,
     createdAt: config.createdAt,
     updatedAt: config.updatedAt,
-  }, mergedParams)
+  }) as unknown, mergedParams)
 }
 
 /** Replicate datasourceListTool.execute logic */
@@ -107,24 +107,24 @@ describe("datasourceQueryTool execute", () => {
   test("datasource not found", async () => {
     const result = await executeQuery(repo, { datasourceId: "nonexist", params: {} })
     expect(result.success).toBe(false)
-    expect(result.error).toContain("未找到")
+    expect((result as { error: string }).error).toContain("未找到")
   })
 
   test("datasource disabled", async () => {
     await repo.create({ id: "ds-off", name: "Off", type: "rest", auth: {}, config: {}, enabled: false })
     const result = await executeQuery(repo, { datasourceId: "ds-off", params: {} })
     expect(result.success).toBe(false)
-    expect(result.error).toContain("已禁用")
+    expect((result as { error: string }).error).toContain("已禁用")
   })
 
   test("endpoint not found", async () => {
     await repo.create({
       id: "ds1", name: "TestDS", type: "rest", auth: {}, config: {},
-      endpoints: [{ id: "ep1", name: "EP1", description: "test", params: { default: "val" } }],
+      endpoints: [{ id: "ep1", name: "EP1", description: "test", params: { default: "val" }, apiSchemaFormat: "natural" as const }],
     })
     const result = await executeQuery(repo, { datasourceId: "ds1", endpointId: "ep-bad", params: {} })
     expect(result.success).toBe(false)
-    expect(result.error).toContain("未找到接口")
+    expect((result as { error: string }).error).toContain("未找到接口")
   })
 
   test("successful query merges endpoint params", async () => {
@@ -133,7 +133,7 @@ describe("datasourceQueryTool execute", () => {
     expect(mockQueryFn).toHaveBeenCalled()
     // Verify merged params
     const lastCall = mockQueryFn.mock.calls[mockQueryFn.mock.calls.length - 1]
-    expect(lastCall[1]).toEqual({ default: "val", extra: "x" })
+    expect((lastCall as unknown[])[1]).toEqual({ default: "val", extra: "x" })
   })
 
   test("agent permission check", async () => {
@@ -156,7 +156,7 @@ describe("datasourceListTool execute", () => {
   test("list with endpoints", async () => {
     await repo.create({
       id: "ds2", name: "DS2", type: "rest", auth: {}, config: {},
-      endpoints: [{ id: "ep1", name: "E1", description: "desc", params: {} }],
+      endpoints: [{ id: "ep1", name: "E1", description: "desc", params: {}, apiSchemaFormat: "natural" as const }],
     })
     const result = await executeList(repo)
     expect(result.datasources.length).toBe(1)
@@ -169,11 +169,11 @@ describe("datasourceListTool execute", () => {
       endpoints: [{
         id: "ep-s", name: "EP", description: "d", params: {},
         responseSchema: { fields: [{ name: "col1", type: "string" }, { name: "col2", type: "number" }] },
-      } as any],
+      } as unknown],
     })
     const result = await executeList(repo)
-    const ds = result.datasources.find((d: any) => d.id === "ds3")!
-    expect((ds.endpoints[0] as any).responseFields.length).toBe(2)
+    const ds = result.datasources.find((d: { id: string }) => d.id === "ds3")!
+    expect((ds.endpoints[0] as { responseFields: unknown[] }).responseFields.length).toBe(2)
   })
 
   test("agentId filters by binding", async () => {

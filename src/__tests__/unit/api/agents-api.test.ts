@@ -1,15 +1,15 @@
-import { describe, it, expect, beforeEach, mock } from "bun:test"
+import { describe, it, expect, beforeEach, vi } from "vitest"
 
 // 手动构造 mock mastra
-const mockListAgents = mock(() => ({}))
+const mockListAgents = vi.fn(() => ({}))
 const mockMastra = { listAgents: mockListAgents }
 
 // Mock @/mastra 模块
-mock.module("@/mastra", () => ({
+vi.mock("@/mastra", () => ({
   mastra: mockMastra,
 }))
 
-// 必须在 mock.module 之后 import
+// 必须在 vi.mock 之后 import
 const { GET } = await import("@/app/api/agents/route")
 
 describe("GET /api/agents", () => {
