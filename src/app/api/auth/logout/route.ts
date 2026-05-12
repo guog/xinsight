@@ -3,5 +3,7 @@ import { logoutUser } from "@/lib/auth"
 
 export async function POST() {
   await logoutUser()
-  return NextResponse.json({ ok: true })
+  const response = NextResponse.json({ ok: true })
+  response.cookies.delete("xinsight_session")
+  return response
 }
