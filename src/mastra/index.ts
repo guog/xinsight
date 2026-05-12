@@ -10,6 +10,7 @@ import { equipmentAgent } from "./agents/equipment-agent"
 import { warehouseAgent } from "./agents/warehouse-agent"
 import { energyAgent } from "./agents/energy-agent"
 import { wikiAgent } from "./agents/wiki-agent"
+import { chatAgent } from "./agents/chat-agent"
 
 /**
  * Mastra 实例 — 注册所有 Agent
@@ -39,6 +40,7 @@ export const mastra = new Mastra({
   logger: createLogger({ name: "xinsight", level: "info" }),
   memory: { default: memory },
   agents: {
+    chatAgent,
     factoryDirectorAgent,
     productionAgent,
     qualityAgent,

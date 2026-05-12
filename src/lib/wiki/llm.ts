@@ -1,11 +1,12 @@
-import { createOpenAI } from "@ai-sdk/openai"
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible"
 import { getDefaultModelId } from "@/lib/models"
 
 /**
  * Wiki 子系统共享的 LLM Provider
- * 从 DB 获取默认模型配置，支持通过环境变量覆盖
+ * 使用 openai-compatible 以避免 @ai-sdk/openai v3+ 默认走 Responses API（DeepSeek 不支持）
  */
-export const wikiLLMProvider = createOpenAI({
+export const wikiLLMProvider = createOpenAICompatible({
+  name: "deepseek",
   baseURL: process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com/v1",
   apiKey: process.env.DEEPSEEK_API_KEY || "",
 })

@@ -59,7 +59,7 @@ describe("formatDatasourceContext", () => {
     expect(result).not.toContain("返回:")
   })
 
-  test("超过2000字符时截断", () => {
+  test("超过4000字符时截断", () => {
     const endpoints = Array.from({ length: 100 }, (_, i) => ({
       name: `端点${i}`,
       method: "GET",
@@ -80,7 +80,7 @@ describe("formatDatasourceContext", () => {
     ]
 
     const result = formatDatasourceContext(sources)
-    expect(result.length).toBeLessThanOrEqual(2000)
+    expect(result.length).toBeLessThanOrEqual(4000)
     expect(result).toContain("更多端点省略")
   })
 })

@@ -1,9 +1,8 @@
-import { describe, it, expect, beforeEach, afterAll } from "vitest"
+import { describe, it, expect, beforeEach, afterAll } from "bun:test"
 import { db } from "@/db"
 import { users, sessions } from "@/db/schema"
 import { registerUser, handleAuthError, hasAnyUser } from "@/lib/auth"
 import { getProviders, getModels, getDefaultModelId, _resetCache } from "@/lib/models"
-
 
 /**
  * 清空用户和会话表，确保测试隔离
@@ -101,31 +100,35 @@ describe("模型注册表集成测试", () => {
     db.delete(llmProviders).where(eq(llmProviders.id, RBAC_TEST_PROVIDER)).run()
     const now = new Date()
     // 插入测试 provider + model 到 DB
-    db.insert(llmProviders).values({
-      id: RBAC_TEST_PROVIDER,
-      name: "RBACTest",
-      type: "cloud",
-      apiFormat: "openai",
-      baseUrl: "https://rbac-test.example.com",
-      apiKey: "test-key",
-      apiKeyRequired: true,
-      enabled: true,
-      sortOrder: 0,
-      createdAt: now,
-      updatedAt: now,
-    }).run()
-    db.insert(llmModels).values({
-      id: `${RBAC_TEST_PROVIDER}/test-model`,
-      providerId: RBAC_TEST_PROVIDER,
-      modelSlug: "test-model",
-      name: "Test Model",
-      enabled: true,
-      status: "available",
-      capabilities: JSON.stringify({ chat: true }),
-      sortOrder: 0,
-      discoveredAt: now,
-      updatedAt: now,
-    }).run()
+    db.insert(llmProviders)
+      .values({
+        id: RBAC_TEST_PROVIDER,
+        name: "RBACTest",
+        type: "cloud",
+        apiFormat: "openai",
+        baseUrl: "https://rbac-test.example.com",
+        apiKey: "test-key",
+        apiKeyRequired: true,
+        enabled: true,
+        sortOrder: 0,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .run()
+    db.insert(llmModels)
+      .values({
+        id: `${RBAC_TEST_PROVIDER}/test-model`,
+        providerId: RBAC_TEST_PROVIDER,
+        modelSlug: "test-model",
+        name: "Test Model",
+        enabled: true,
+        status: "available",
+        capabilities: JSON.stringify({ chat: true }),
+        sortOrder: 0,
+        discoveredAt: now,
+        updatedAt: now,
+      })
+      .run()
   })
 
   afterAll(() => {
@@ -142,12 +145,18 @@ describe("模型注册表集成测试", () => {
     })
 
     it("禁用的 provider 不应出现", () => {
-      db.update(llmProviders).set({ enabled: false }).where(eq(llmProviders.id, RBAC_TEST_PROVIDER)).run()
+      db.update(llmProviders)
+        .set({ enabled: false })
+        .where(eq(llmProviders.id, RBAC_TEST_PROVIDER))
+        .run()
       _resetCache()
       const providers = getProviders()
       expect(providers.find((p) => p.id === RBAC_TEST_PROVIDER)).toBeUndefined()
       // 恢复
-      db.update(llmProviders).set({ enabled: true }).where(eq(llmProviders.id, RBAC_TEST_PROVIDER)).run()
+      db.update(llmProviders)
+        .set({ enabled: true })
+        .where(eq(llmProviders.id, RBAC_TEST_PROVIDER))
+        .run()
     })
   })
 
@@ -165,13 +174,19 @@ describe("模型注册表集成测试", () => {
     })
 
     it("禁用所有 provider 后 getDefaultModelId 返回 fallback", () => {
-      db.update(llmProviders).set({ enabled: false }).where(eq(llmProviders.id, RBAC_TEST_PROVIDER)).run()
+      db.update(llmProviders)
+        .set({ enabled: false })
+        .where(eq(llmProviders.id, RBAC_TEST_PROVIDER))
+        .run()
       _resetCache()
       // 可能还有 seed 的 provider，只验证返回值是字符串
       const id = getDefaultModelId()
       expect(typeof id).toBe("string")
       // 恢复
-      db.update(llmProviders).set({ enabled: true }).where(eq(llmProviders.id, RBAC_TEST_PROVIDER)).run()
+      db.update(llmProviders)
+        .set({ enabled: true })
+        .where(eq(llmProviders.id, RBAC_TEST_PROVIDER))
+        .run()
     })
   })
 })

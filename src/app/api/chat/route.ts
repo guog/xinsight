@@ -58,9 +58,11 @@ export async function POST(req: Request) {
       })
     }
 
-    // 收集完整的 assistant 响应（文本 + 思考过程）
+    // 收集完整的 assistant 响应部分（文本 + 思考过程 + 工具调用）
     let assistantText = ""
     let reasoningText = ""
+     
+    const toolCalls = new Map<string, { toolName: string; input?: unknown; output?: unknown }>()
 
     const uiMessageStream = createUIMessageStream({
       originalMessages: chatMessages,
@@ -94,6 +96,24 @@ export async function POST(req: Request) {
               if (typeof text === "string") {
                 reasoningText += text
               }
+            } else if (chunk.type === "tool-input-start" || chunk.type === "tool-input-available") {
+              // 收集工具调用输入
+              const id = chunk.toolCallId as string
+              if (!toolCalls.has(id)) {
+                toolCalls.set(id, { toolName: chunk.toolName ?? "" })
+              }
+              if (chunk.type === "tool-input-available" && chunk.input !== undefined) {
+                const entry = toolCalls.get(id)!
+                entry.input = chunk.input
+                if (chunk.toolName) entry.toolName = chunk.toolName
+              }
+            } else if (chunk.type === "tool-output-available") {
+              // 收集工具调用输出
+              const id = chunk.toolCallId as string
+              const entry = toolCalls.get(id)
+              if (entry) {
+                entry.output = chunk.output
+              }
             }
             await writer.write(value)
           }
@@ -101,11 +121,13 @@ export async function POST(req: Request) {
           reader.releaseLock()
         }
 
-        // 流结束后持久化消息
-        if (chatId && assistantText) {
+        // 流结束后持久化消息（即使没有 text，有 tool-call 也要保存）
+        if (chatId && (assistantText || toolCalls.size > 0)) {
           try {
             const lastUserMsg = chatMessages[chatMessages.length - 1]
-            await persistMessages(chatId, lastUserMsg, assistantText, reasoningText)
+            // 构建完整的 assistant parts 数组
+            const assistantParts = buildAssistantParts(reasoningText, assistantText, toolCalls)
+            await persistMessages(chatId, lastUserMsg, assistantParts)
             await autoGenerateTitle(chatId, lastUserMsg)
           } catch (e) {
             console.error("持久化消息失败:", e)
@@ -121,4 +143,37 @@ export async function POST(req: Request) {
     console.error("[chat] unhandled error:", error)
     return Response.json({ error: "服务器内部错误，请稍后重试" }, { status: 500 })
   }
+}
+
+/**
+ * 从收集到的流数据构建完整的 assistant parts 数组
+ * 顺序：reasoning → tool-calls → text（与 AI SDK v6 UIMessage 结构一致）
+ */
+function buildAssistantParts(
+  reasoningText: string,
+  assistantText: string,
+  toolCalls: Map<string, { toolName: string; input?: unknown; output?: unknown }>,
+): Array<Record<string, unknown>> {
+  const parts: Array<Record<string, unknown>> = []
+
+  if (reasoningText.trim()) {
+    parts.push({ type: "reasoning", text: reasoningText, state: "done" })
+  }
+
+  for (const [toolCallId, tc] of toolCalls) {
+    parts.push({
+      type: `tool-${tc.toolName}`,
+      toolCallId,
+      toolName: tc.toolName,
+      state: tc.output !== undefined ? "output-available" : "input-available",
+      input: tc.input,
+      output: tc.output,
+    })
+  }
+
+  if (assistantText) {
+    parts.push({ type: "text", text: assistantText })
+  }
+
+  return parts
 }

@@ -21,6 +21,7 @@ function createTestDb() {
     );
     CREATE TABLE agent_datasources (
       agent_id TEXT NOT NULL, datasource_id TEXT NOT NULL REFERENCES datasources(id) ON DELETE CASCADE,
+      endpoint_ids TEXT,
       created_at INTEGER NOT NULL, PRIMARY KEY (agent_id, datasource_id)
     );
   `)
@@ -61,17 +62,20 @@ async function executeQuery(
   }
 
   // Use mock adapter
-  return mockQueryFn(({
-    id: config.id,
-    name: config.name,
-    type: config.type as DatasourceConfig["type"],
-    auth: config.auth as DatasourceConfig["auth"],
-    config: config.config,
-    endpoints: config.endpoints,
-    enabled: config.enabled,
-    createdAt: config.createdAt,
-    updatedAt: config.updatedAt,
-  }) as unknown, mergedParams)
+  return mockQueryFn(
+    {
+      id: config.id,
+      name: config.name,
+      type: config.type as DatasourceConfig["type"],
+      auth: config.auth as DatasourceConfig["auth"],
+      config: config.config,
+      endpoints: config.endpoints,
+      enabled: config.enabled,
+      createdAt: config.createdAt,
+      updatedAt: config.updatedAt,
+    } as unknown,
+    mergedParams,
+  )
 }
 
 /** Replicate datasourceListTool.execute logic */
@@ -111,7 +115,14 @@ describe("datasourceQueryTool execute", () => {
   })
 
   test("datasource disabled", async () => {
-    await repo.create({ id: "ds-off", name: "Off", type: "rest", auth: {}, config: {}, enabled: false })
+    await repo.create({
+      id: "ds-off",
+      name: "Off",
+      type: "rest",
+      auth: {},
+      config: {},
+      enabled: false,
+    })
     const result = await executeQuery(repo, { datasourceId: "ds-off", params: {} })
     expect(result.success).toBe(false)
     expect((result as { error: string }).error).toContain("已禁用")
@@ -119,16 +130,36 @@ describe("datasourceQueryTool execute", () => {
 
   test("endpoint not found", async () => {
     await repo.create({
-      id: "ds1", name: "TestDS", type: "rest", auth: {}, config: {},
-      endpoints: [{ id: "ep1", name: "EP1", description: "test", params: { default: "val" }, apiSchemaFormat: "natural" as const }],
+      id: "ds1",
+      name: "TestDS",
+      type: "rest",
+      auth: {},
+      config: {},
+      endpoints: [
+        {
+          id: "ep1",
+          name: "EP1",
+          description: "test",
+          params: { default: "val" },
+          apiSchemaFormat: "natural" as const,
+        },
+      ],
     })
-    const result = await executeQuery(repo, { datasourceId: "ds1", endpointId: "ep-bad", params: {} })
+    const result = await executeQuery(repo, {
+      datasourceId: "ds1",
+      endpointId: "ep-bad",
+      params: {},
+    })
     expect(result.success).toBe(false)
     expect((result as { error: string }).error).toContain("未找到接口")
   })
 
   test("successful query merges endpoint params", async () => {
-    const result = await executeQuery(repo, { datasourceId: "ds1", endpointId: "ep1", params: { extra: "x" } })
+    const result = await executeQuery(repo, {
+      datasourceId: "ds1",
+      endpointId: "ep1",
+      params: { extra: "x" },
+    })
     expect(result.success).toBe(true)
     expect(mockQueryFn).toHaveBeenCalled()
     // Verify merged params
@@ -155,8 +186,20 @@ describe("datasourceListTool execute", () => {
 
   test("list with endpoints", async () => {
     await repo.create({
-      id: "ds2", name: "DS2", type: "rest", auth: {}, config: {},
-      endpoints: [{ id: "ep1", name: "E1", description: "desc", params: {}, apiSchemaFormat: "natural" as const }],
+      id: "ds2",
+      name: "DS2",
+      type: "rest",
+      auth: {},
+      config: {},
+      endpoints: [
+        {
+          id: "ep1",
+          name: "E1",
+          description: "desc",
+          params: {},
+          apiSchemaFormat: "natural" as const,
+        },
+      ],
     })
     const result = await executeList(repo)
     expect(result.datasources.length).toBe(1)
@@ -165,11 +208,25 @@ describe("datasourceListTool execute", () => {
 
   test("responseSchema fields extracted", async () => {
     await repo.create({
-      id: "ds3", name: "DS3", type: "rest", auth: {}, config: {},
-      endpoints: [{
-        id: "ep-s", name: "EP", description: "d", params: {},
-        responseSchema: { fields: [{ name: "col1", type: "string" }, { name: "col2", type: "number" }] },
-      } as unknown],
+      id: "ds3",
+      name: "DS3",
+      type: "rest",
+      auth: {},
+      config: {},
+      endpoints: [
+        {
+          id: "ep-s",
+          name: "EP",
+          description: "d",
+          params: {},
+          responseSchema: {
+            fields: [
+              { name: "col1", type: "string" },
+              { name: "col2", type: "number" },
+            ],
+          },
+        } as unknown,
+      ],
     })
     const result = await executeList(repo)
     const ds = result.datasources.find((d: { id: string }) => d.id === "ds3")!
