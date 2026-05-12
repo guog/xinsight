@@ -9,16 +9,13 @@ function subscribe(callback: () => void) {
   return () => window.removeEventListener("storage", callback)
 }
 
+// 全局禁用引导（暂时）
 function getSnapshot() {
-  try {
-    return localStorage.getItem(STORAGE_KEY) === "true"
-  } catch {
-    return false
-  }
+  return true
 }
 
 function getServerSnapshot() {
-  return false
+  return true
 }
 
 /** 首次使用检测 hook */
