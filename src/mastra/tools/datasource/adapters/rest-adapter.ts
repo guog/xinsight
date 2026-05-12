@@ -41,6 +41,20 @@ export class RestAdapter implements DatasourceAdapter {
       return String(params[key] ?? `{${key}}`)
     })
 
+    // 检测未替换的路径参数 — 提前报错而非发送无效请求
+    const unresolvedParams = Array.from(resolvedPath.matchAll(/\{(\w+)\}/g), (m) => m[1])
+    if (unresolvedParams.length > 0) {
+      return {
+        success: false,
+        error: `路径参数缺失: ${unresolvedParams.join(", ")}。请在 params 中传入这些字段的值。`,
+        metadata: {
+          duration: Date.now() - start,
+          datasourceId: config.id,
+          datasourceName: config.name,
+        },
+      }
+    }
+
     // 合并 endpoint.headers
     const endpointHeaders = (endpoint?.headers as Record<string, string>) ?? {}
 
@@ -118,7 +132,11 @@ export class RestAdapter implements DatasourceAdapter {
       }
 
       if (result.metadata?.truncated) metadata.truncated = true
-      return { success: true, data: result.data, metadata: metadata as DatasourceResult["metadata"] }
+      return {
+        success: true,
+        data: result.data,
+        metadata: metadata as DatasourceResult["metadata"],
+      }
     } catch (err) {
       const duration = Date.now() - start
       return {
@@ -129,9 +147,7 @@ export class RestAdapter implements DatasourceAdapter {
     }
   }
 
-  async testConnection(
-    config: DatasourceConfig,
-  ): Promise<{
+  async testConnection(config: DatasourceConfig): Promise<{
     ok: boolean
     message: string
     statusCode?: number

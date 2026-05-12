@@ -40,7 +40,7 @@ export async function registerUser(
   return { id, username, displayName, role }
 }
 
-/** 登录 → 创建 session → 设置 cookie */
+/** 登录 → 创建 session，返回用户信息 + sessionId（由 route handler 设置 cookie） */
 export async function loginUser(username: string, password: string) {
   const user = db.select().from(users).where(eq(users.username, username)).get()
   if (!user) throw new Error("用户名或密码错误")
@@ -62,27 +62,33 @@ export async function loginUser(username: string, password: string) {
     })
     .run()
 
-  // 设置 cookie
-  const cookieStore = await cookies()
-  cookieStore.set(SESSION_COOKIE, sessionId, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: SESSION_MAX_AGE / 1000,
-  })
-
-  return { id: user.id, username: user.username, displayName: user.displayName, role: user.role }
+  return {
+    user: { id: user.id, username: user.username, displayName: user.displayName, role: user.role },
+    sessionId,
+  }
 }
 
-/** 登出 → 删除 session */
-export async function logoutUser() {
+/** 获取 session cookie 配置（供 route handler 使用） */
+export function getSessionCookieOptions(sessionId: string) {
+  return {
+    name: SESSION_COOKIE,
+    value: sessionId,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    path: "/",
+    maxAge: SESSION_MAX_AGE / 1000,
+  }
+}
+
+/** 登出 → 删除 session（返回 sessionId 供 route handler 清除 cookie） */
+export async function logoutUser(req?: Request) {
   const cookieStore = await cookies()
   const sessionId = cookieStore.get(SESSION_COOKIE)?.value
   if (sessionId) {
     db.delete(sessions).where(eq(sessions.id, sessionId)).run()
-    cookieStore.delete(SESSION_COOKIE)
   }
+  return sessionId
 }
 
 /** 获取当前登录用户（从 cookie 读 session） */

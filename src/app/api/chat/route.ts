@@ -61,7 +61,7 @@ export async function POST(req: Request) {
     // 收集完整的 assistant 响应部分（文本 + 思考过程 + 工具调用）
     let assistantText = ""
     let reasoningText = ""
-     
+
     const toolCalls = new Map<string, { toolName: string; input?: unknown; output?: unknown }>()
 
     const uiMessageStream = createUIMessageStream({
@@ -78,11 +78,16 @@ export async function POST(req: Request) {
         const BLOCKED_TYPES = new Set(["data-tool-agent", "rest"])
 
         try {
+          const seenTypes = new Set<string>()
           for (;;) {
             const { done, value } = await reader.read()
             if (done) break
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const chunk = value as any
+            if (!seenTypes.has(chunk.type)) {
+              seenTypes.add(chunk.type)
+              console.log("[chat] chunk type:", chunk.type, "keys:", Object.keys(chunk).join(","))
+            }
             // 跳过冗余中间态事件
             if (BLOCKED_TYPES.has(chunk.type)) continue
             // 收集文本和推理用于持久化
@@ -122,6 +127,14 @@ export async function POST(req: Request) {
         }
 
         // 流结束后持久化消息（即使没有 text，有 tool-call 也要保存）
+        console.log(
+          "[chat] stream done, chatId:",
+          chatId,
+          "assistantText length:",
+          assistantText.length,
+          "lastUserMsg:",
+          chatMessages[chatMessages.length - 1]?.role,
+        )
         if (chatId && (assistantText || toolCalls.size > 0)) {
           try {
             const lastUserMsg = chatMessages[chatMessages.length - 1]
