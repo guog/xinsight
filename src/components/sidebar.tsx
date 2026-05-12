@@ -141,7 +141,9 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
           <p className="text-xs text-muted-foreground text-center py-4">暂无对话</p>
         ) : (
           chatList
-            .filter((chat) => chat.title.toLowerCase().includes(searchQuery.toLowerCase()))
+            .filter((chat) =>
+              (chat.title || "新对话").toLowerCase().includes(searchQuery.toLowerCase()),
+            )
             .map((chat) => (
               <div
                 role="button"
@@ -195,7 +197,7 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
                       setEditTitle(chat.title)
                     }}
                   >
-                    {chat.title}
+                    {chat.title || "新对话"}
                   </span>
                 )}
                 {onDeleteChat && editingId !== chat.id && (
