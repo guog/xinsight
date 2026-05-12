@@ -58,8 +58,9 @@ export async function POST(req: Request) {
       })
     }
 
-    // 收集完整的 assistant 响应
+    // 收集完整的 assistant 响应（文本 + 思考过程）
     let assistantText = ""
+    let reasoningText = ""
 
     const uiMessageStream = createUIMessageStream({
       originalMessages: chatMessages,
@@ -82,11 +83,16 @@ export async function POST(req: Request) {
             const chunk = value as any
             // 跳过冗余中间态事件
             if (BLOCKED_TYPES.has(chunk.type)) continue
-            // 收集文本用于持久化
+            // 收集文本和推理用于持久化
             if (chunk.type === "text-delta") {
               const text = chunk.delta ?? chunk.value ?? ""
               if (typeof text === "string") {
                 assistantText += text
+              }
+            } else if (chunk.type === "reasoning-delta" || chunk.type === "reasoning") {
+              const text = chunk.delta ?? chunk.value ?? chunk.text ?? ""
+              if (typeof text === "string") {
+                reasoningText += text
               }
             }
             await writer.write(value)
@@ -99,7 +105,7 @@ export async function POST(req: Request) {
         if (chatId && assistantText) {
           try {
             const lastUserMsg = chatMessages[chatMessages.length - 1]
-            await persistMessages(chatId, lastUserMsg, assistantText)
+            await persistMessages(chatId, lastUserMsg, assistantText, reasoningText)
             await autoGenerateTitle(chatId, lastUserMsg)
           } catch (e) {
             console.error("持久化消息失败:", e)

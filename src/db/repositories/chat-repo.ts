@@ -13,6 +13,7 @@ export async function persistMessages(
   chatId: string,
   lastUserMsg: UIMessage | undefined,
   assistantText: string,
+  reasoningText?: string,
 ) {
   // 保存用户最后一条消息
   if (lastUserMsg && lastUserMsg.role === "user") {
@@ -28,12 +29,19 @@ export async function persistMessages(
       .onConflictDoNothing()
   }
 
+  // 构建 assistant parts：reasoning（如有）+ text
+  const assistantParts: Array<Record<string, unknown>> = []
+  if (reasoningText && reasoningText.trim()) {
+    assistantParts.push({ type: "reasoning", text: reasoningText, state: "done" })
+  }
+  assistantParts.push({ type: "text", text: assistantText })
+
   // 保存 assistant 消息
   await db.insert(messages).values({
     id: crypto.randomUUID(),
     chatId,
     role: "assistant",
-    parts: JSON.stringify([{ type: "text", text: assistantText }]),
+    parts: JSON.stringify(assistantParts),
     createdAt: new Date(),
   })
 }
