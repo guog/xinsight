@@ -46,7 +46,7 @@ export function WelcomeEmptyState({ agentName, onSuggestionClick }: WelcomeEmpty
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full max-w-3xl">
         {suggestions.map((s, index) => (
           <button
             key={s.label}

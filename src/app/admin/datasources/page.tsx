@@ -301,7 +301,7 @@ export default function DatasourcesPage() {
                         {ds.enabled ? "启用" : "禁用"}
                       </span>
                     </div>
-                    <p className="text-xs text-muted-foreground truncate">
+                    <p className="text-xs text-muted-foreground line-clamp-2">
                       {ds.description || ds.id}
                       {ds.lastTestedAt && (
                         <span className="ml-2">· 上次测试 {timeAgo(ds.lastTestedAt)}</span>

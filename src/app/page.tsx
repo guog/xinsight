@@ -331,7 +331,7 @@ function DesktopChatPage() {
         </ErrorBoundary>
 
         {/* 输入区域 */}
-        <div className="relative mt-2 sm:mt-4 w-full max-w-2xl mx-auto before:absolute before:inset-x-0 before:-top-6 before:h-6 before:bg-gradient-to-t before:from-background before:to-transparent before:pointer-events-none">
+        <div className="relative mt-2 sm:mt-4 w-full max-w-3xl mx-auto before:absolute before:inset-x-0 before:-top-6 before:h-6 before:bg-gradient-to-t before:from-background before:to-transparent before:pointer-events-none">
           {/* 工具栏 */}
           <div className="flex items-center gap-2 mb-1.5 px-1">
             <span className="text-xs font-medium text-muted-foreground">🏭 智能工厂助手</span>

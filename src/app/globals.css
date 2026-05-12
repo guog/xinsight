@@ -200,6 +200,36 @@
   background: oklch(0.7 0.15 264 / 30%);
 }
 
+/* Streamdown table enhancements */
+[data-streamdown="table-wrapper"] {
+  border-color: var(--border);
+}
+
+[data-streamdown="table"] th {
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.dark [data-streamdown="table-header"] {
+  background: oklch(0.22 0.03 264);
+}
+
+.dark [data-streamdown="table-body"] tr:nth-child(even) {
+  background: oklch(0.16 0.02 264 / 50%);
+}
+
+.dark [data-streamdown="table-body"] tr:hover {
+  background: oklch(0.2 0.03 264 / 60%);
+}
+
+[data-streamdown="table-body"] tr:nth-child(even) {
+  background: oklch(0.97 0.01 264);
+}
+
+[data-streamdown="table-body"] tr:hover {
+  background: oklch(0.95 0.02 264);
+}
+
 /* Skeleton loading animation */
 @keyframes shimmer {
   0% {
