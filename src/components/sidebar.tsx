@@ -305,7 +305,7 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
 
       {/* 桌面端侧边栏 */}
       {isOpen && (
-        <aside className="hidden md:flex w-64 shrink-0 border-r border-border bg-sidebar h-dvh">
+        <aside className="hidden md:flex w-64 shrink-0 border-r border-border bg-sidebar h-dvh overflow-hidden">
           {sidebarContent}
         </aside>
       )}
