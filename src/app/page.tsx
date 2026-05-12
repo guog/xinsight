@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useCallback, useRef } from "react"
+import { useState, useCallback, useRef, useEffect } from "react"
 import dynamic from "next/dynamic"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
-import { Square, RotateCcw, Mic, Brain } from "lucide-react"
+import { Square, RotateCcw, Mic } from "lucide-react"
 import { API_BASE } from "@/lib/api"
 import { formatMessageTime } from "@/lib/format-time"
 import { ErrorBoundary } from "@/components/error-boundary"
@@ -66,7 +66,7 @@ function DesktopChatPage() {
   const { isOnboardingComplete, markComplete } = useOnboarding()
   const { voiceEnabled, isVoiceMode, enterVoiceMode, exitVoiceMode } = useVoiceConfig()
 
-  const { createChat } = useChats()
+  const { createChat, refresh: refreshChats } = useChats()
 
   const chatApiUrl = API_BASE ? `${API_BASE}/api/chat` : "/api/chat"
 
@@ -82,6 +82,15 @@ function DesktopChatPage() {
       },
     }),
   })
+
+  /** 流式结束后刷新侧边栏（更新自动生成的标题等） */
+  const prevStatusRef = useRef(status)
+  useEffect(() => {
+    if (prevStatusRef.current === "streaming" && status === "ready") {
+      refreshChats()
+    }
+    prevStatusRef.current = status
+  }, [status, refreshChats])
 
   /** 新建对话 */
   const handleNewChat = useCallback(() => {
@@ -239,10 +248,11 @@ function DesktopChatPage() {
                                       <ReasoningTrigger
                                         getThinkingMessage={(isStreaming, duration) => (
                                           <span className="inline-flex items-center gap-1.5">
-                                            <Brain className="size-3.5 text-purple-500 dark:text-purple-400" />
                                             {isStreaming || duration === 0
                                               ? "思考中…"
-                                              : `已深度思考 ${duration} 秒`}
+                                              : duration === undefined
+                                                ? "已深度思考"
+                                                : `已深度思考 ${duration} 秒`}
                                           </span>
                                         )}
                                       />

@@ -8,11 +8,12 @@ import { wikiLLMProvider, getWikiModelSlug } from "@/lib/wiki/llm"
 
 /**
  * 持久化用户消息和 assistant 回复到数据库
+ * assistantParts: 完整的 parts 数组（reasoning + tool-call + text）
  */
 export async function persistMessages(
   chatId: string,
   lastUserMsg: UIMessage | undefined,
-  assistantText: string,
+  assistantParts: Array<Record<string, unknown>>,
 ) {
   // 保存用户最后一条消息
   if (lastUserMsg && lastUserMsg.role === "user") {
@@ -28,12 +29,12 @@ export async function persistMessages(
       .onConflictDoNothing()
   }
 
-  // 保存 assistant 消息
+  // 保存 assistant 消息（完整 parts 包含 reasoning + tool-calls + text）
   await db.insert(messages).values({
     id: crypto.randomUUID(),
     chatId,
     role: "assistant",
-    parts: JSON.stringify([{ type: "text", text: assistantText }]),
+    parts: JSON.stringify(assistantParts),
     createdAt: new Date(),
   })
 }

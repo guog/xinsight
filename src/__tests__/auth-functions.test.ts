@@ -1,28 +1,13 @@
 import { mock, describe, test, expect } from "bun:test"
 import { Database } from "bun:sqlite"
 import { drizzle } from "drizzle-orm/bun-sqlite"
+import { migrate } from "drizzle-orm/bun-sqlite/migrator"
 import * as schema from "@/db/schema"
 
-// Create in-memory DB
+// Create in-memory DB with full schema via migrations
 const sqlite = new Database(":memory:")
-sqlite.exec(`
-  CREATE TABLE users (
-    id TEXT PRIMARY KEY NOT NULL,
-    username TEXT NOT NULL UNIQUE,
-    display_name TEXT NOT NULL,
-    password_hash TEXT NOT NULL,
-    role TEXT NOT NULL DEFAULT 'user',
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL
-  );
-  CREATE TABLE sessions (
-    id TEXT PRIMARY KEY NOT NULL,
-    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    expires_at INTEGER NOT NULL,
-    created_at INTEGER NOT NULL
-  );
-`)
 const testDb = drizzle(sqlite, { schema })
+migrate(testDb, { migrationsFolder: "./drizzle" })
 
 // Fake cookie store
 const cookieMap = new Map<string, { value: string }>()
@@ -42,7 +27,16 @@ mock.module("next/headers", () => ({
   cookies: async () => fakeCookieStore,
 }))
 
-const { registerUser, loginUser, logoutUser, getCurrentUser, hasAnyUser, requireAuth, requireAdmin, handleAuthError } = await import("@/lib/auth")
+const {
+  registerUser,
+  loginUser,
+  logoutUser,
+  getCurrentUser,
+  hasAnyUser,
+  requireAuth,
+  requireAdmin,
+  handleAuthError,
+} = await import("@/lib/auth")
 
 describe("handleAuthError", () => {
   test("returns 401 for 未登录", () => {
@@ -119,12 +113,15 @@ describe("getCurrentUser", () => {
     // Insert an expired session manually
     const { sessions } = schema
     const now = new Date()
-    testDb.insert(sessions).values({
-      id: "expired-session",
-      userId: "nonexist",
-      expiresAt: new Date(Date.now() - 100000),
-      createdAt: now,
-    }).run()
+    testDb
+      .insert(sessions)
+      .values({
+        id: "expired-session",
+        userId: "nonexist",
+        expiresAt: new Date(Date.now() - 100000),
+        createdAt: now,
+      })
+      .run()
     cookieMap.set("xinsight_session", { value: "expired-session" })
     const user = await getCurrentUser()
     expect(user).toBeNull()

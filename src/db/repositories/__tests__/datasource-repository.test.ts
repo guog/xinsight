@@ -28,6 +28,7 @@ function createTestDb() {
     CREATE TABLE agent_datasources (
       agent_id TEXT NOT NULL,
       datasource_id TEXT NOT NULL REFERENCES datasources(id) ON DELETE CASCADE,
+      endpoint_ids TEXT,
       created_at INTEGER NOT NULL,
       PRIMARY KEY (agent_id, datasource_id)
     );

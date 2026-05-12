@@ -96,7 +96,8 @@ export const Reasoning = memo(
       if (isStreaming && !isOpen && !isExplicitlyClosed) {
         setIsOpen(true)
       }
-    }, [isStreaming, isOpen, setIsOpen, isExplicitlyClosed])
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isStreaming, isExplicitlyClosed])
 
     useEffect(() => {
       if (
@@ -112,7 +113,8 @@ export const Reasoning = memo(
 
         return () => clearTimeout(timer)
       }
-    }, [isStreaming, isOpen, setIsOpen, hasAutoClosed])
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isStreaming, hasAutoClosed])
 
     const handleOpenChange = useCallback(
       (newOpen: boolean) => {

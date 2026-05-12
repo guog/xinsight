@@ -1,7 +1,7 @@
 import { db } from "@/db"
 import { llmProviders, llmModels } from "@/db/schema"
 import { eq } from "drizzle-orm"
-import { invalidateModelCache } from "./models"
+import { invalidateModelCache } from "@/lib/models"
 
 interface SyncResult {
   success: boolean

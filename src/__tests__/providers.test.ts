@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, afterEach, mock } from "bun:test"
+import { describe, test, expect, beforeEach, afterEach, afterAll, mock } from "bun:test"
 import { db } from "@/db"
 import { llmProviders, llmModels } from "@/db/schema"
 import { eq } from "drizzle-orm"
@@ -59,18 +59,34 @@ function insertModel(overrides: Partial<typeof llmModels.$inferInsert> = {}) {
 const insertedProviderIds: string[] = []
 const insertedModelIds: string[] = []
 
+// 保存 seed 数据以便 afterEach 恢复
+let savedProviders: Array<typeof llmProviders.$inferSelect> = []
+let savedModels: Array<typeof llmModels.$inferSelect> = []
+
 function cleanup() {
-  // 先删除模型（外键约束），再删提供商
-  for (const id of insertedModelIds) {
-    db.delete(llmModels).where(eq(llmModels.id, id)).run()
+  // 保存现有 seed 数据（仅首次）
+  if (savedProviders.length === 0 && savedModels.length === 0) {
+    savedProviders = db.select().from(llmProviders).all()
+    savedModels = db.select().from(llmModels).all()
   }
-  // 也按 provider ID 删除可能由 sync 动态创建的模型
-  for (const id of insertedProviderIds) {
-    db.delete(llmModels).where(eq(llmModels.providerId, id)).run()
-    db.delete(llmProviders).where(eq(llmProviders.id, id)).run()
-  }
+  // 清空整张表，确保测试隔离
+  db.delete(llmModels).run()
+  db.delete(llmProviders).run()
   insertedModelIds.length = 0
   insertedProviderIds.length = 0
+  _resetCache()
+}
+
+function restoreSeedData() {
+  // 清空并恢复 seed 数据
+  db.delete(llmModels).run()
+  db.delete(llmProviders).run()
+  for (const p of savedProviders) {
+    db.insert(llmProviders).values(p).onConflictDoNothing().run()
+  }
+  for (const m of savedModels) {
+    db.insert(llmModels).values(m).onConflictDoNothing().run()
+  }
   _resetCache()
 }
 
@@ -255,7 +271,12 @@ describe("provider-sync: syncProviderModels", () => {
   })
 
   test("新增远端模型（openai 格式）", async () => {
-    insertProvider({ id: "p1", name: "P1", baseUrl: "https://api.test.com/v1", apiFormat: "openai" })
+    insertProvider({
+      id: "p1",
+      name: "P1",
+      baseUrl: "https://api.test.com/v1",
+      apiFormat: "openai",
+    })
 
     // Mock fetch 返回模型列表
     globalThis.fetch = (async () => ({
@@ -278,7 +299,12 @@ describe("provider-sync: syncProviderModels", () => {
   })
 
   test("已存在的模型不重复新增", async () => {
-    insertProvider({ id: "p1", name: "P1", baseUrl: "https://api.test.com/v1", apiFormat: "openai" })
+    insertProvider({
+      id: "p1",
+      name: "P1",
+      baseUrl: "https://api.test.com/v1",
+      apiFormat: "openai",
+    })
     insertModel({ id: "p1/existing", providerId: "p1", modelSlug: "existing", status: "available" })
 
     globalThis.fetch = (async () => ({
@@ -296,8 +322,18 @@ describe("provider-sync: syncProviderModels", () => {
   })
 
   test("远端无、DB 有 → 标记 offline", async () => {
-    insertProvider({ id: "p1", name: "P1", baseUrl: "https://api.test.com/v1", apiFormat: "openai" })
-    insertModel({ id: "p1/old-model", providerId: "p1", modelSlug: "old-model", status: "available" })
+    insertProvider({
+      id: "p1",
+      name: "P1",
+      baseUrl: "https://api.test.com/v1",
+      apiFormat: "openai",
+    })
+    insertModel({
+      id: "p1/old-model",
+      providerId: "p1",
+      modelSlug: "old-model",
+      status: "available",
+    })
 
     globalThis.fetch = (async () => ({
       ok: true,
@@ -313,7 +349,12 @@ describe("provider-sync: syncProviderModels", () => {
   })
 
   test("远端有 + DB 有 offline 状态 → 更新为 available", async () => {
-    insertProvider({ id: "p1", name: "P1", baseUrl: "https://api.test.com/v1", apiFormat: "openai" })
+    insertProvider({
+      id: "p1",
+      name: "P1",
+      baseUrl: "https://api.test.com/v1",
+      apiFormat: "openai",
+    })
     insertModel({ id: "p1/comeback", providerId: "p1", modelSlug: "comeback", status: "offline" })
 
     globalThis.fetch = (async () => ({
@@ -330,7 +371,14 @@ describe("provider-sync: syncProviderModels", () => {
   })
 
   test("ollama 格式同步", async () => {
-    insertProvider({ id: "ollama", name: "Ollama", baseUrl: "http://localhost:11434", apiFormat: "ollama", apiKeyRequired: false, apiKey: "" })
+    insertProvider({
+      id: "ollama",
+      name: "Ollama",
+      baseUrl: "http://localhost:11434",
+      apiFormat: "ollama",
+      apiKeyRequired: false,
+      apiKey: "",
+    })
 
     globalThis.fetch = (async () => ({
       ok: true,
@@ -345,7 +393,12 @@ describe("provider-sync: syncProviderModels", () => {
   })
 
   test("fetch 失败时返回错误", async () => {
-    insertProvider({ id: "p1", name: "P1", baseUrl: "https://api.test.com/v1", apiFormat: "openai" })
+    insertProvider({
+      id: "p1",
+      name: "P1",
+      baseUrl: "https://api.test.com/v1",
+      apiFormat: "openai",
+    })
 
     globalThis.fetch = (async () => ({
       ok: false,
@@ -358,7 +411,12 @@ describe("provider-sync: syncProviderModels", () => {
   })
 
   test("同步后更新 provider 的 syncedAt", async () => {
-    insertProvider({ id: "p1", name: "P1", baseUrl: "https://api.test.com/v1", apiFormat: "openai" })
+    insertProvider({
+      id: "p1",
+      name: "P1",
+      baseUrl: "https://api.test.com/v1",
+      apiFormat: "openai",
+    })
 
     globalThis.fetch = (async () => ({
       ok: true,
@@ -370,4 +428,9 @@ describe("provider-sync: syncProviderModels", () => {
     const provider = db.select().from(llmProviders).where(eq(llmProviders.id, "p1")).get()
     expect(provider!.syncedAt).toBeTruthy()
   })
+})
+
+// 全部测试结束后恢复 seed 数据，防止影响其他测试文件
+afterAll(() => {
+  restoreSeedData()
 })

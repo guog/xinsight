@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest"
+import { describe, it, expect, beforeEach, afterEach } from "bun:test"
 import { db } from "@/db"
 import { llmProviders, llmModels } from "@/db/schema"
 import { eq } from "drizzle-orm"
@@ -18,46 +18,50 @@ describe("模型注册表", () => {
     _resetCache()
     // 插入测试数据
     const now = new Date()
-    db.insert(llmProviders).values({
-      id: TEST_PROVIDER_ID,
-      name: "TestProvider",
-      type: "cloud",
-      apiFormat: "openai",
-      baseUrl: "https://test.example.com",
-      apiKey: "test-key",
-      apiKeyRequired: true,
-      enabled: true,
-      sortOrder: 0,
-      createdAt: now,
-      updatedAt: now,
-    }).run()
-
-    db.insert(llmModels).values([
-      {
-        id: `${TEST_PROVIDER_ID}/model-a`,
-        providerId: TEST_PROVIDER_ID,
-        modelSlug: "model-a",
-        name: "Model A",
+    db.insert(llmProviders)
+      .values({
+        id: TEST_PROVIDER_ID,
+        name: "TestProvider",
+        type: "cloud",
+        apiFormat: "openai",
+        baseUrl: "https://test.example.com",
+        apiKey: "test-key",
+        apiKeyRequired: true,
         enabled: true,
-        status: "available",
-        capabilities: JSON.stringify({ chat: true }),
         sortOrder: 0,
-        discoveredAt: now,
+        createdAt: now,
         updatedAt: now,
-      },
-      {
-        id: `${TEST_PROVIDER_ID}/model-b`,
-        providerId: TEST_PROVIDER_ID,
-        modelSlug: "model-b",
-        name: "Model B",
-        enabled: false,
-        status: "available",
-        capabilities: JSON.stringify({ chat: true }),
-        sortOrder: 1,
-        discoveredAt: now,
-        updatedAt: now,
-      },
-    ]).run()
+      })
+      .run()
+
+    db.insert(llmModels)
+      .values([
+        {
+          id: `${TEST_PROVIDER_ID}/model-a`,
+          providerId: TEST_PROVIDER_ID,
+          modelSlug: "model-a",
+          name: "Model A",
+          enabled: true,
+          status: "available",
+          capabilities: JSON.stringify({ chat: true }),
+          sortOrder: 0,
+          discoveredAt: now,
+          updatedAt: now,
+        },
+        {
+          id: `${TEST_PROVIDER_ID}/model-b`,
+          providerId: TEST_PROVIDER_ID,
+          modelSlug: "model-b",
+          name: "Model B",
+          enabled: false,
+          status: "available",
+          capabilities: JSON.stringify({ chat: true }),
+          sortOrder: 1,
+          discoveredAt: now,
+          updatedAt: now,
+        },
+      ])
+      .run()
   })
 
   afterEach(() => {
@@ -82,7 +86,10 @@ describe("模型注册表", () => {
     })
 
     it("禁用的提供商不出现", () => {
-      db.update(llmProviders).set({ enabled: false }).where(eq(llmProviders.id, TEST_PROVIDER_ID)).run()
+      db.update(llmProviders)
+        .set({ enabled: false })
+        .where(eq(llmProviders.id, TEST_PROVIDER_ID))
+        .run()
       _resetCache()
       const providers = getProviders()
       expect(providers.find((p) => p.id === TEST_PROVIDER_ID)).toBeUndefined()
