@@ -73,9 +73,10 @@ export async function POST(req: Request) {
           sendReasoning: true,
         }).getReader()
 
-        // 过滤掉大量冗余的 data-tool-agent / rest 中间态事件
-        // 这些事件每个 token 发一次完整 agent state，导致浏览器 OOM
-        const BLOCKED_TYPES = new Set(["data-tool-agent", "rest"])
+        // 过滤冗余事件（性能关键）：
+        // - data-tool-agent / rest：每 token 发完整 agent state，导致浏览器 OOM（PR #56）
+        // - tool-input-delta：partial JSON 流，多 Agent 并行时产生海量碎片，前端仅需 start + available
+        const BLOCKED_TYPES = new Set(["data-tool-agent", "rest", "tool-input-delta"])
 
         try {
           const seenTypes = new Set<string>()
