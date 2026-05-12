@@ -91,7 +91,7 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
   }
 
   const sidebarContent = (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-w-0 w-full">
       {/* 顶部 */}
       <div className="p-3 flex items-center justify-between">
         <span className="text-base font-bold tracking-tight text-foreground">xinsight</span>
@@ -305,7 +305,7 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
 
       {/* 桌面端侧边栏 */}
       {isOpen && (
-        <aside className="hidden md:flex w-64 shrink-0 border-r border-border bg-sidebar h-dvh overflow-hidden">
+        <aside className="hidden md:flex w-64 shrink-0 border-r border-border bg-sidebar h-dvh">
           {sidebarContent}
         </aside>
       )}
