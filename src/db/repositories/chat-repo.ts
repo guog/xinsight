@@ -1,8 +1,10 @@
 import type { UIMessage } from "ai"
+import { generateText } from "ai"
 import { count, eq } from "drizzle-orm"
 
 import { db } from "@/db"
 import { chats, messages } from "@/db/schema"
+import { wikiLLMProvider, getWikiModelSlug } from "@/lib/wiki/llm"
 
 /**
  * 持久化用户消息和 assistant 回复到数据库
@@ -37,7 +39,7 @@ export async function persistMessages(
 }
 
 /**
- * 如果是第一条消息，用用户消息自动生成标题并更新对话
+ * 如果是第一条消息，用 LLM 自动总结对话标题
  */
 export async function autoGenerateTitle(chatId: string, lastUserMsg: UIMessage | undefined) {
   const updates: Record<string, unknown> = { updatedAt: new Date() }
@@ -52,7 +54,20 @@ export async function autoGenerateTitle(chatId: string, lastUserMsg: UIMessage |
     const textPart = (lastUserMsg.parts as any[])?.find((p) => p.type === "text")
     const firstText = textPart?.text as string | undefined
     if (firstText) {
-      updates.title = firstText.slice(0, 30) + (firstText.length > 30 ? "..." : "")
+      try {
+        const { text: title } = await generateText({
+          model: wikiLLMProvider(getWikiModelSlug()),
+          maxOutputTokens: 30,
+          prompt: `为以下用户消息生成一个简短的对话标题（不超过15个字，不要引号和标点）：\n${firstText.slice(0, 200)}`,
+        })
+        updates.title = title
+          .trim()
+          .replace(/^["'「]|["'」]$/g, "")
+          .slice(0, 30)
+      } catch (e) {
+        console.error("LLM 生成标题失败，降级为截取:", e)
+        updates.title = firstText.slice(0, 30) + (firstText.length > 30 ? "..." : "")
+      }
     }
   }
 

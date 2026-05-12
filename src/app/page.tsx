@@ -6,6 +6,7 @@ import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
 import { Square, RotateCcw, Mic, Brain } from "lucide-react"
 import { API_BASE } from "@/lib/api"
+import { formatMessageTime } from "@/lib/format-time"
 import { ErrorBoundary } from "@/components/error-boundary"
 import {
   Conversation,
@@ -310,6 +311,11 @@ function DesktopChatPage() {
                           </div>
                         </div>
                       </MessageContent>
+                      {(message as { createdAt?: Date }).createdAt && (
+                        <time className="block text-[10px] text-muted-foreground/60 mt-1 px-1 select-none">
+                          {formatMessageTime((message as { createdAt?: Date }).createdAt!)}
+                        </time>
+                      )}
                       {message.role === "assistant" &&
                         message === messages[messages.length - 1] &&
                         status !== "streaming" && (
