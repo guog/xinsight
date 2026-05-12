@@ -54,6 +54,7 @@ export function MobileChatPage() {
   const chatApiUrl = API_BASE ? `${API_BASE}/api/chat` : "/api/chat"
 
   const { messages, sendMessage, status, setMessages, stop, regenerate } = useChat({
+    experimental_throttle: 100,
     transport: new DefaultChatTransport({
       api: chatApiUrl,
       body: {

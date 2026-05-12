@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, memo, useMemo } from "react"
 import { Streamdown } from "streamdown"
 import { cjk } from "@streamdown/cjk"
 import { code } from "@streamdown/code"
@@ -36,6 +36,8 @@ interface AgentMessageProps {
   state: "call" | "partial-call" | "result"
   args?: Record<string, unknown>
   result?: unknown
+  /** 是否显示会议头部（首个 agent 委派才显示） */
+  showMeetingHeader?: boolean
 }
 
 function isSupervisorDelegation(toolName: string): boolean {
@@ -256,15 +258,29 @@ function CollapsibleToolResult({
 }
 
 /* ─── 主组件 ─── */
-export function AgentMessage({ toolName, state, args, result }: AgentMessageProps) {
+export const AgentMessage = memo(function AgentMessage({
+  toolName,
+  state,
+  args,
+  result,
+  showMeetingHeader,
+}: AgentMessageProps) {
   if (isSupervisorDelegation(toolName)) {
-    return <DelegateAgentMessage toolName={toolName} state={state} args={args} result={result} />
+    return (
+      <DelegateAgentMessage
+        toolName={toolName}
+        state={state}
+        args={args}
+        result={result}
+        showMeetingHeader={showMeetingHeader}
+      />
+    )
   }
   return <DirectToolMessage toolName={toolName} state={state} args={args} result={result} />
-}
+})
 
 /* ─── 会议风格：子 Agent 发言气泡 ─── */
-function DelegateAgentMessage({ toolName, state, result }: AgentMessageProps) {
+function DelegateAgentMessage({ toolName, state, result, showMeetingHeader }: AgentMessageProps) {
   const agentInfo = AGENT_MAP[toolName] ?? DEFAULT_AGENT
   const isDone = state === "result"
   const agentText = isDone ? extractAgentResultText(result) : null
@@ -273,9 +289,13 @@ function DelegateAgentMessage({ toolName, state, result }: AgentMessageProps) {
 
   return (
     <>
-      {/* Meeting header + supervisor intro shown once per delegation group */}
-      <MeetingHeader />
-      <SupervisorIntro />
+      {/* Meeting header + supervisor intro shown only for first delegation */}
+      {showMeetingHeader !== false && (
+        <>
+          <MeetingHeader />
+          <SupervisorIntro />
+        </>
+      )}
 
       <div className="relative flex items-start gap-3 py-3 group animate-in fade-in slide-in-from-bottom-3 duration-500 fill-mode-backwards">
         {/* 时间线连接线 */}
