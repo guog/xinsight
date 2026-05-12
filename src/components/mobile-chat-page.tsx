@@ -5,6 +5,7 @@ import dynamic from "next/dynamic"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
 import { Square, RotateCcw, Mic, Menu } from "lucide-react"
+import { formatMessageTime } from "@/lib/format-time"
 import { API_BASE } from "@/lib/api"
 import {
   Conversation,
@@ -50,9 +51,7 @@ export function MobileChatPage() {
   const { voiceEnabled, isVoiceMode, enterVoiceMode, exitVoiceMode } = useVoiceConfig()
   const { createChat } = useChats()
 
-  const chatApiUrl = API_BASE
-    ? `${API_BASE}/api/chat`
-    : "/api/chat"
+  const chatApiUrl = API_BASE ? `${API_BASE}/api/chat` : "/api/chat"
 
   const { messages, sendMessage, status, setMessages, stop, regenerate } = useChat({
     transport: new DefaultChatTransport({
@@ -255,6 +254,11 @@ export function MobileChatPage() {
                     }
                   })}
                 </MessageContent>
+                {(message as { createdAt?: Date }).createdAt && (
+                  <time className="block text-[10px] text-muted-foreground/60 mt-1 px-1 select-none">
+                    {formatMessageTime((message as { createdAt?: Date }).createdAt!)}
+                  </time>
+                )}
                 {message.role === "assistant" &&
                   message === messages[messages.length - 1] &&
                   status !== "streaming" && (
