@@ -121,11 +121,13 @@ function formatToolName(toolName: string): string {
     .trim()
 }
 
-/* ─── 打字动画指示器（脉冲渐变版） ─── */
+/* ─── 进行中动画（带步骤提示） ─── */
 function TypingIndicator({ name }: { name: string }) {
   return (
-    <div className="flex items-center gap-2 py-1">
-      <span className="text-sm text-muted-foreground">{name} 正在思考</span>
+    <div className="flex items-center gap-2 mb-1.5">
+      <span className="text-xs text-muted-foreground/70">
+        <span className="font-medium mr-1">{name}</span>正在深度思考 / 查询数据...
+      </span>
       <span className="flex items-center gap-0.5">
         {[0, 1, 2].map((i) => (
           <span
@@ -155,7 +157,7 @@ function MeetingHeader() {
 }
 
 /* ─── Supervisor 引导消息 ─── */
-function SupervisorIntro() {
+function SupervisorIntro({ text = "正在召集专家讨论..." }: { text?: string }) {
   return (
     <div className="flex items-start gap-3 pb-3 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <div className="relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 shadow-sm ring-2 ring-background">
@@ -163,7 +165,7 @@ function SupervisorIntro() {
       </div>
       <div className="flex items-center gap-2 mt-1.5">
         <span className="text-xs font-medium text-slate-500 dark:text-slate-400">主管</span>
-        <span className="text-xs text-muted-foreground/70">正在召集专家讨论...</span>
+        <span className="text-xs text-muted-foreground/70">{text}</span>
       </div>
     </div>
   )
@@ -293,7 +295,7 @@ function DelegateAgentMessage({ toolName, state, result, showMeetingHeader }: Ag
       {showMeetingHeader !== false && (
         <>
           <MeetingHeader />
-          <SupervisorIntro />
+          <SupervisorIntro text={isDone ? "专家意见汇总完毕" : "正在召集专家讨论..."} />
         </>
       )}
 
@@ -397,7 +399,11 @@ function DirectToolMessage({ toolName, state, args, result }: AgentMessageProps)
         {args && Object.keys(args).length > 0 && <ToolInput input={args} />}
         {state === "result" && (
           <>
-            {summary && <span className="text-xs text-muted-foreground">📊 {summary}</span>}
+            {summary && (
+              <span className="text-xs text-muted-foreground mt-2 mb-2 inline-block">
+                📊 摘要: {summary}
+              </span>
+            )}
             <ToolOutput output={result} />
           </>
         )}
