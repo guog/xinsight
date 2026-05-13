@@ -43,6 +43,7 @@ const sampleEndpoints: DatasourceEndpoint[] = [
     name: "获取用户",
     description: "获取用户列表",
     params: { method: "GET", path: "/users" },
+    apiSchemaFormat: "natural" as const,
   },
 ]
 
@@ -92,7 +93,13 @@ describe("SqliteDatasourceRepository", () => {
   it("更新数据源 (including endpoints update)", async () => {
     await repo.create(sampleInput)
     const newEndpoints: DatasourceEndpoint[] = [
-      { id: "ep2", name: "新接口", description: "更新后", params: { method: "POST" } },
+      {
+        id: "ep2",
+        name: "新接口",
+        description: "更新后",
+        params: { method: "POST" },
+        apiSchemaFormat: "natural" as const,
+      },
     ]
     const updated = await repo.update("ds-1", { name: "新名称", endpoints: newEndpoints })
     expect(updated.name).toBe("新名称")

@@ -5,6 +5,9 @@ import { wikiUploads } from "@/db/schema"
 import { eq } from "drizzle-orm"
 import { triggerIngest } from "@/lib/wiki/ingest-pipeline"
 import { taskRunner } from "@/lib/wiki/task-runner"
+import { join } from "path"
+
+const WIKI_PATH = process.env.WIKI_PATH || join(process.cwd(), "wiki")
 
 // 触发单文件摄入
 export async function POST(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -14,14 +17,17 @@ export async function POST(_request: NextRequest, { params }: { params: Promise<
   }
 
   const { id } = await params
-  const uploadId = Number(id)
 
-  const [upload] = await db.select().from(wikiUploads).where(eq(wikiUploads.id, uploadId))
+  const [upload] = await db.select().from(wikiUploads).where(eq(wikiUploads.id, id))
   if (!upload) {
     return NextResponse.json({ error: "上传记录不存在" }, { status: 404 })
   }
 
-  const taskId = await triggerIngest(upload, taskRunner)
+  const result = triggerIngest(id, db, wikiUploads, WIKI_PATH, taskRunner)
 
-  return NextResponse.json({ taskId, message: "摄入任务已触发" })
+  if ("error" in result) {
+    return NextResponse.json({ error: result.error }, { status: 400 })
+  }
+
+  return NextResponse.json({ taskId: result.taskId, message: "摄入任务已触发" })
 }

@@ -93,13 +93,13 @@ const mockIntrospectionResponse = {
 }
 
 const originalFetch = globalThis.fetch
-let mockFetchFn: ReturnType<typeof mock>
+let mockFetchFn: ReturnType<typeof vi.fn>
 
 beforeAll(() => {
   mockFetchFn = vi.fn(() =>
     Promise.resolve(new Response(JSON.stringify(mockIntrospectionResponse), { status: 200 })),
   )
-  globalThis.fetch = mockFetchFn as typeof fetch
+  globalThis.fetch = mockFetchFn as unknown as typeof fetch
 })
 
 afterAll(() => {

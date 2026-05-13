@@ -3,6 +3,9 @@ import { getCurrentUser } from "@/lib/auth"
 import { taskRunner } from "@/lib/wiki/task-runner"
 import { lintWiki } from "@/lib/wiki/lint"
 import { autoFixIssues } from "@/lib/wiki/auto-fix"
+import { join } from "path"
+
+const getWikiPath = () => process.env.WIKI_PATH || join(process.cwd(), "wiki")
 
 // 获取所有任务列表
 export async function GET() {
@@ -24,26 +27,27 @@ export async function POST(req: NextRequest) {
 
   try {
     const { type } = await req.json()
+    const wikiPath = getWikiPath()
 
     if (type === "lint") {
       const task = taskRunner.createTask("lint", async (ctx) => {
-        ctx.reportProgress({ stage: "正在检查", percent: 0 })
-        const issues = await lintWiki()
-        ctx.reportProgress({ stage: "检查完成", percent: 100, issues })
-        return issues
+        ctx.reportProgress(0, 0, "正在检查")
+        const report = await lintWiki(wikiPath, { signal: ctx.signal })
+        ctx.reportProgress(report.scannedFiles, report.scannedFiles, "检查完成")
+        return report
       })
       return NextResponse.json(task)
     }
 
     if (type === "auto-fix") {
       const task = taskRunner.createTask("auto-fix", async (ctx) => {
-        ctx.reportProgress({ stage: "正在检查", percent: 0 })
-        const issues = await lintWiki()
-        const fixable = issues.filter((i: { autoFixable: boolean }) => i.autoFixable)
-        ctx.reportProgress({ stage: "正在修复", percent: 50, total: fixable.length })
+        ctx.reportProgress(0, 0, "正在检查")
+        const report = await lintWiki(wikiPath, { signal: ctx.signal })
+        const fixable = report.issues.filter((i) => i.autoFixable)
+        ctx.reportProgress(0, fixable.length, "正在修复")
         await ctx.waitIfPaused()
-        const result = await autoFixIssues(fixable)
-        ctx.reportProgress({ stage: "修复完成", percent: 100, result })
+        const result = await autoFixIssues(fixable, wikiPath, { signal: ctx.signal })
+        ctx.reportProgress(fixable.length, fixable.length, "修复完成")
         return result
       })
       return NextResponse.json(task)
@@ -51,9 +55,9 @@ export async function POST(req: NextRequest) {
 
     if (type === "ingest") {
       const task = taskRunner.createTask("ingest", async (ctx) => {
-        ctx.reportProgress({ stage: "正在导入", percent: 0 })
+        ctx.reportProgress(0, 0, "正在导入")
         // ingest 逻辑由 task runner 外部处理
-        ctx.reportProgress({ stage: "导入完成", percent: 100 })
+        ctx.reportProgress(1, 1, "导入完成")
       })
       return NextResponse.json(task)
     }

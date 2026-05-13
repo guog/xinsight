@@ -3,6 +3,7 @@
  * 策略：用真实 in-memory DB + mock adapter，直接测试 tool execute 逻辑
  */
 import { describe, test, expect, mock } from "bun:test"
+import type { DatasourceEndpoint } from "../types"
 import { Database } from "bun:sqlite"
 import { drizzle } from "drizzle-orm/bun-sqlite"
 import * as schema from "@/db/schema"
@@ -225,7 +226,7 @@ describe("datasourceListTool execute", () => {
               { name: "col2", type: "number" },
             ],
           },
-        } as unknown,
+        } as unknown as DatasourceEndpoint,
       ],
     })
     const result = await executeList(repo)

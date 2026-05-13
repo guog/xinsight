@@ -118,7 +118,7 @@ export async function buildDatasourceContext(agentId: string): Promise<string> {
       .innerJoin(datasources, eq(agentDatasources.datasourceId, datasources.id))
       .where(eq(agentDatasources.agentId, agentId))
 
-    const enabled = rows.filter((r) => r.name) as DatasourceConfig[]
+    const enabled = rows.filter((r) => r.name) as unknown as DatasourceConfig[]
     return formatDatasourceContext(enabled)
   } catch {
     // 降级处理：DB 查询失败时不影响对话

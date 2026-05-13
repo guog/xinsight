@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useRef, useEffect, memo, useMemo } from "react"
+import { useState, useCallback, useRef, useEffect } from "react"
 import dynamic from "next/dynamic"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
@@ -89,7 +89,10 @@ function DesktopChatPage() {
   const prevStatusRef = useRef(status)
   useEffect(() => {
     if (prevStatusRef.current === "streaming" && status === "ready") {
+      // 多次延迟刷新以等待服务端 autoGenerateTitle 完成（LLM 调用约 2-5 秒）
       refreshChats()
+      setTimeout(() => refreshChats(), 3000)
+      setTimeout(() => refreshChats(), 6000)
     }
     prevStatusRef.current = status
   }, [status, refreshChats])

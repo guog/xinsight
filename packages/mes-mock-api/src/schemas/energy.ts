@@ -2,27 +2,25 @@ import { z } from "zod"
 
 export const EnergyConsumptionSchema = z.object({
   id: z.string(),
-  equipmentId: z.string(),
-  equipmentName: z.string(),
+  date: z.coerce.date(),
   lineId: z.string(),
   lineName: z.string(),
-  energyType: z.string(),
-  value: z.number(),
-  unit: z.string(),
-  timestamp: z.string(),
-  shift: z.string(),
+  electricity: z.number(),
+  water: z.number(),
+  gas: z.number(),
+  productionHours: z.number(),
+  energyCostPerUnit: z.number(),
 })
 
 export const EnergyAlarmSchema = z.object({
   id: z.string(),
-  equipmentId: z.string(),
-  equipmentName: z.string(),
   lineId: z.string(),
   lineName: z.string(),
-  alarmType: z.string(),
+  type: z.string(),
+  description: z.string(),
+  timestamp: z.coerce.date(),
+  value: z.number(),
   threshold: z.number(),
-  actualValue: z.number(),
   unit: z.string(),
-  timestamp: z.string(),
   status: z.string(),
 })

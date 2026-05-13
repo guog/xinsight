@@ -11,6 +11,8 @@ export type LintIssue = {
   message: string
   severity: "error" | "warning" | "info"
   autoFixable: boolean
+  category?: string
+  details?: Record<string, unknown>
 }
 export type LintReport = { issues: LintIssue[]; scannedFiles: number; duration: number }
 

@@ -46,15 +46,27 @@ interface ProviderDialogProps {
 
 export function ProviderDialog({ open, onClose, provider, onSaved }: ProviderDialogProps) {
   const isEdit = !!provider
-  const [form, setForm] = useState({
-    id: "",
-    name: "",
-    type: "cloud" as "cloud" | "local",
-    apiFormat: "openai",
-    baseUrl: "",
-    apiKey: "",
-    apiKeyRequired: true,
-  })
+  const [form, setForm] = useState(() =>
+    provider
+      ? {
+          id: provider.id,
+          name: provider.name,
+          type: provider.type,
+          apiFormat: provider.apiFormat,
+          baseUrl: provider.baseUrl,
+          apiKey: "",
+          apiKeyRequired: provider.apiKeyRequired ?? true,
+        }
+      : {
+          id: "",
+          name: "",
+          type: "cloud" as "cloud" | "local",
+          apiFormat: "openai",
+          baseUrl: "",
+          apiKey: "",
+          apiKeyRequired: true,
+        },
+  )
   const [presets, setPresets] = useState<Preset[]>([])
   const [testing, setTesting] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -68,26 +80,19 @@ export function ProviderDialog({ open, onClose, provider, onSaved }: ProviderDia
     }
   }, [open])
 
-  useEffect(() => {
-    if (provider) {
-      setForm({
-        id: provider.id,
-        name: provider.name,
-        type: provider.type,
-        apiFormat: provider.apiFormat,
-        baseUrl: provider.baseUrl,
-        apiKey: "",
-        apiKeyRequired: provider.apiKeyRequired ?? true,
-      })
-    } else {
-      setForm({ id: "", name: "", type: "cloud", apiFormat: "openai", baseUrl: "", apiKey: "", apiKeyRequired: true })
-    }
-  }, [provider, open])
-
-  function applyPreset(presetId: string) {
+  function applyPreset(presetId: string | null) {
+    if (!presetId) return
     const p = presets.find((x) => x.id === presetId)
     if (p) {
-      setForm((f) => ({ ...f, id: p.id, name: p.name, type: p.type, apiFormat: p.apiFormat, baseUrl: p.baseUrl, apiKeyRequired: p.apiKeyRequired }))
+      setForm((f) => ({
+        ...f,
+        id: p.id,
+        name: p.name,
+        type: p.type,
+        apiFormat: p.apiFormat,
+        baseUrl: p.baseUrl,
+        apiKeyRequired: p.apiKeyRequired,
+      }))
     }
   }
 
@@ -113,7 +118,11 @@ export function ProviderDialog({ open, onClose, provider, onSaved }: ProviderDia
     try {
       const url = isEdit ? `/api/admin/providers/${provider!.id}` : "/api/admin/providers"
       const method = isEdit ? "PUT" : "POST"
-      const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) })
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      })
       if (res.ok) {
         onSaved()
         onClose()
@@ -139,25 +148,45 @@ export function ProviderDialog({ open, onClose, provider, onSaved }: ProviderDia
             <div>
               <label className="text-sm font-medium">预设</label>
               <Select onValueChange={applyPreset}>
-                <SelectTrigger><SelectValue placeholder="选择预设..." /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="选择预设..." />
+                </SelectTrigger>
                 <SelectContent>
-                  {presets.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                  {presets.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
           )}
           <div>
             <label className="text-sm font-medium">名称</label>
-            <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+            <Input
+              value={form.name}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            />
           </div>
           <div>
             <label className="text-sm font-medium">ID</label>
-            <Input value={form.id} onChange={(e) => setForm((f) => ({ ...f, id: e.target.value }))} disabled={isEdit} />
+            <Input
+              value={form.id}
+              onChange={(e) => setForm((f) => ({ ...f, id: e.target.value }))}
+              disabled={isEdit}
+            />
           </div>
           <div>
             <label className="text-sm font-medium">类型</label>
-            <Select value={form.type} onValueChange={(v) => setForm((f) => ({ ...f, type: v as "cloud" | "local" }))}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <Select
+              value={form.type}
+              onValueChange={(v) =>
+                setForm((f) => ({ ...f, type: (v as "cloud" | "local") ?? f.type }))
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="cloud">云端</SelectItem>
                 <SelectItem value="local">本地</SelectItem>
@@ -166,8 +195,13 @@ export function ProviderDialog({ open, onClose, provider, onSaved }: ProviderDia
           </div>
           <div>
             <label className="text-sm font-medium">API 格式</label>
-            <Select value={form.apiFormat} onValueChange={(v) => setForm((f) => ({ ...f, apiFormat: v }))}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <Select
+              value={form.apiFormat}
+              onValueChange={(v) => setForm((f) => ({ ...f, apiFormat: v ?? f.apiFormat }))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="openai">OpenAI</SelectItem>
                 <SelectItem value="anthropic">Anthropic</SelectItem>
@@ -178,14 +212,27 @@ export function ProviderDialog({ open, onClose, provider, onSaved }: ProviderDia
           </div>
           <div>
             <label className="text-sm font-medium">Base URL</label>
-            <Input value={form.baseUrl} onChange={(e) => setForm((f) => ({ ...f, baseUrl: e.target.value }))} placeholder="https://api.example.com/v1" />
+            <Input
+              value={form.baseUrl}
+              onChange={(e) => setForm((f) => ({ ...f, baseUrl: e.target.value }))}
+              placeholder="https://api.example.com/v1"
+            />
           </div>
           <div>
             <label className="text-sm font-medium">API Key</label>
-            <Input type="password" value={form.apiKey} onChange={(e) => setForm((f) => ({ ...f, apiKey: e.target.value }))} placeholder={isEdit ? "留空则不修改" : ""} />
+            <Input
+              type="password"
+              value={form.apiKey}
+              onChange={(e) => setForm((f) => ({ ...f, apiKey: e.target.value }))}
+              placeholder={isEdit ? "留空则不修改" : ""}
+            />
           </div>
           <div className="flex items-center gap-2">
-            <input type="checkbox" checked={form.apiKeyRequired} onChange={(e) => setForm((f) => ({ ...f, apiKeyRequired: e.target.checked }))} />
+            <input
+              type="checkbox"
+              checked={form.apiKeyRequired}
+              onChange={(e) => setForm((f) => ({ ...f, apiKeyRequired: e.target.checked }))}
+            />
             <label className="text-sm">需要 API Key</label>
           </div>
         </div>

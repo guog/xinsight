@@ -138,7 +138,7 @@ async function fixUploadIntegrity(issue: LintIssue, wikiPath: string): Promise<v
   const fullSourcePath = join(wikiPath, sourcePath)
   const result = await extractText(fullSourcePath)
   const targetPath = join(wikiPath, issue.file)
-  await writeFile(targetPath, result, "utf-8")
+  await writeFile(targetPath, result.text, "utf-8")
 }
 
 // 主函数：自动修复所有可修复的问题

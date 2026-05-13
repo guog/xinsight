@@ -94,8 +94,8 @@ export function createTTSSession(
     }
   }
 
-  ws.onerror = (err: Error) => {
-    session.onError(err)
+  ws.onerror = (err) => {
+    session.onError(err instanceof Error ? err : new Error(String(err)))
   }
 
   return session

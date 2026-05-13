@@ -12,7 +12,7 @@ const consumptionRoute = createRoute({
   tags: ["能源管理"],
   summary: "获取能耗数据",
   request: {
-    query: z.object({ lineId: z.string().optional(), energyType: z.string().optional() }),
+    query: z.object({ lineId: z.string().optional() }),
   },
   responses: {
     200: {
@@ -23,9 +23,8 @@ const consumptionRoute = createRoute({
 })
 energyRoutes.openapi(consumptionRoute, (c) => {
   let result = [...energyConsumption]
-  const { lineId, energyType } = c.req.valid("query")
+  const { lineId } = c.req.valid("query")
   if (lineId) result = result.filter((r) => r.lineId === lineId)
-  if (energyType) result = result.filter((r) => r.energyType === energyType)
   return c.json({ data: result }, 200)
 })
 

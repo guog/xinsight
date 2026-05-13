@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import {
   Plus,
   Settings,
@@ -16,9 +16,9 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { API_BASE } from "@/lib/api"
-import { useUser } from "@/hooks/use-user"
 import { useSwipe } from "@/hooks/use-swipe"
+import { useChats } from "@/hooks/use-chats"
+import { useUser } from "@/hooks/use-user"
 
 interface ChatItem {
   id: string
@@ -34,8 +34,6 @@ interface SidebarProps {
   onDeleteChat?: (id: string) => void
 }
 
-const apiBase = typeof window !== "undefined" && API_BASE ? API_BASE : ""
-
 export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }: SidebarProps) {
   const [isOpen, setIsOpen] = useState(true)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
@@ -47,7 +45,23 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
     onSwipeRight: openSidebar,
     onSwipeLeft: closeSidebar,
   })
-  const [chatList, setChatList] = useState<ChatItem[]>([])
+  const {
+    chats: sharedChats,
+    deleteChat: sharedDeleteChat,
+    updateChat: sharedUpdateChat,
+    refresh: refreshChats,
+  } = useChats()
+  const chatList = useMemo(
+    () =>
+      sharedChats.map((c) => ({
+        id: c.id,
+        title: c.title,
+        agentId: c.agentId,
+        updatedAt: c.updatedAt,
+      })),
+    [sharedChats],
+  )
+
   const [searchQuery, setSearchQuery] = useState("")
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editTitle, setEditTitle] = useState("")
@@ -55,13 +69,10 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
   const router = useRouter()
   const { user, isAdmin } = useUser()
 
-  // 加载对话列表
+  // activeChatId 变化时刷新
   useEffect(() => {
-    fetch(`${apiBase}/api/chats`)
-      .then((res) => (res.ok ? res.json() : []))
-      .then((data) => setChatList(data))
-      .catch(() => {})
-  }, [activeChatId]) // activeChatId 变化时刷新
+    refreshChats()
+  }, [activeChatId, refreshChats])
 
   // 重命名对话
   const handleRename = async (id: string) => {
@@ -71,12 +82,7 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
       return
     }
     try {
-      await fetch(`${apiBase}/api/chats/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: trimmed }),
-      })
-      setChatList((prev) => prev.map((c) => (c.id === id ? { ...c, title: trimmed } : c)))
+      await sharedUpdateChat(id, { title: trimmed })
     } catch {}
     setEditingId(null)
   }
@@ -86,8 +92,10 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
     if (!confirm("确定要删除这个对话吗？")) return
     if (onDeleteChat) {
       onDeleteChat(id)
-      setChatList((prev) => prev.filter((c) => c.id !== id))
     }
+    try {
+      await sharedDeleteChat(id)
+    } catch {}
   }
 
   const sidebarContent = (
