@@ -94,10 +94,8 @@ export function MobileChatDrawer({
             filtered.map((chat) => (
               <div
                 key={chat.id}
-                className={`group flex items-center gap-2 px-3 py-3 rounded-xl mb-1 transition-colors ${
-                  activeChatId === chat.id
-                    ? "bg-primary/10 border border-primary/20"
-                    : "active:bg-muted"
+                className={`group flex items-center justify-between px-2 py-3 rounded-lg -mx-2 ${
+                  chat.id === activeChatId ? "bg-muted" : "active:bg-muted"
                 }`}
               >
                 <button onClick={() => onSelectChat(chat)} className="flex-1 text-left min-w-0">
@@ -129,7 +127,7 @@ export function MobileChatDrawer({
                 ) : (
                   <button
                     onClick={() => setConfirmDelete(chat.id)}
-                    className="p-2 rounded-lg text-muted-foreground active:text-destructive active:bg-destructive/10 transition-colors"
+                    className="p-2 rounded-lg text-muted-foreground active:text-destructive active:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100 touch-show"
                   >
                     <Trash2 className="size-4" />
                   </button>

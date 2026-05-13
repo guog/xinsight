@@ -212,7 +212,7 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
                 {onDeleteChat && editingId !== chat.id && (
                   <button
                     onClick={(e) => handleDelete(e, chat.id)}
-                    className="opacity-0 group-hover:opacity-100 touch-show p-1 rounded hover:bg-destructive/10 hover:text-destructive transition-opacity duration-200"
+                    className="opacity-0 group-hover:opacity-100 touch-show p-1 rounded hover:bg-destructive/10 hover:text-destructive transition-opacity duration-200 ml-1 shrink-0"
                     title="删除对话"
                   >
                     <Trash2 className="size-3.5" />
