@@ -21,7 +21,7 @@ export default function SettingsPage() {
 }
 
 function DesktopSettingsPage() {
-  const { theme, setTheme } = useTheme()
+  const { theme, setTheme, density, setDensity } = useTheme()
   const { modelId, setModelId } = useModel()
   const { isAdmin } = useUser()
   const [providers, setProviders] = useState<{ id: string; name: string }[]>([])
@@ -49,27 +49,56 @@ function DesktopSettingsPage() {
         <h1 className="text-xl font-semibold">设置</h1>
       </header>
 
-      {/* 主题设置 */}
+      {/* 外观设置 */}
       <section className="mb-6">
         <h2 className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">
           外观
         </h2>
-        <div className="bg-card rounded-xl border border-border p-4">
-          <div className="flex gap-2">
-            {themeOptions.map(({ value, label, icon: Icon }) => (
+        <div className="bg-card rounded-xl border border-border p-4 space-y-6">
+          <div>
+            <h3 className="text-sm font-medium mb-2">主题</h3>
+            <div className="flex gap-2">
+              {themeOptions.map(({ value, label, icon: Icon }) => (
+                <button
+                  key={value}
+                  onClick={() => setTheme(value)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all duration-200 ${
+                    theme === value
+                      ? "border-primary bg-primary/10 text-primary shadow-sm shadow-primary/10 font-medium"
+                      : "border-border hover:bg-muted"
+                  }`}
+                >
+                  <Icon className="size-4" />
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-medium mb-2">显示密度</h3>
+            <div className="flex gap-2">
               <button
-                key={value}
-                onClick={() => setTheme(value)}
+                onClick={() => setDensity("comfortable")}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all duration-200 ${
-                  theme === value
+                  density === "comfortable"
                     ? "border-primary bg-primary/10 text-primary shadow-sm shadow-primary/10 font-medium"
                     : "border-border hover:bg-muted"
                 }`}
               >
-                <Icon className="size-4" />
-                {label}
+                舒适
               </button>
-            ))}
+              <button
+                onClick={() => setDensity("compact")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all duration-200 ${
+                  density === "compact"
+                    ? "border-primary bg-primary/10 text-primary shadow-sm shadow-primary/10 font-medium"
+                    : "border-border hover:bg-muted"
+                }`}
+              >
+                紧凑
+              </button>
+            </div>
           </div>
         </div>
       </section>

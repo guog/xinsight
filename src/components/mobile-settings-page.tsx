@@ -5,8 +5,10 @@ import { Moon, Sun, Monitor, User } from "lucide-react"
 import { useTheme } from "@/hooks/use-theme"
 import { useUser } from "@/hooks/use-user"
 
+import { cn } from "@/lib/utils"
+
 export function MobileSettingsPage() {
-  const { theme, setTheme } = useTheme()
+  const { theme, setTheme, density, setDensity } = useTheme()
   const { user } = useUser()
   const router = useRouter()
 
@@ -64,6 +66,27 @@ export function MobileSettingsPage() {
                 <span className="text-xs font-medium">{label}</span>
               </button>
             ))}
+          </div>
+
+          <div className="px-4 py-3 border-t border-border flex items-center justify-between">
+            <div className="space-y-0.5">
+              <h2 className="text-sm font-medium">紧凑模式</h2>
+              <p className="text-xs text-muted-foreground">缩小气泡间距和字号，提升信息密度</p>
+            </div>
+            <button
+              onClick={() => setDensity(density === "compact" ? "comfortable" : "compact")}
+              className={cn(
+                "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
+                density === "compact" ? "bg-primary" : "bg-muted",
+              )}
+            >
+              <span
+                className={cn(
+                  "inline-block size-5 transform rounded-full bg-white transition-transform shadow-sm",
+                  density === "compact" ? "translate-x-5" : "translate-x-1",
+                )}
+              />
+            </button>
           </div>
         </div>
 
