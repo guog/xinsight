@@ -18,7 +18,10 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts"
-import type { ChartConfig } from "@/lib/chart/parse-chart-block"
+import { Download, Check } from "lucide-react"
+import { useState, useCallback, useRef } from "react"
+import { toPng } from "html-to-image"
+import { ChartConfig } from "@/lib/chart/parse-chart-block"
 
 const COLORS = [
   "#3b82f6", // blue
@@ -36,6 +39,35 @@ interface ChartBlockProps {
 }
 
 export function ChartBlock({ config }: ChartBlockProps) {
+  const chartRef = useRef<HTMLDivElement>(null)
+  const [isExporting, setIsExporting] = useState(false)
+  const [exportSuccess, setExportSuccess] = useState(false)
+
+  const handleExport = useCallback(async () => {
+    if (!chartRef.current) return
+
+    try {
+      setIsExporting(true)
+      const dataUrl = await toPng(chartRef.current, {
+        cacheBust: true,
+        backgroundColor: "hsl(var(--card))",
+        style: { padding: "1rem" },
+      })
+
+      const link = document.createElement("a")
+      link.download = `${config.title || "chart"}-${new Date().getTime()}.png`
+      link.href = dataUrl
+      link.click()
+
+      setExportSuccess(true)
+      setTimeout(() => setExportSuccess(false), 2000)
+    } catch (err) {
+      console.error("Failed to export chart:", err)
+    } finally {
+      setIsExporting(false)
+    }
+  }, [config.title])
+
   const { type, title, data, series, xKey = "name" } = config
 
   // Infer series keys from data if not specified
@@ -48,7 +80,22 @@ export function ChartBlock({ config }: ChartBlockProps) {
   if (!data.length) return null
 
   return (
-    <div className="my-4 rounded-xl border border-border/50 bg-card p-4 shadow-sm">
+    <div
+      className="group relative my-4 rounded-xl border border-border/50 bg-card p-4 shadow-sm"
+      ref={chartRef}
+    >
+      <button
+        onClick={handleExport}
+        disabled={isExporting}
+        className="absolute top-2 right-2 p-1.5 rounded-md bg-muted/50 opacity-0 group-hover:opacity-100 hover:bg-muted transition-all disabled:opacity-50 z-10 text-muted-foreground hover:text-foreground"
+        title="导出为图片"
+      >
+        {exportSuccess ? (
+          <Check className="size-4 text-green-500" />
+        ) : (
+          <Download className="size-4" />
+        )}
+      </button>
       {title && <h4 className="mb-3 text-sm font-semibold text-foreground">{title}</h4>}
       <ResponsiveContainer width="100%" height={280}>
         {type === "pie" ? (
