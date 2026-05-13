@@ -309,6 +309,8 @@ export function MobileChatPage() {
               >
                 <Square className="size-4" />
               </button>
+            ) : status === "submitted" ? (
+              <PromptInputSubmit status="generating" disabled={false} />
             ) : (
               <PromptInputSubmit status="ready" disabled={!input.trim()} />
             )}
