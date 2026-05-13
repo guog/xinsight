@@ -199,6 +199,7 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
                 ) : (
                   <span
                     className="truncate flex-1 min-w-0 text-left"
+                    title={chat.title || "新对话"}
                     onDoubleClick={(e) => {
                       e.stopPropagation()
                       setEditingId(chat.id)

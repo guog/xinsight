@@ -101,7 +101,9 @@ export function MobileChatDrawer({
                 }`}
               >
                 <button onClick={() => onSelectChat(chat)} className="flex-1 text-left min-w-0">
-                  <p className="text-sm font-medium truncate">{chat.title}</p>
+                  <p className="text-sm font-medium truncate" title={chat.title || "新对话"}>
+                    {chat.title || "新对话"}
+                  </p>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {new Date(chat.updatedAt).toLocaleDateString("zh-CN")}
                   </p>
