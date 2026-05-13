@@ -334,9 +334,15 @@ export const MessageResponse = memo(
       {...props}
     />
   ),
-  (prevProps, nextProps) =>
-    prevProps.children === nextProps.children &&
-    nextProps.isAnimating === prevProps.isAnimating
+  (prevProps, nextProps) => {
+    // Return true if props are equal (prevent re-render)
+    if (prevProps.children !== nextProps.children) return false;
+    if (prevProps.isAnimating !== nextProps.isAnimating) return false;
+    if (prevProps.mode !== nextProps.mode) return false;
+    if (prevProps.dir !== nextProps.dir) return false;
+    if (prevProps.className !== nextProps.className) return false;
+    return true;
+  }
 );
 
 MessageResponse.displayName = "MessageResponse";

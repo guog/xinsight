@@ -71,8 +71,8 @@ function DesktopChatPage() {
   const chatApiUrl = API_BASE ? `${API_BASE}/api/chat` : "/api/chat"
 
   const { messages, sendMessage, status, setMessages, stop, regenerate } = useChat({
-    // 节流：每 100ms 批量合并流式更新，避免多 Agent 并行时每 token 触发 re-render
-    experimental_throttle: 100,
+    // 节流：每 50ms 批量合并流式更新，避免多 Agent 并行时每 token 触发 re-render，由 100 降低至 50 提升流畅度同时兼顾性能
+    experimental_throttle: 50,
     transport: new DefaultChatTransport({
       api: chatApiUrl,
       body: {
