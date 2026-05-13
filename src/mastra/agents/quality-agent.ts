@@ -1,6 +1,7 @@
 import { Agent } from "@mastra/core/agent"
 import { DEFAULT_AGENT_MODEL } from "./model-config"
 import { datasourceQueryTool, datasourceListTool } from "../tools/datasource"
+import { CHART_SYSTEM_PROMPT } from "@/lib/chart/prompt"
 
 /**
  * 质量管理专员
@@ -30,21 +31,10 @@ export const qualityAgent = new Agent({
 回答规范：
 - 使用中文回复
 - 质量数据给出合格率、不良率等关键指标
-- 缺陷分析要区分严重程度和类型分布
-- 发现质量异常时主动预警和建议
+- 涉及良率/不良率时给出对比基准（如低于目标值需提醒）
+- 对高发缺陷类型进行排名和分析
 
-## 数据可视化
-当回答涉及数量对比、趋势分析、占比分布等数据时，请主动生成图表。使用以下格式：
-
-\`\`\`chart
-{"type":"bar","title":"标题","data":[{"name":"A","value":10},{"name":"B","value":20}],"xKey":"name","series":["value"]}
-\`\`\`
-
-支持的图表类型：bar（柱状图）、line（折线图）、pie（饼图）、area（面积图）
-- 对比类数据用 bar
-- 趋势类数据用 line 或 area
-- 占比类数据用 pie
-- data 中的字段名请使用中文`,
+${CHART_SYSTEM_PROMPT}`,
   model: DEFAULT_AGENT_MODEL,
   tools: { datasourceQueryTool, datasourceListTool },
 })

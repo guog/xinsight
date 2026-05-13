@@ -1,6 +1,7 @@
 import { Agent } from "@mastra/core/agent"
 import { DEFAULT_AGENT_MODEL } from "./model-config"
 import { datasourceQueryTool, datasourceListTool } from "../tools/datasource"
+import { CHART_SYSTEM_PROMPT } from "@/lib/chart/prompt"
 
 /**
  * 生产管理专员
@@ -31,18 +32,7 @@ export const productionAgent = new Agent({
 - 涉及产量/进度时给出百分比和对比
 - 如有异常（如延期工单、低完成率）主动提醒
 
-## 数据可视化
-当回答涉及数量对比、趋势分析、占比分布等数据时，请主动生成图表。使用以下格式：
-
-\`\`\`chart
-{"type":"bar","title":"标题","data":[{"name":"A","value":10},{"name":"B","value":20}],"xKey":"name","series":["value"]}
-\`\`\`
-
-支持的图表类型：bar（柱状图）、line（折线图）、pie（饼图）、area（面积图）
-- 对比类数据用 bar
-- 趋势类数据用 line 或 area
-- 占比类数据用 pie
-- data 中的字段名请使用中文`,
+${CHART_SYSTEM_PROMPT}`,
   model: DEFAULT_AGENT_MODEL,
   tools: { datasourceQueryTool, datasourceListTool },
 })

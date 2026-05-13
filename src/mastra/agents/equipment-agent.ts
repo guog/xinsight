@@ -1,6 +1,7 @@
 import { Agent } from "@mastra/core/agent"
 import { DEFAULT_AGENT_MODEL } from "./model-config"
 import { datasourceQueryTool, datasourceListTool } from "../tools/datasource"
+import { CHART_SYSTEM_PROMPT } from "@/lib/chart/prompt"
 
 /**
  * 设备管理专员
@@ -30,21 +31,10 @@ export const equipmentAgent = new Agent({
 回答规范：
 - 使用中文回复
 - 设备状态要给出可用率、故障率等 OEE 相关指标
-- 故障设备要标注严重程度和影响范围
-- 维保到期的设备主动提醒
+- 关注 OEE（设备综合效率）、MTBF（平均故障间隔）、MTTR（平均修复时间）
+- 如有设备处于故障或离线状态，主动提醒
 
-## 数据可视化
-当回答涉及数量对比、趋势分析、占比分布等数据时，请主动生成图表。使用以下格式：
-
-\`\`\`chart
-{"type":"bar","title":"标题","data":[{"name":"A","value":10},{"name":"B","value":20}],"xKey":"name","series":["value"]}
-\`\`\`
-
-支持的图表类型：bar（柱状图）、line（折线图）、pie（饼图）、area（面积图）
-- 对比类数据用 bar
-- 趋势类数据用 line 或 area
-- 占比类数据用 pie
-- data 中的字段名请使用中文`,
+${CHART_SYSTEM_PROMPT}`,
   model: DEFAULT_AGENT_MODEL,
   tools: { datasourceQueryTool, datasourceListTool },
 })
