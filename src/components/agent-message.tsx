@@ -38,6 +38,7 @@ interface AgentMessageProps {
   result?: unknown
   /** 是否显示会议头部（首个 agent 委派才显示） */
   showMeetingHeader?: boolean
+  className?: string
 }
 
 function isSupervisorDelegation(toolName: string): boolean {
@@ -260,12 +261,13 @@ function CollapsibleToolResult({
 }
 
 /* ─── 主组件 ─── */
-export const AgentMessage = memo(function AgentMessage({
+export function AgentMessage({
   toolName,
   state,
   args,
   result,
   showMeetingHeader,
+  className,
 }: AgentMessageProps) {
   if (isSupervisorDelegation(toolName)) {
     return (
@@ -275,14 +277,29 @@ export const AgentMessage = memo(function AgentMessage({
         args={args}
         result={result}
         showMeetingHeader={showMeetingHeader}
+        className={className}
       />
     )
   }
-  return <DirectToolMessage toolName={toolName} state={state} args={args} result={result} />
-})
 
+  return (
+    <DirectToolMessage
+      toolName={toolName}
+      state={state}
+      args={args}
+      result={result}
+      className={className}
+    />
+  )
+}
 /* ─── 会议风格：子 Agent 发言气泡 ─── */
-function DelegateAgentMessage({ toolName, state, result, showMeetingHeader }: AgentMessageProps) {
+function DelegateAgentMessage({
+  toolName,
+  state,
+  result,
+  showMeetingHeader,
+  className,
+}: AgentMessageProps) {
   const agentInfo = AGENT_MAP[toolName] ?? DEFAULT_AGENT
   const isDone = state === "result"
   const agentText = isDone ? extractAgentResultText(result) : null
@@ -299,14 +316,19 @@ function DelegateAgentMessage({ toolName, state, result, showMeetingHeader }: Ag
         </>
       )}
 
-      <div className="relative flex items-start gap-3 py-3 group animate-in fade-in slide-in-from-bottom-3 duration-500 fill-mode-backwards">
+      <div
+        className={cn(
+          "relative flex items-start gap-3 py-3 group animate-in fade-in slide-in-from-bottom-3 duration-500 fill-mode-backwards chat-message",
+          className,
+        )}
+      >
         {/* 时间线连接线 */}
         <div className="absolute left-[18px] top-12 bottom-0 w-px bg-gradient-to-b from-border/40 to-transparent group-last:hidden" />
 
         {/* 头像圆圈 */}
         <div
           className={cn(
-            "relative z-10 flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-bold shadow-md ring-2 ring-background transition-transform duration-300 group-hover:scale-110",
+            "relative z-10 flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-bold shadow-md ring-2 ring-background transition-transform duration-300 group-hover:scale-110 chat-avatar",
             agentInfo.avatarBg,
             agentInfo.color,
           )}
@@ -383,31 +405,33 @@ function DelegateAgentMessage({ toolName, state, result, showMeetingHeader }: Ag
 }
 
 /* ─── 直接工具调用（非 Agent 委派） ─── */
-function DirectToolMessage({ toolName, state, args, result }: AgentMessageProps) {
+function DirectToolMessage({ toolName, state, args, result, className }: AgentMessageProps) {
   const toolInfo = TOOL_AGENT_MAP[toolName]
   const toolState = mapToolState(state)
   const summary = state === "result" ? getDataSummary(result) : null
 
   return (
-    <Tool>
-      <ToolHeader
-        title={toolInfo?.toolLabel ?? formatToolName(toolName)}
-        state={toolState}
-        toolName={toolName}
-      />
-      <ToolContent>
-        {args && Object.keys(args).length > 0 && <ToolInput input={args} />}
-        {state === "result" && (
-          <>
-            {summary && (
-              <span className="text-xs text-muted-foreground mt-2 mb-2 inline-block">
-                📊 摘要: {summary}
-              </span>
-            )}
-            <ToolOutput output={result} />
-          </>
-        )}
-      </ToolContent>
-    </Tool>
+    <div className={cn("chat-message", className)}>
+      <Tool>
+        <ToolHeader
+          title={toolInfo?.toolLabel ?? formatToolName(toolName)}
+          state={toolState}
+          toolName={toolName}
+        />
+        <ToolContent>
+          {args && Object.keys(args).length > 0 && <ToolInput input={args} />}
+          {state === "result" && (
+            <>
+              {summary && (
+                <span className="text-xs text-muted-foreground mt-2 mb-2 inline-block">
+                  📊 摘要: {summary}
+                </span>
+              )}
+              <ToolOutput output={result} />
+            </>
+          )}
+        </ToolContent>
+      </Tool>
+    </div>
   )
 }

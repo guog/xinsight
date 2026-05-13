@@ -130,6 +130,23 @@
   }
 }
 
+/* Compact mode utilities */
+html.density-compact .chat-message {
+  @apply py-3;
+}
+html.density-compact .chat-message-content {
+  @apply text-sm leading-relaxed;
+}
+html.density-compact .chat-avatar {
+  @apply size-7;
+}
+html.density-compact .chat-message-container {
+  @apply gap-3;
+}
+html.density-compact [data-streamdown] p {
+  @apply mb-2;
+}
+
 /* Gradient background utility */
 .bg-gradient-brand {
   background: linear-gradient(
