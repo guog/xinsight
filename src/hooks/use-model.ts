@@ -3,7 +3,7 @@
 import { useCallback, useSyncExternalStore } from "react"
 
 const STORAGE_KEY = "xinsight:modelId"
-const FALLBACK_MODEL = "deepseek/deepseek-v4-flash"
+const FALLBACK_MODEL = process.env.NEXT_PUBLIC_DEFAULT_MODEL || "deepseek/deepseek-v4-pro"
 
 function subscribeToStorage(callback: () => void) {
   const handler = (e: StorageEvent) => {
