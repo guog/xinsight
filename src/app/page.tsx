@@ -4,7 +4,7 @@ import { useState, useCallback, useRef, useEffect } from "react"
 import dynamic from "next/dynamic"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
-import { Square, RotateCcw, Mic } from "lucide-react"
+import { Square, RotateCcw, Mic, Copy, Download, Check } from "lucide-react"
 import { API_BASE } from "@/lib/api"
 import { formatMessageTime } from "@/lib/format-time"
 import { ErrorBoundary } from "@/components/error-boundary"
@@ -13,7 +13,13 @@ import {
   ConversationContent,
   ConversationScrollButton,
 } from "@/components/ai-elements/conversation"
-import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message"
+import {
+  Message,
+  MessageContent,
+  MessageResponse,
+  MessageActions,
+  MessageAction,
+} from "@/components/ai-elements/message"
 import {
   PromptInput,
   PromptInputTextarea,
@@ -267,6 +273,13 @@ function DesktopChatPage() {
                                 }
                                 case "text": {
                                   const segments = parseChartBlocks(part.text)
+
+                                  // Find full text content for copy action
+                                  const fullText = segments
+                                    .filter((s) => s.type === "text")
+                                    .map((s) => (s as { content: string }).content)
+                                    .join("\n")
+                                    .trim()
                                   return segments.map((seg, j) =>
                                     seg.type === "chart" ? (
                                       <ChartBlock
@@ -274,9 +287,28 @@ function DesktopChatPage() {
                                         config={seg.config}
                                       />
                                     ) : (
-                                      <MessageResponse key={`${message.id}-${i}-text-${j}`}>
-                                        {seg.content}
-                                      </MessageResponse>
+                                      <div
+                                        key={`${message.id}-${i}-text-${j}`}
+                                        className="group/text relative"
+                                      >
+                                        <MessageResponse>{seg.content}</MessageResponse>
+                                        {!isLoading &&
+                                          message.role === "assistant" &&
+                                          j === segments.length - 1 && (
+                                            <div className="mt-2 opacity-0 group-hover/text:opacity-100 transition-opacity">
+                                              <MessageActions>
+                                                <MessageAction
+                                                  tooltip="复制为格式化报告"
+                                                  onClick={() => {
+                                                    navigator.clipboard.writeText(fullText)
+                                                  }}
+                                                >
+                                                  <Copy className="size-4" />
+                                                </MessageAction>
+                                              </MessageActions>
+                                            </div>
+                                          )}
+                                      </div>
                                     ),
                                   )
                                 }
