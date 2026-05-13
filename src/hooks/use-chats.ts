@@ -95,8 +95,19 @@ export function useChats() {
   }, [])
 
   const refresh = useCallback(async () => {
-    fetchPromise = null
-    ensureFetched()
+    if (fetchPromise) return fetchPromise
+    fetchPromise = fetch(`${apiBase}/api/chats`)
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data: Chat[]) => {
+        cachedChats = data
+        notifyListeners()
+        fetchPromise = null
+      })
+      .catch((e) => {
+        console.error("获取对话列表失败:", e)
+        fetchPromise = null
+      })
+    return fetchPromise
   }, [])
 
   return { chats, loading, createChat, updateChat, deleteChat, refresh }
