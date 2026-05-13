@@ -115,13 +115,7 @@ describe("triggerIngest", () => {
   }
 
   it("找不到 uploadId 时返回错误", () => {
-    const result = triggerIngest(
-      "nonexistent",
-      db as unknown as Record<string, unknown>,
-      wikiUploads,
-      tmpDir,
-      runner,
-    )
+    const result = triggerIngest("nonexistent", db, wikiUploads, tmpDir, runner)
     expect(result).toEqual({ error: "上传记录不存在: nonexistent" })
   })
 
@@ -132,16 +126,9 @@ describe("triggerIngest", () => {
 
     const mockIngestFn = async () => ({ pages: ["notes/test-doc.md"] })
 
-    const result = triggerIngest(
-      "upload-1",
-      db as unknown as Record<string, unknown>,
-      wikiUploads,
-      tmpDir,
-      runner,
-      {
-        ingestFn: mockIngestFn,
-      },
-    )
+    const result = triggerIngest("upload-1", db, wikiUploads, tmpDir, runner, {
+      ingestFn: mockIngestFn,
+    })
     expect("taskId" in result).toBe(true)
 
     const taskId = (result as { taskId: string }).taskId
@@ -159,16 +146,9 @@ describe("triggerIngest", () => {
     insertUpload("upload-2", join(tmpDir, "missing.pdf"))
 
     const mockIngestFn = async () => ({ pages: [] })
-    const result = triggerIngest(
-      "upload-2",
-      db as unknown as Record<string, unknown>,
-      wikiUploads,
-      tmpDir,
-      runner,
-      {
-        ingestFn: mockIngestFn,
-      },
-    )
+    const result = triggerIngest("upload-2", db, wikiUploads, tmpDir, runner, {
+      ingestFn: mockIngestFn,
+    })
     expect("taskId" in result).toBe(true)
 
     const taskId = (result as { taskId: string }).taskId
@@ -188,16 +168,9 @@ describe("triggerIngest", () => {
       throw new Error("LLM 调用失败")
     }
 
-    const result = triggerIngest(
-      "upload-3",
-      db as unknown as Record<string, unknown>,
-      wikiUploads,
-      tmpDir,
-      runner,
-      {
-        ingestFn: mockIngestFn as unknown as () => Promise<{ pages: string[] }>,
-      },
-    )
+    const result = triggerIngest("upload-3", db, wikiUploads, tmpDir, runner, {
+      ingestFn: mockIngestFn as unknown as () => Promise<{ pages: string[] }>,
+    })
     expect("taskId" in result).toBe(true)
 
     const taskId = (result as { taskId: string }).taskId

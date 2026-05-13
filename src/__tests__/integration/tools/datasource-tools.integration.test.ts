@@ -85,7 +85,15 @@ describe("datasource tools 集成测试", () => {
         type: "rest",
         auth: { type: "none" },
         config: { baseUrl: mockRestUrl },
-        endpoints: [{ id: "ep-1", name: "订单查询", description: "查询订单", params: {} }],
+        endpoints: [
+          {
+            id: "ep-1",
+            name: "订单查询",
+            description: "查询订单",
+            params: {},
+            apiSchemaFormat: "natural" as const,
+          },
+        ],
         enabled: true,
       })
       await repo.create({

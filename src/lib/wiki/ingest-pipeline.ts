@@ -165,7 +165,8 @@ type TriggerIngestOptions = {
  */
 export function triggerIngest(
   uploadId: string,
-  db: BunSQLiteDatabase,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  db: BunSQLiteDatabase<any>,
   wikiUploadsTable: typeof WikiUploadsTable,
   wikiPath: string,
   runner: TaskRunner,

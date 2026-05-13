@@ -82,7 +82,7 @@ export function getSessionCookieOptions(sessionId: string) {
 }
 
 /** 登出 → 删除 session（返回 sessionId 供 route handler 清除 cookie） */
-export async function logoutUser(req?: Request) {
+export async function logoutUser(_req?: Request) {
   const cookieStore = await cookies()
   const sessionId = cookieStore.get(SESSION_COOKIE)?.value
   if (sessionId) {
@@ -141,5 +141,5 @@ export function handleAuthError(error: unknown): Response {
     const status = error.message === "未登录" ? 401 : 403
     return Response.json({ error: error.message }, { status })
   }
-  return Response.json({ error: "服务器内部错误" }, { status: 500 })
+  return Response.json({ error: "未知认证错误" }, { status: 500 })
 }

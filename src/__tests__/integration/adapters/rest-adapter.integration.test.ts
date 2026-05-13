@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterEach, afterAll } from "vitest"
 import { http, HttpResponse } from "msw"
 import { server } from "../helpers/mock-server"
 import { RestAdapter } from "../../../mastra/tools/datasource/adapters/rest-adapter"
-import type { DatasourceConfig } from "../../../mastra/tools/datasource/adapters/rest-adapter"
+import type { DatasourceConfig } from "../../../mastra/tools/datasource/types"
 
 // 基础配置：带 Bearer 认证
 const baseConfig: DatasourceConfig = {
@@ -117,6 +117,8 @@ describe("RestAdapter 集成测试", () => {
     })
 
     expect(result.success).toBe(true)
-    expect(result.data.orders[0].status).toBe("pending")
+    expect(
+      (result.data as Record<string, unknown[]>).orders[0] as Record<string, unknown>,
+    ).toHaveProperty("status", "pending")
   })
 })

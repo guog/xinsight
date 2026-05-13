@@ -4,7 +4,7 @@ import { count, eq } from "drizzle-orm"
 
 import { db } from "@/db"
 import { chats, messages } from "@/db/schema"
-import { wikiLLMProvider, getWikiModelSlug } from "@/lib/wiki/llm"
+import { wikiLLMProvider } from "@/lib/wiki/llm"
 
 /**
  * 持久化用户消息和 assistant 回复到数据库
@@ -56,9 +56,10 @@ export async function autoGenerateTitle(chatId: string, lastUserMsg: UIMessage |
     const firstText = textPart?.text as string | undefined
     if (firstText) {
       try {
+        // 使用 deepseek-chat（非推理模型）生成标题，避免推理模型把 token 全用在思考上
         const { text: title } = await generateText({
-          model: wikiLLMProvider(getWikiModelSlug()),
-          maxOutputTokens: 30,
+          model: wikiLLMProvider("deepseek-chat"),
+          maxOutputTokens: 50,
           prompt: `为以下用户消息生成一个简短的对话标题（不超过15个字，不要引号和标点）：\n${firstText.slice(0, 200)}`,
         })
         updates.title = title

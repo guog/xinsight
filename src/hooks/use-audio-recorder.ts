@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from "react"
 
 // 将 Float32Array 转换为 Int16Array (PCM 16bit)
 function float32ToInt16(float32: Float32Array): Int16Array {
@@ -68,7 +68,7 @@ export function useAudioRecorder() {
         const input = e.inputBuffer.getChannelData(0)
         const downsampled = downsample(input, sourceRate, TARGET_SAMPLE_RATE)
         const pcm = float32ToInt16(downsampled)
-        callbackRef.current(pcm.buffer)
+        callbackRef.current(pcm.buffer as ArrayBuffer)
       }
 
       analyser.connect(processor)
@@ -77,7 +77,7 @@ export function useAudioRecorder() {
       setAnalyserNode(analyser)
       setIsRecording(true)
     } catch (err) {
-      const msg = err instanceof Error ? err.message : '麦克风访问失败'
+      const msg = err instanceof Error ? err.message : "麦克风访问失败"
       setError(msg)
     }
   }, [])

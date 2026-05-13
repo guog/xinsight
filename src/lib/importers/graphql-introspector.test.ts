@@ -2,15 +2,15 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import { introspectGraphql, graphqlTypeToFields } from "./graphql-introspector"
 
 describe("graphqlTypeToFields", () => {
-  const typeMap = new Map<string, unknown>()
+  const typeMap = new Map<string, import("./graphql-introspector").IntrospectionType>()
   typeMap.set("User", {
     name: "User",
     kind: "OBJECT",
     fields: [
-      { name: "id", type: { kind: "SCALAR", name: "ID" } },
-      { name: "name", type: { kind: "SCALAR", name: "String" } },
-      { name: "age", type: { kind: "SCALAR", name: "Int" } },
-      { name: "active", type: { kind: "SCALAR", name: "Boolean" } },
+      { name: "id", args: [], type: { kind: "SCALAR", name: "ID" } },
+      { name: "name", args: [], type: { kind: "SCALAR", name: "String" } },
+      { name: "age", args: [], type: { kind: "SCALAR", name: "Int" } },
+      { name: "active", args: [], type: { kind: "SCALAR", name: "Boolean" } },
     ],
   })
 
@@ -29,7 +29,10 @@ describe("graphqlTypeToFields", () => {
 
   it("处理 NON_NULL 包装", () => {
     const result = graphqlTypeToFields(
-      { kind: "NON_NULL", ofType: { kind: "SCALAR", name: "Int" } },
+      {
+        kind: "NON_NULL",
+        ofType: { kind: "SCALAR", name: "Int" },
+      } as import("./graphql-introspector").IntrospectionTypeRef,
       typeMap,
     )
     expect(result).toEqual([{ name: "Int", type: "number" }])
@@ -37,7 +40,10 @@ describe("graphqlTypeToFields", () => {
 
   it("处理 LIST 类型", () => {
     const result = graphqlTypeToFields(
-      { kind: "LIST", ofType: { kind: "SCALAR", name: "String" } },
+      {
+        kind: "LIST",
+        ofType: { kind: "SCALAR", name: "String" },
+      } as import("./graphql-introspector").IntrospectionTypeRef,
       typeMap,
     )
     expect(result).toEqual([
@@ -105,10 +111,10 @@ describe("introspectGraphql responseSchema", () => {
       },
     }
 
-    globalThis.fetch = vi.fn().mockResolvedValue({
+    globalThis.fetch = vi.fn<typeof fetch>().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve(mockSchema),
-    }) as unknown
+    } as Response)
 
     const result = await introspectGraphql("http://localhost/graphql")
     expect(result.queries).toHaveLength(1)

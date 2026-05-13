@@ -15,7 +15,8 @@ type WikiUploadsTable = any
 /** 启动时扫描上传目录，发现新文件和崩溃恢复 */
 export async function startupScan(
   uploadsDir: string,
-  db: BunSQLiteDatabase,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  db: BunSQLiteDatabase<any>,
   wikiUploadsTable: WikiUploadsTable,
 ): Promise<{ newFiles: number; skipped: number }> {
   let newFiles = 0

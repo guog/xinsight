@@ -11,7 +11,9 @@ const listRoute = createRoute({
   path: "/",
   tags: ["追溯管理"],
   summary: "获取追溯记录列表",
-  request: { query: z.object({ orderId: z.string().optional(), batchNo: z.string().optional() }) },
+  request: {
+    query: z.object({ orderId: z.string().optional(), serialNumber: z.string().optional() }),
+  },
   responses: {
     200: {
       description: "追溯记录列表",
@@ -21,9 +23,9 @@ const listRoute = createRoute({
 })
 traceabilityRoutes.openapi(listRoute, (c) => {
   let result = [...traceabilityRecords]
-  const { orderId, batchNo } = c.req.valid("query")
+  const { orderId, serialNumber } = c.req.valid("query")
   if (orderId) result = result.filter((r) => r.orderId === orderId)
-  if (batchNo) result = result.filter((r) => r.batchNo === batchNo)
+  if (serialNumber) result = result.filter((r) => r.serialNumber === serialNumber)
   return c.json({ data: result }, 200)
 })
 

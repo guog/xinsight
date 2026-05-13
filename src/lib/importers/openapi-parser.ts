@@ -253,9 +253,20 @@ function extractEndpoints(spec: Record<string, unknown>): RestEndpoint[] {
   return endpoints
 }
 
+/** OpenAPI Schema 对象类型 */
+interface OpenApiSchemaObject {
+  $ref?: string
+  type?: string
+  properties?: Record<string, OpenApiSchemaObject>
+  items?: OpenApiSchemaObject
+  description?: string
+  [key: string]: unknown
+}
+
 /** 将 OpenAPI JSON Schema 转换为 FieldDefinition 数组 */
 export function openApiSchemaToFields(schema: unknown, maxDepth = 3): FieldDefinition[] {
-  if (!schema || maxDepth <= 0 || schema.$ref) return []
+  const s = schema as OpenApiSchemaObject | null | undefined
+  if (!s || maxDepth <= 0 || s.$ref) return []
 
   const mapType = (t: string): FieldDefinition["type"] => {
     if (t === "integer") return "number"
@@ -264,23 +275,21 @@ export function openApiSchemaToFields(schema: unknown, maxDepth = 3): FieldDefin
     return "string"
   }
 
-  if (schema.type === "object" && schema.properties) {
-    return Object.entries(schema.properties).map(
-      ([name, prop]: [string, Record<string, unknown>]) => {
-        const field: FieldDefinition = { name, type: mapType(prop.type || "string") }
-        if (prop.description) field.description = prop.description
-        if (prop.type === "object" && prop.properties) {
-          field.children = openApiSchemaToFields(prop, maxDepth - 1)
-        } else if (prop.type === "array" && prop.items) {
-          field.children = prop.items.$ref ? [] : openApiSchemaToFields(prop.items, maxDepth - 1)
-        }
-        return field
-      },
-    )
+  if (s.type === "object" && s.properties) {
+    return Object.entries(s.properties).map(([name, prop]) => {
+      const field: FieldDefinition = { name, type: mapType(prop.type || "string") }
+      if (prop.description) field.description = prop.description
+      if (prop.type === "object" && prop.properties) {
+        field.children = openApiSchemaToFields(prop, maxDepth - 1)
+      } else if (prop.type === "array" && prop.items) {
+        field.children = prop.items.$ref ? [] : openApiSchemaToFields(prop.items, maxDepth - 1)
+      }
+      return field
+    })
   }
 
-  if (schema.type === "array" && schema.items) {
-    return openApiSchemaToFields(schema.items, maxDepth - 1)
+  if (s.type === "array" && s.items) {
+    return openApiSchemaToFields(s.items, maxDepth - 1)
   }
 
   return []

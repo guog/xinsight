@@ -4,6 +4,7 @@ import { SqliteDatasourceRepository } from "@/db/repositories/datasource-reposit
 import { getAdapter } from "@/mastra/tools/datasource/adapters"
 import { inferSchema } from "@/lib/schema/infer-schema"
 import type { DatasourceConfig } from "@/mastra/tools/datasource/types"
+import type { DatasourceEndpoint } from "@/mastra/tools/datasource/types"
 import { requireAdmin, handleAuthError } from "@/lib/auth"
 
 /** POST /api/datasources/[id]/discover-schema — 发现端点 schema */
@@ -62,7 +63,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       responseSchema: { fields, source: "inferred", discoveredAt },
     }
 
-    await repo.update(id, { endpoints })
+    await repo.update(id, { endpoints: endpoints as DatasourceEndpoint[] })
 
     return NextResponse.json({
       success: true,

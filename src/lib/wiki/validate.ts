@@ -6,6 +6,8 @@ import { createHash } from "crypto"
 import { eq } from "drizzle-orm"
 import { extractText } from "./extract-text"
 import type { BunSQLiteDatabase } from "drizzle-orm/bun-sqlite"
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyDB = BunSQLiteDatabase<any>
 
 // 允许的文件扩展名白名单
 export const ALLOWED_EXTENSIONS = [
@@ -53,7 +55,7 @@ export interface ValidateResult {
 type WikiUploadsTable = any
 
 interface ValidateDeps {
-  db: BunSQLiteDatabase
+  db: AnyDB
   wikiUploads: WikiUploadsTable
 }
 

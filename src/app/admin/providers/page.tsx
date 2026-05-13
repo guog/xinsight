@@ -49,7 +49,10 @@ export default function ProvidersPage() {
     }
   }, [])
 
-  useEffect(() => { fetchProviders() }, [fetchProviders])
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchProviders()
+  }, [fetchProviders])
 
   function openAdd() {
     setEditProvider(null)
@@ -126,22 +129,36 @@ export default function ProvidersPage() {
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">{p.name}</CardTitle>
-                  <span className={`text-xs px-2 py-0.5 rounded ${p.type === "cloud" ? "bg-blue-100 text-blue-700" : "bg-orange-100 text-orange-700"}`}>
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded ${p.type === "cloud" ? "bg-blue-100 text-blue-700" : "bg-orange-100 text-orange-700"}`}
+                  >
                     {p.type === "cloud" ? "云端" : "本地"}
                   </span>
                 </div>
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="text-sm text-gray-600 space-y-1">
-                  <p>Base URL: <code className="text-xs bg-gray-100 px-1 rounded">{p.baseUrl || "—"}</code></p>
-                  <p>API Key: <code className="text-xs bg-gray-100 px-1 rounded">{maskKey(p.apiKey)}</code></p>
+                  <p>
+                    Base URL:{" "}
+                    <code className="text-xs bg-gray-100 px-1 rounded">{p.baseUrl || "—"}</code>
+                  </p>
+                  <p>
+                    API Key:{" "}
+                    <code className="text-xs bg-gray-100 px-1 rounded">{maskKey(p.apiKey)}</code>
+                  </p>
                   <p>模型数: {p.models?.length ?? 0}</p>
                 </div>
 
                 <div className="flex items-center gap-2 pt-2 flex-wrap">
-                  <Button size="sm" variant="outline" onClick={() => testConnection(p.id)}>测试连接</Button>
-                  <Button size="sm" variant="outline" onClick={() => syncModels(p.id)}>同步模型</Button>
-                  <Button size="sm" variant="outline" onClick={() => openEdit(p)}>编辑</Button>
+                  <Button size="sm" variant="outline" onClick={() => testConnection(p.id)}>
+                    测试连接
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => syncModels(p.id)}>
+                    同步模型
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => openEdit(p)}>
+                    编辑
+                  </Button>
                   <label className="flex items-center gap-1 text-sm cursor-pointer">
                     <input
                       type="checkbox"
@@ -150,7 +167,14 @@ export default function ProvidersPage() {
                     />
                     启用
                   </label>
-                  <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700" onClick={() => deleteProvider(p.id, p.name)}>删除</Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-red-600 hover:text-red-700"
+                    onClick={() => deleteProvider(p.id, p.name)}
+                  >
+                    删除
+                  </Button>
                 </div>
 
                 {p.models && (
@@ -167,6 +191,7 @@ export default function ProvidersPage() {
       )}
 
       <ProviderDialog
+        key={editProvider?.id ?? "new"}
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
         provider={editProvider}

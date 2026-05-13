@@ -19,6 +19,7 @@ function makeInput(overrides?: Partial<CreateDatasourceInput>): CreateDatasource
         name: "订单列表",
         description: "获取订单",
         params: { path: "/orders", method: "GET" },
+        apiSchemaFormat: "natural" as const,
       },
     ],
     ...overrides,

@@ -252,12 +252,12 @@ export default function DatasourceDetailPage() {
                     </pre>
                   </div>
                 )}
-                {(ep as Record<string, unknown>).structuredParams && (
+                {!!(ep as unknown as Record<string, unknown>).structuredParams && (
                   <div>
                     <span className="text-xs text-muted-foreground">结构化参数：</span>
                     <div className="mt-1 space-y-0.5">
                       {(
-                        (ep as Record<string, unknown>).structuredParams as Array<{
+                        (ep as unknown as Record<string, unknown>).structuredParams as Array<{
                           name: string
                           type: string
                           required?: boolean

@@ -46,7 +46,7 @@ export function WelcomeEmptyState({ agentName, onSuggestionClick }: WelcomeEmpty
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full max-w-3xl">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-2xl">
         {suggestions.map((s, index) => (
           <button
             key={s.label}
@@ -59,7 +59,7 @@ export function WelcomeEmptyState({ agentName, onSuggestionClick }: WelcomeEmpty
             </div>
             <div>
               <div className="text-sm font-medium">{s.label}</div>
-              <div className="text-xs text-muted-foreground line-clamp-2">{s.text}</div>
+              <div className="text-xs text-muted-foreground line-clamp-3">{s.text}</div>
             </div>
           </button>
         ))}
