@@ -52,9 +52,9 @@ export function MobileChatPage() {
   const { createChat } = useChats()
 
   const chatApiUrl = API_BASE ? `${API_BASE}/api/chat` : "/api/chat"
-
   const { messages, sendMessage, status, setMessages, stop, regenerate } = useChat({
-    experimental_throttle: 100,
+    // 节流：每 50ms 批量合并流式更新，由 100 降至 50
+    experimental_throttle: 50,
     transport: new DefaultChatTransport({
       api: chatApiUrl,
       body: {
