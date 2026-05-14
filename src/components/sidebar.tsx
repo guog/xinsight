@@ -17,7 +17,7 @@ import {
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useSwipe } from "@/hooks/use-swipe"
-import { useChats } from "@/hooks/use-chats"
+import { useChats, clearChatsCache } from "@/hooks/use-chats"
 import { useUser } from "@/hooks/use-user"
 
 interface ChatItem {
@@ -276,6 +276,7 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
             try {
               await fetch("/api/auth/logout", { method: "POST" })
             } catch {}
+            clearChatsCache()
             router.push("/login")
           }}
           className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-muted transition-all duration-150 w-full text-left text-destructive"

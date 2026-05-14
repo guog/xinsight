@@ -53,6 +53,13 @@ function ensureFetched() {
   }
 }
 
+/** 清空缓存（用户登出或切换时调用） */
+export function clearChatsCache() {
+  cachedChats = []
+  fetchPromise = null
+  notifyListeners()
+}
+
 export function useChats() {
   // 触发首次加载
   ensureFetched()
