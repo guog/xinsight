@@ -31,9 +31,13 @@ export function VoiceChatPanel({ agentId, chatId, modelId, onClose }: VoiceChatP
   const recorder = useAudioRecorder()
   const voice = useVoiceChat({ agentId, chatId, modelId })
 
-  // 挂载时自动连接
+  // 挂载时自动连接，卸载时确保录音器和语音连接都被清理
   useEffect(() => {
     voice.connect()
+    return () => {
+      recorder.stop()
+      voice.end()
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -101,9 +105,7 @@ export function VoiceChatPanel({ agentId, chatId, modelId, onClose }: VoiceChatP
             </div>
             {/* 文字前景 */}
             <div className="relative z-10 w-full max-w-lg space-y-4 text-center">
-              <p className="text-sm text-muted-foreground">
-                {STATUS_LABELS[voice.status] || ""}
-              </p>
+              <p className="text-sm text-muted-foreground">{STATUS_LABELS[voice.status] || ""}</p>
               {voice.sttText && (
                 <div className="rounded-lg bg-muted/60 p-3">
                   <p className="text-xs text-muted-foreground mb-1">识别结果</p>
@@ -121,9 +123,7 @@ export function VoiceChatPanel({ agentId, chatId, modelId, onClose }: VoiceChatP
         )}
 
         {/* 错误提示 */}
-        {errorMsg && (
-          <p className="absolute bottom-4 text-sm text-destructive">{errorMsg}</p>
-        )}
+        {errorMsg && <p className="absolute bottom-4 text-sm text-destructive">{errorMsg}</p>}
       </div>
 
       {/* 底栏 */}
@@ -138,7 +138,7 @@ export function VoiceChatPanel({ agentId, chatId, modelId, onClose }: VoiceChatP
             "border-2",
             recorder.isRecording
               ? "bg-destructive/10 border-destructive text-destructive animate-pulse"
-              : "bg-primary/10 border-primary text-primary hover:bg-primary/20"
+              : "bg-primary/10 border-primary text-primary hover:bg-primary/20",
           )}
           aria-label={recorder.isRecording ? "停止录音" : "开始录音"}
         >
