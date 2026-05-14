@@ -48,6 +48,10 @@ export function startFileWatcher(
 
     const filePath = path.join(uploadsDir, filename)
 
+    // 安全检查：确保解析后的路径在 uploadsDir 内
+    const resolvedBase = path.resolve(uploadsDir) + "/"
+    if (!path.resolve(filePath).startsWith(resolvedBase)) return
+
     // debounce 500ms
     if (debounceTimers.has(filePath)) {
       clearTimeout(debounceTimers.get(filePath)!)

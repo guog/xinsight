@@ -1,9 +1,17 @@
 import { createTool } from "@mastra/core/tools"
 import { z } from "zod"
 import { readdir, readFile } from "fs/promises"
-import { join, relative } from "path"
+import { join, relative, resolve } from "path"
 
 const getWikiPath = () => process.env.WIKI_PATH || join(process.cwd(), "wiki")
+
+/** 安全路径解析：确保解析后的路径在 basePath 目录内，防止路径遍历 */
+function safePath(basePath: string, relativePath: string): string | null {
+  const base = resolve(basePath) + "/"
+  const resolved = resolve(basePath, relativePath)
+  if (!resolved.startsWith(base) && resolved !== resolve(basePath)) return null
+  return resolved
+}
 
 /**
  * wiki-search — 在知识库中搜索相关内容
@@ -143,9 +151,8 @@ export const wikiReadTool = createTool({
     error: z.string().optional(),
   }),
   execute: async ({ path: pagePath }) => {
-    const fullPath = join(getWikiPath(), pagePath)
-    // 安全检查 — 防止路径遍历
-    if (!fullPath.startsWith(getWikiPath())) {
+    const fullPath = safePath(getWikiPath(), pagePath)
+    if (!fullPath) {
       return { success: false, error: "路径不合法" }
     }
     try {
@@ -195,8 +202,11 @@ export const wikiIngestTool = createTool({
 
     try {
       for (const page of pages) {
-        const fullPath = join(getWikiPath(), page.path)
-        if (!fullPath.startsWith(getWikiPath())) continue
+        const fullPath = safePath(getWikiPath(), page.path)
+        if (!fullPath) continue
+
+        // 只允许 .md 文件
+        if (!fullPath.endsWith(".md")) continue
 
         // 确保目录存在
         const dir = dirname(fullPath)

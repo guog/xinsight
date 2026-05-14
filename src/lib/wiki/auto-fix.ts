@@ -1,9 +1,17 @@
 import { generateText } from "ai"
 import { wikiLLMProvider, getWikiModelSlug } from "./llm"
 import { readFile, writeFile, unlink, rename, mkdir } from "fs/promises"
-import { join, dirname, basename } from "path"
+import { join, dirname, basename, resolve } from "path"
 import type { LintIssue } from "./lint"
 import { extractText } from "./extract-text"
+
+/** 安全路径解析：确保路径在 basePath 内 */
+function safePath(basePath: string, relativePath: string): string | null {
+  const base = resolve(basePath) + "/"
+  const resolved = resolve(basePath, relativePath)
+  if (!resolved.startsWith(base) && resolved !== resolve(basePath)) return null
+  return resolved
+}
 
 // 调用 LLM 生成文本
 async function callLLM(prompt: string): Promise<string> {
@@ -38,7 +46,8 @@ function dirForType(type: string): string {
 
 // 修复缺失的 frontmatter
 async function fixStructure(issue: LintIssue, wikiPath: string): Promise<void> {
-  const fullPath = join(wikiPath, issue.file)
+  const fullPath = safePath(wikiPath, issue.file)
+  if (!fullPath) throw new Error("路径不合法")
   const content = await readFile(fullPath, "utf-8")
   const type = typeFromDir(issue.file)
   const now = new Date().toISOString().split("T")[0]
@@ -65,7 +74,8 @@ ${content.slice(0, 2000)}`
 
 // 修复死链接：移除断裂的 [[links]]
 async function fixDeadLinks(issue: LintIssue, wikiPath: string): Promise<void> {
-  const fullPath = join(wikiPath, issue.file)
+  const fullPath = safePath(wikiPath, issue.file)
+  if (!fullPath) throw new Error("路径不合法")
   const content = await readFile(fullPath, "utf-8")
 
   // 从 issue message 中提取死链接目标
@@ -80,18 +90,19 @@ async function fixDeadLinks(issue: LintIssue, wikiPath: string): Promise<void> {
 
 // 修复重复：删除位置不合适的那个
 async function fixDuplicates(issue: LintIssue, wikiPath: string): Promise<void> {
-  // issue.details 应包含重复文件路径
   const details = issue.details as { duplicate?: string } | undefined
   const duplicatePath = details?.duplicate
   if (!duplicatePath) return
 
-  const fullPath = join(wikiPath, duplicatePath)
+  const fullPath = safePath(wikiPath, duplicatePath)
+  if (!fullPath) throw new Error("路径不合法")
   await unlink(fullPath)
 }
 
 // 修复质量问题：用 LLM 扩写
 async function fixQuality(issue: LintIssue, wikiPath: string): Promise<void> {
-  const fullPath = join(wikiPath, issue.file)
+  const fullPath = safePath(wikiPath, issue.file)
+  if (!fullPath) throw new Error("路径不合法")
   const content = await readFile(fullPath, "utf-8")
 
   const prompt = `你是 Karpathy 风格的 Wiki 编辑。请将以下过短的 Wiki 页面扩写为高质量内容。
@@ -113,17 +124,18 @@ ${content}`
 
 // 修复目录问题：移动文件到正确目录
 async function fixDirectory(issue: LintIssue, wikiPath: string): Promise<void> {
-  const fullPath = join(wikiPath, issue.file)
+  const fullPath = safePath(wikiPath, issue.file)
+  if (!fullPath) throw new Error("路径不合法")
   const content = await readFile(fullPath, "utf-8")
 
-  // 从 frontmatter 提取 type
   const typeMatch = content.match(/^type:\s*(.+)$/m)
   if (!typeMatch) return
 
   const type = typeMatch[1].trim().replace(/['"]/g, "")
   const targetDir = dirForType(type)
   const fileName = basename(issue.file)
-  const targetPath = join(wikiPath, targetDir, fileName)
+  const targetPath = safePath(wikiPath, join(targetDir, fileName))
+  if (!targetPath) throw new Error("目标路径不合法")
 
   await mkdir(dirname(targetPath), { recursive: true })
   await rename(fullPath, targetPath)
@@ -135,9 +147,11 @@ async function fixUploadIntegrity(issue: LintIssue, wikiPath: string): Promise<v
   const sourcePath = details?.sourcePath
   if (!sourcePath) return
 
-  const fullSourcePath = join(wikiPath, sourcePath)
+  const fullSourcePath = safePath(wikiPath, sourcePath)
+  if (!fullSourcePath) throw new Error("源路径不合法")
   const result = await extractText(fullSourcePath)
-  const targetPath = join(wikiPath, issue.file)
+  const targetPath = safePath(wikiPath, issue.file)
+  if (!targetPath) throw new Error("目标路径不合法")
   await writeFile(targetPath, result.text, "utf-8")
 }
 
