@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server"
 import { mastra } from "@/mastra"
+import { requireAuth, handleAuthError } from "@/lib/auth"
 
 /** GET /api/agents — 获取所有已注册的 Mastra Agent 列表 */
 export async function GET() {
   try {
+    try {
+      await requireAuth()
+    } catch (error) {
+      return handleAuthError(error) ?? NextResponse.json({ error: "未知错误" }, { status: 500 })
+    }
     const agentsMap = mastra.listAgents()
     const agents = Object.values(agentsMap).map((agent) => ({
       id: agent.id,

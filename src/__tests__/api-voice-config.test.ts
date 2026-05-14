@@ -1,16 +1,41 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest"
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import { _resetVoiceCache } from "@/lib/voice"
+
+// Mock auth
+const mockRequireAuth = vi.fn()
+vi.mock("@/lib/auth", async () => {
+  const { NextResponse } = await import("next/server")
+  return {
+    requireAuth: (...args: unknown[]) => mockRequireAuth(...args),
+    handleAuthError: (error: unknown) => {
+      if (error instanceof Error && error.message === "未登录") {
+        return NextResponse.json({ error: "未登录" }, { status: 401 })
+      }
+      return null
+    },
+  }
+})
 
 describe("GET /api/voice/config", () => {
   const originalEnv = { ...process.env }
 
   beforeEach(() => {
     _resetVoiceCache()
+    mockRequireAuth.mockReset()
+    mockRequireAuth.mockResolvedValue({ id: "user-1", username: "test", role: "user" })
   })
 
   afterEach(() => {
     process.env = { ...originalEnv }
     _resetVoiceCache()
+  })
+
+  it("未登录时返回 401", async () => {
+    mockRequireAuth.mockRejectedValue(new Error("未登录"))
+
+    const { GET } = await import("@/app/api/voice/config/route")
+    const response = await GET()
+    expect(response.status).toBe(401)
   })
 
   it("VOICE_ENABLED 未设置时返回 disabled", async () => {
