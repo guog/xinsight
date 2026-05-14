@@ -55,7 +55,9 @@ export const datasourceQueryTool = createTool({
     if (!config.enabled) return { success: false, error: `数据源 "${config.name}" 已禁用` }
 
     // 权限检查 — 只允许绑定的数据源
-    if (agentId) {
+    if (!agentId) {
+      console.warn("[datasource] 缺少 agentId，跳过权限检查（请确认调用上下文）")
+    } else {
       const bindings = await repo.getAgentEndpointBindings(agentId)
       if (bindings.length > 0 && !bindings.find((b) => b.datasourceId === datasourceId)) {
         return { success: false, error: `当前 Agent 无权访问数据源 "${config.name}"` }
@@ -192,7 +194,15 @@ export const datasourceListTool = createTool({
               base.structuredParams = ep.structuredParams
             }
             return base
-          }) as { id: string; name: string; description: string; params: Record<string, unknown>; paramSchema?: string; apiSchemaFormat?: "natural" | "openapi"; responseExample?: string }[],
+          }) as {
+          id: string
+          name: string
+          description: string
+          params: Record<string, unknown>
+          paramSchema?: string
+          apiSchemaFormat?: "natural" | "openapi"
+          responseExample?: string
+        }[],
       })),
     }
   },
