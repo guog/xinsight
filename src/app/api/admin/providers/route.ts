@@ -4,6 +4,7 @@ import { llmProviders, llmModels } from "@/db/schema"
 import { eq } from "drizzle-orm"
 import { requireAdmin, handleAuthError } from "@/lib/auth"
 import { invalidateModelCache } from "@/lib/models"
+import { encrypt, decrypt } from "@/lib/crypto"
 
 // GET /api/admin/providers — 列出所有提供商
 export async function GET() {
@@ -17,11 +18,23 @@ export async function GET() {
   const models = db.select().from(llmModels).all()
 
   // 组装并脱敏 apiKey
-  const result = providers.map((p) => ({
-    ...p,
-    apiKey: p.apiKey ? `${p.apiKey.slice(0, 3)}****${p.apiKey.slice(-4)}` : "",
-    models: models.filter((m) => m.providerId === p.id),
-  }))
+  const result = providers.map((p) => {
+    let maskedKey = ""
+    if (p.apiKey) {
+      try {
+        const plain = decrypt(p.apiKey)
+        maskedKey = plain ? `${plain.slice(0, 3)}****${plain.slice(-4)}` : ""
+      } catch {
+        // 未迁移的明文 key
+        maskedKey = `${p.apiKey.slice(0, 3)}****${p.apiKey.slice(-4)}`
+      }
+    }
+    return {
+      ...p,
+      apiKey: maskedKey,
+      models: models.filter((m) => m.providerId === p.id),
+    }
+  })
 
   return NextResponse.json({ providers: result })
 }
@@ -55,7 +68,7 @@ export async function POST(req: Request) {
     type: type || "cloud",
     apiFormat: apiFormat || "openai",
     baseUrl,
-    apiKey: apiKey || "",
+    apiKey: apiKey ? encrypt(apiKey) : "",
     apiKeyRequired: apiKeyRequired ?? true,
     enabled: true,
     sortOrder: 0,

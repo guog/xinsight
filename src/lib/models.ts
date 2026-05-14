@@ -4,6 +4,7 @@
 import { db } from "@/db"
 import { llmProviders, llmModels } from "@/db/schema"
 import { eq, and } from "drizzle-orm"
+import { decrypt } from "@/lib/crypto"
 
 export interface ModelInfo {
   id: string
@@ -22,6 +23,16 @@ export interface ProviderInfo {
   apiKey: string
   enabled: boolean
   models: ModelInfo[]
+}
+
+/** 解密 apiKey，兼容尚未迁移的明文 key */
+function decryptApiKey(value: string): string {
+  try {
+    return decrypt(value)
+  } catch {
+    console.warn("[models] apiKey 解密失败，可能是未迁移的明文 key，请运行迁移脚本")
+    return value
+  }
 }
 
 // === 缓存 ===
@@ -63,7 +74,7 @@ function buildProviders(): ProviderInfo[] {
       type: p.type as "cloud" | "local",
       apiFormat: p.apiFormat as "openai" | "ollama",
       baseUrl: p.baseUrl,
-      apiKey: p.apiKey,
+      apiKey: p.apiKey ? decryptApiKey(p.apiKey) : "",
       enabled: true,
       models: models.map((m) => ({
         id: m.id,
