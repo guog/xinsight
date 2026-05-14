@@ -33,7 +33,8 @@ export async function POST(req: Request) {
       modelId?: string
     } = await req.json()
 
-    if (modelId) console.log("[chat] modelId requested:", modelId)
+    if (modelId && process.env.NODE_ENV === "development")
+      console.log("[chat] modelId requested:", modelId)
 
     // 根据请求选择 Agent，默认使用厂长 Supervisor
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -100,9 +101,11 @@ export async function POST(req: Request) {
             if (done) break
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const chunk = value as any
-            if (!seenTypes.has(chunk.type)) {
+            if (!seenTypes.has(chunk.type) && process.env.NODE_ENV === "development") {
               seenTypes.add(chunk.type)
               console.log("[chat] chunk type:", chunk.type, "keys:", Object.keys(chunk).join(","))
+            } else {
+              seenTypes.add(chunk.type)
             }
             // 跳过冗余中间态事件
             if (BLOCKED_TYPES.has(chunk.type)) continue
@@ -143,14 +146,16 @@ export async function POST(req: Request) {
         }
 
         // 流结束后持久化消息（即使没有 text，有 tool-call 也要保存）
-        console.log(
-          "[chat] stream done, chatId:",
-          chatId,
-          "assistantText length:",
-          assistantText.length,
-          "lastUserMsg:",
-          chatMessages[chatMessages.length - 1]?.role,
-        )
+        if (process.env.NODE_ENV === "development") {
+          console.log(
+            "[chat] stream done, chatId:",
+            chatId,
+            "assistantText length:",
+            assistantText.length,
+            "lastUserMsg:",
+            chatMessages[chatMessages.length - 1]?.role,
+          )
+        }
         if (chatId && (assistantText || toolCalls.size > 0)) {
           try {
             const lastUserMsg = chatMessages[chatMessages.length - 1]
