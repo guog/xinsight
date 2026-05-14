@@ -6,6 +6,7 @@ import { requireAdmin, handleAuthError } from "@/lib/auth"
 import { invalidateModelCache } from "@/lib/models"
 import { encrypt, decrypt } from "@/lib/crypto"
 import { CreateProviderSchema } from "@/lib/api-schemas"
+import { encrypt, decrypt } from "@/lib/crypto"
 
 // GET /api/admin/providers — 列出所有提供商
 export async function GET() {
