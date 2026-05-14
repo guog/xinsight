@@ -7,8 +7,6 @@ const nextConfig: NextConfig = {
   ...(isStaticExport ? { output: "export" } : {}),
   // bun:sqlite 等 Bun 内置模块需要标记为外部依赖，避免 Turbopack 尝试打包
   serverExternalPackages: ["bun:sqlite"],
-  // 第三方包（drizzle-orm, next, bun-types）有大量已知类型错误，跳过 build 时类型检查
-  typescript: { ignoreBuildErrors: true },
 }
 
 export default nextConfig

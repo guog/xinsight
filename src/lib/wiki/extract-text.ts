@@ -40,7 +40,8 @@ export async function extractText(filePath: string): Promise<{ text: string; err
 
 async function extractPdf(filePath: string): Promise<{ text: string; error?: string }> {
   try {
-    const mod = await import("pdf-parse")
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mod: any = await import("pdf-parse")
     const PDFParse = mod.default ?? mod.PDFParse
     const buffer = new Uint8Array(await readFile(filePath))
     const parser = new PDFParse(buffer)

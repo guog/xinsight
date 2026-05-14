@@ -3,8 +3,10 @@
 import { useState, useEffect, useCallback } from "react"
 
 type Theme = "light" | "dark" | "system"
+type Density = "comfortable" | "compact"
 
 const STORAGE_KEY = "xinsight:theme"
+const DENSITY_KEY = "xinsight:density"
 
 function getSystemTheme(): "light" | "dark" {
   if (typeof window === "undefined") return "light"
@@ -21,8 +23,14 @@ function getInitialTheme(): Theme {
   return (localStorage.getItem(STORAGE_KEY) as Theme) ?? "system"
 }
 
+function getInitialDensity(): Density {
+  if (typeof window === "undefined") return "comfortable"
+  return (localStorage.getItem(DENSITY_KEY) as Density) ?? "comfortable"
+}
+
 export function useTheme() {
   const [theme, setThemeState] = useState<Theme>(getInitialTheme)
+  const [density, setDensityState] = useState<Density>(getInitialDensity)
 
   useEffect(() => {
     applyTheme(theme)
@@ -43,5 +51,10 @@ export function useTheme() {
     applyTheme(t)
   }, [])
 
-  return { theme, setTheme }
+  const setDensity = useCallback((d: Density) => {
+    setDensityState(d)
+    localStorage.setItem(DENSITY_KEY, d)
+  }, [])
+
+  return { theme, setTheme, density, setDensity }
 }
