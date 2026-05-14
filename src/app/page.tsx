@@ -292,7 +292,7 @@ function DesktopChatPage() {
                                         className="group/text relative"
                                       >
                                         <MessageResponse>{seg.content}</MessageResponse>
-                                        {!isLoading &&
+                                        {status !== "streaming" &&
                                           message.role === "assistant" &&
                                           j === segments.length - 1 && (
                                             <div className="mt-2 opacity-0 group-hover/text:opacity-100 transition-opacity">
@@ -423,7 +423,7 @@ function DesktopChatPage() {
                   <Square className="size-4" />
                 </button>
               ) : status === "submitted" ? (
-                <PromptInputSubmit status="generating" disabled={false} />
+                <PromptInputSubmit status="submitted" disabled={false} />
               ) : (
                 <PromptInputSubmit status="ready" disabled={!input.trim()} />
               )}
