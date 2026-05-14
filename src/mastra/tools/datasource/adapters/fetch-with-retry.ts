@@ -106,12 +106,24 @@ export async function fetchWithRetry(
       let truncated = false
       const jsonStr = JSON.stringify(data)
       if (jsonStr.length > MAX_JSON_SIZE) {
-        // Truncate by re-parsing a slice (best effort)
-        try {
-          data = JSON.parse(jsonStr.slice(0, MAX_JSON_SIZE))
-        } catch {
-          // If truncated JSON is invalid, just keep original but flag it
+        // JSON 超过 1MB 限制：对数组类型尝试截取前 N 个元素，否则保留原始数据并标记
+        if (Array.isArray(data)) {
+          // 逐步减少数组长度直到序列化后小于限制
+          let sliced = data
+          let lo = 0
+          let hi = data.length
+          while (lo < hi) {
+            const mid = Math.floor((lo + hi + 1) / 2)
+            if (JSON.stringify(data.slice(0, mid)).length <= MAX_JSON_SIZE) {
+              lo = mid
+            } else {
+              hi = mid - 1
+            }
+          }
+          sliced = data.slice(0, lo)
+          data = sliced
         }
+        // 非数组或二分后仍超限：保留原始数据并标记截断
         truncated = true
       }
 
