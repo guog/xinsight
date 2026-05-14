@@ -7,14 +7,7 @@ import { equipmentAgent } from "./equipment-agent"
 import { warehouseAgent } from "./warehouse-agent"
 import { energyAgent } from "./energy-agent"
 import { wikiAgent } from "./wiki-agent"
-import {
-  createAnswerRelevancyScorer,
-  createToxicityScorer,
-  createHallucinationScorer,
-} from "@mastra/evals/scorers/prebuilt"
-
-/** 评估模型 — 使用与 Agent 相同的模型 */
-const evalModel = DEFAULT_AGENT_MODEL
+import { createDefaultScorers } from "./eval-config"
 
 /**
  * 厂长 Supervisor Agent
@@ -37,8 +30,9 @@ export const factoryDirectorAgent = new Agent({
 
 委派策略：
 1. 分析用户问题涉及的业务域
-2. 委派给对应专员处理（可同时委派多个专员）
-3. 汇总各专员的分析结果，给出厂长级的综合洞察
+2. **简单问题短路**：如果是简单问候、闲聊、通用知识问答（不涉及工厂业务数据），直接回答，无需委派子专员
+3. 委派给对应专员处理（可同时委派多个专员）
+4. 汇总各专员的分析结果，给出厂长级的综合洞察
 
 跨域问题处理：
 - "本周生产状况" → 委派生产管理专员
@@ -62,18 +56,5 @@ ${DIRECTOR_CHART_PROMPT}`,
     energyAgent,
     wikiAgent,
   },
-  scorers: {
-    relevancy: {
-      scorer: createAnswerRelevancyScorer({ model: evalModel }),
-      sampling: { type: "ratio", rate: 0.5 },
-    },
-    toxicity: {
-      scorer: createToxicityScorer({ model: evalModel }),
-      sampling: { type: "ratio", rate: 0.3 },
-    },
-    hallucination: {
-      scorer: createHallucinationScorer({ model: evalModel }),
-      sampling: { type: "ratio", rate: 0.3 },
-    },
-  },
+  scorers: createDefaultScorers(),
 })

@@ -34,7 +34,7 @@ const memory = new Memory({
     url: process.env.MEMORY_DB_URL || `file:${join(process.cwd(), "data", "memory.db")}`,
   }),
   options: {
-    lastMessages: 20,
+    lastMessages: parseInt(process.env.MASTRA_LAST_MESSAGES || "20", 10),
     observationalMemory: true,
   },
 })

@@ -2,17 +2,7 @@ import { Agent } from "@mastra/core/agent"
 import { DEFAULT_AGENT_MODEL } from "./model-config"
 import { datasourceQueryTool, datasourceListTool } from "../tools/datasource"
 import { datasourceBatchQueryTool } from "../tools/cross-source"
-import {
-  createAnswerRelevancyScorer,
-  createToxicityScorer,
-  createHallucinationScorer,
-} from "@mastra/evals/scorers/prebuilt"
-
-/**
- * 评估模型 — 用于对 Agent 输出进行自动评分
- * 使用较轻量的模型降低评估成本
- */
-const evalModel = DEFAULT_AGENT_MODEL
+import { createDefaultScorers } from "./eval-config"
 
 /**
  * 通用聊天 Agent
@@ -34,18 +24,5 @@ export const chatAgent = new Agent({
     "回答应简洁、准确、有帮助。",
   model: DEFAULT_AGENT_MODEL,
   tools: { datasourceQueryTool, datasourceListTool, datasourceBatchQueryTool },
-  scorers: {
-    relevancy: {
-      scorer: createAnswerRelevancyScorer({ model: evalModel }),
-      sampling: { type: "ratio", rate: 0.5 },
-    },
-    toxicity: {
-      scorer: createToxicityScorer({ model: evalModel }),
-      sampling: { type: "ratio", rate: 0.3 },
-    },
-    hallucination: {
-      scorer: createHallucinationScorer({ model: evalModel }),
-      sampling: { type: "ratio", rate: 0.3 },
-    },
-  },
+  scorers: createDefaultScorers(),
 })
