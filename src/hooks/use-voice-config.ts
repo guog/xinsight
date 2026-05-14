@@ -9,18 +9,22 @@ export function useVoiceConfig() {
   const [isVoiceMode, setIsVoiceMode] = useState(false)
 
   useEffect(() => {
+    let cancelled = false
     const apiBase = process.env.NEXT_PUBLIC_API_URL ?? ""
     fetch(`${apiBase}/api/voice/config`)
       .then((res) => res.json())
       .then((data) => {
-        setVoiceEnabled(!!data.enabled)
+        if (!cancelled) setVoiceEnabled(!!data.enabled)
       })
       .catch(() => {
-        setVoiceEnabled(false)
+        if (!cancelled) setVoiceEnabled(false)
       })
       .finally(() => {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const enterVoiceMode = useCallback(() => setIsVoiceMode(true), [])

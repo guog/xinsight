@@ -5,8 +5,11 @@ import { useSyncExternalStore, useCallback } from "react"
 const STORAGE_KEY = "xinsight_onboarding_complete"
 
 function subscribe(callback: () => void) {
-  window.addEventListener("storage", callback)
-  return () => window.removeEventListener("storage", callback)
+  const handler = (e: StorageEvent) => {
+    if (!e.key || e.key === STORAGE_KEY) callback()
+  }
+  window.addEventListener("storage", handler)
+  return () => window.removeEventListener("storage", handler)
 }
 
 // 全局禁用引导（暂时）
