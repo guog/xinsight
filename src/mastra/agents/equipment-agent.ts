@@ -1,7 +1,7 @@
 import { Agent } from "@mastra/core/agent"
 import { DEFAULT_AGENT_MODEL } from "./model-config"
 import { datasourceQueryTool, datasourceListTool } from "../tools/datasource"
-import { CHART_SYSTEM_PROMPT } from "@/lib/chart/prompt"
+import { CHART_SYSTEM_PROMPT as EQUIPMENT_CHART_PROMPT } from "@/lib/chart/prompt"
 
 /**
  * 设备管理专员
@@ -34,7 +34,7 @@ export const equipmentAgent = new Agent({
 - 关注 OEE（设备综合效率）、MTBF（平均故障间隔）、MTTR（平均修复时间）
 - 如有设备处于故障或离线状态，主动提醒
 
-${CHART_SYSTEM_PROMPT}`,
+${EQUIPMENT_CHART_PROMPT}`,
   model: DEFAULT_AGENT_MODEL,
   tools: { datasourceQueryTool, datasourceListTool },
 })

@@ -1,4 +1,5 @@
 import { Agent } from "@mastra/core/agent"
+import { CHART_SYSTEM_PROMPT as ENERGY_CHART_PROMPT } from "@/lib/chart/prompt"
 import { DEFAULT_AGENT_MODEL } from "./model-config"
 import { datasourceQueryTool, datasourceListTool } from "../tools/datasource"
 
@@ -31,7 +32,7 @@ export const energyAgent = new Agent({
 - 数据要有具体数字和单位（kWh, t, m³ 等）
 - 当能耗超标或异常波动时主动提醒
 
-${CHART_SYSTEM_PROMPT}`,
+${ENERGY_CHART_PROMPT}`,
   model: DEFAULT_AGENT_MODEL,
   tools: { datasourceQueryTool, datasourceListTool },
 })

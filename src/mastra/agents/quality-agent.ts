@@ -1,7 +1,7 @@
 import { Agent } from "@mastra/core/agent"
 import { DEFAULT_AGENT_MODEL } from "./model-config"
 import { datasourceQueryTool, datasourceListTool } from "../tools/datasource"
-import { CHART_SYSTEM_PROMPT } from "@/lib/chart/prompt"
+import { CHART_SYSTEM_PROMPT as QUALITY_CHART_PROMPT } from "@/lib/chart/prompt"
 
 /**
  * 质量管理专员
@@ -34,7 +34,7 @@ export const qualityAgent = new Agent({
 - 涉及良率/不良率时给出对比基准（如低于目标值需提醒）
 - 对高发缺陷类型进行排名和分析
 
-${CHART_SYSTEM_PROMPT}`,
+${QUALITY_CHART_PROMPT}`,
   model: DEFAULT_AGENT_MODEL,
   tools: { datasourceQueryTool, datasourceListTool },
 })
