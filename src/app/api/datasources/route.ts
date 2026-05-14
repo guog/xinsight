@@ -3,6 +3,7 @@ import { db } from "@/db"
 import { SqliteDatasourceRepository } from "@/db/repositories/datasource-repository"
 import { requireAdmin, requireAuth, handleAuthError } from "@/lib/auth"
 import { maskSensitiveFields } from "@/lib/mask-sensitive"
+import { CreateDatasourceSchema } from "@/lib/api-schemas"
 
 /** GET /api/datasources — 获取所有数据源（脱敏） */
 export async function GET() {
@@ -31,9 +32,16 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     await requireAdmin()
-    const body = await request.json()
+    const raw = await request.json()
+    const parsed = CreateDatasourceSchema.safeParse(raw)
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "请求参数校验失败", details: parsed.error.issues },
+        { status: 400 },
+      )
+    }
     const repo = new SqliteDatasourceRepository(db)
-    const datasource = await repo.create(body)
+    const datasource = await repo.create(parsed.data)
     return NextResponse.json(datasource, { status: 201 })
   } catch (error) {
     const authResp = handleAuthError(error)

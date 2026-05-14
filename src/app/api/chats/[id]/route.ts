@@ -3,6 +3,7 @@ import { db } from "@/db"
 import { chats, messages } from "@/db/schema"
 import { eq, and } from "drizzle-orm"
 import { requireAuth, handleAuthError } from "@/lib/auth"
+import { UpdateChatSchema } from "@/lib/api-schemas"
 
 /** 验证对话所有权，返回对话或 null */
 async function getOwnedChat(chatId: string, userId: string) {
@@ -56,7 +57,15 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ error: "对话不存在" }, { status: 404 })
     }
 
-    const body = await request.json()
+    const raw = await request.json()
+    const parsed = UpdateChatSchema.safeParse(raw)
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "请求参数校验失败", details: parsed.error.issues },
+        { status: 400 },
+      )
+    }
+    const body = parsed.data
     const updates: Record<string, unknown> = { updatedAt: new Date() }
     if (body.title !== undefined) updates.title = body.title
     if (body.agentId !== undefined) updates.agentId = body.agentId
