@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm"
 import { requireAdmin, handleAuthError } from "@/lib/auth"
 import { invalidateModelCache } from "@/lib/models"
 import { encrypt, decrypt } from "@/lib/crypto"
+import { CreateProviderSchema } from "@/lib/api-schemas"
 
 // GET /api/admin/providers — 列出所有提供商
 export async function GET() {
@@ -48,11 +49,17 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json()
-  const { id, name, type, apiFormat, baseUrl, apiKey, apiKeyRequired, models: modelSlugs } = body
 
-  if (!id || !name || !baseUrl) {
-    return NextResponse.json({ error: "缺少必填字段" }, { status: 400 })
+  // Zod 校验
+  const parsed = CreateProviderSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "输入校验失败", details: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    )
   }
+
+  const { id, name, type, apiFormat, baseUrl, apiKey, apiKeyRequired, models: modelSlugs } = parsed.data
 
   const now = new Date()
 
@@ -65,11 +72,11 @@ export async function POST(req: Request) {
   await db.insert(llmProviders).values({
     id,
     name,
-    type: type || "cloud",
-    apiFormat: apiFormat || "openai",
+    type,
+    apiFormat,
     baseUrl,
     apiKey: apiKey ? encrypt(apiKey) : "",
-    apiKeyRequired: apiKeyRequired ?? true,
+    apiKeyRequired,
     enabled: true,
     sortOrder: 0,
     createdAt: now,
