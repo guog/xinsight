@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation"
 import { Moon, Sun, Monitor, User } from "lucide-react"
 import { useTheme } from "@/hooks/use-theme"
+import { APP_VERSION } from "@/lib/version"
 import { useUser } from "@/hooks/use-user"
 
 import { cn } from "@/lib/utils"
@@ -92,7 +93,9 @@ export function MobileSettingsPage() {
 
         {/* 关于 */}
         <div className="rounded-xl bg-card border border-border px-4 py-3">
-          <p className="text-sm text-muted-foreground">xinsight v0.1.0 — 基于多 Agent 的 AI 应用</p>
+          <p className="text-sm text-muted-foreground">
+            xinsight v{APP_VERSION} — 基于多 Agent 的 AI 应用
+          </p>
         </div>
       </div>
     </div>

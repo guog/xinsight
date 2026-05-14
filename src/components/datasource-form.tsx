@@ -535,7 +535,7 @@ export default function DatasourceForm({ initialData, isEdit }: Props) {
             </div>
             {restEndpoints.map((ep, i) => (
               <RestEndpointForm
-                key={i}
+                key={ep.id || `rest-${i}`}
                 endpoint={ep}
                 onChange={(updated) =>
                   setRestEndpoints((prev) => prev.map((e, idx) => (idx === i ? updated : e)))
@@ -573,7 +573,7 @@ export default function DatasourceForm({ initialData, isEdit }: Props) {
             </div>
             {graphqlEndpoints.map((ep, i) => (
               <GraphqlEndpointForm
-                key={i}
+                key={ep.id || `gql-${i}`}
                 endpoint={ep}
                 onChange={(updated) =>
                   setGraphqlEndpoints((prev) => prev.map((e, idx) => (idx === i ? updated : e)))
@@ -596,7 +596,7 @@ export default function DatasourceForm({ initialData, isEdit }: Props) {
           <div className="space-y-4">
             {grpcEndpoints.map((ep, i) => (
               <GrpcEndpointForm
-                key={i}
+                key={ep.id || `grpc-${i}`}
                 endpoint={ep}
                 onChange={(updated) =>
                   setGrpcEndpoints((prev) => prev.map((e, idx) => (idx === i ? updated : e)))
@@ -619,7 +619,7 @@ export default function DatasourceForm({ initialData, isEdit }: Props) {
           <div className="space-y-4">
             {opcuaEndpoints.map((ep, i) => (
               <OpcuaEndpointForm
-                key={i}
+                key={ep.id || `opcua-${i}`}
                 endpoint={ep}
                 onChange={(updated) =>
                   setOpcuaEndpoints((prev) => prev.map((e, idx) => (idx === i ? updated : e)))
@@ -642,7 +642,7 @@ export default function DatasourceForm({ initialData, isEdit }: Props) {
           <div className="space-y-4">
             {mqttEndpoints.map((ep, i) => (
               <MqttEndpointForm
-                key={i}
+                key={ep.id || `mqtt-${i}`}
                 endpoint={ep}
                 onChange={(updated) =>
                   setMqttEndpoints((prev) => prev.map((e, idx) => (idx === i ? updated : e)))

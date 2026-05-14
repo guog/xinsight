@@ -89,7 +89,13 @@ export function MobileChatPage() {
             (m: { id: string; role: string; parts: string; createdAt: string }) => ({
               id: m.id,
               role: m.role,
-              parts: typeof m.parts === "string" ? JSON.parse(m.parts) : m.parts,
+              parts: (() => {
+                try {
+                  return typeof m.parts === "string" ? JSON.parse(m.parts) : m.parts
+                } catch {
+                  return [{ type: "text", text: typeof m.parts === "string" ? m.parts : "" }]
+                }
+              })(),
               createdAt: new Date(m.createdAt),
             }),
           )
