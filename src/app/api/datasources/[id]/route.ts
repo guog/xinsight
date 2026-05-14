@@ -1,18 +1,25 @@
 import { NextResponse } from "next/server"
 import { db } from "@/db"
 import { SqliteDatasourceRepository } from "@/db/repositories/datasource-repository"
-import { requireAdmin, handleAuthError } from "@/lib/auth"
+import { requireAdmin, requireAuth, handleAuthError } from "@/lib/auth"
+import { maskSensitiveFields } from "@/lib/mask-sensitive"
 
-/** GET /api/datasources/[id] — 获取单个数据源 */
+/** GET /api/datasources/[id] — 获取单个数据源（脱敏） */
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    try {
+      await requireAuth()
+    } catch (error) {
+      return handleAuthError(error) ?? NextResponse.json({ error: "未知错误" }, { status: 500 })
+    }
+
     const { id } = await params
     const repo = new SqliteDatasourceRepository(db)
     const datasource = await repo.findById(id)
     if (!datasource) {
       return NextResponse.json({ error: "数据源不存在" }, { status: 404 })
     }
-    return NextResponse.json(datasource)
+    return NextResponse.json(maskSensitiveFields(datasource as Record<string, unknown>))
   } catch (error) {
     console.error("获取数据源失败:", error)
     return NextResponse.json({ error: "获取数据源失败" }, { status: 500 })
