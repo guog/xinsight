@@ -29,6 +29,11 @@ export interface Datasource {
   callCount?: number
 }
 
+const apiBase =
+  typeof window !== "undefined" && process.env.NEXT_PUBLIC_API_URL
+    ? process.env.NEXT_PUBLIC_API_URL
+    : ""
+
 export function useDatasources() {
   const [datasources, setDatasources] = useState<Datasource[]>([])
   const [loading, setLoading] = useState(true)
@@ -38,7 +43,7 @@ export function useDatasources() {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch("/api/datasources")
+      const res = await fetch(`${apiBase}/api/datasources`)
       if (!res.ok) throw new Error("获取数据源列表失败")
       const data = await res.json()
       setDatasources(data)
@@ -51,7 +56,7 @@ export function useDatasources() {
 
   useEffect(() => {
     let cancelled = false
-    fetch("/api/datasources")
+    fetch(`${apiBase}/api/datasources`)
       .then((res) => {
         if (!res.ok) throw new Error("获取数据源列表失败")
         return res.json()
@@ -74,46 +79,38 @@ export function useDatasources() {
   }, [])
 
   const remove = useCallback(async (id: string) => {
-    const res = await fetch(`/api/datasources/${id}`, { method: "DELETE" })
+    const res = await fetch(`${apiBase}/api/datasources/${id}`, { method: "DELETE" })
     if (!res.ok) throw new Error("删除失败")
     setDatasources((prev) => prev.filter((d) => d.id !== id))
   }, [])
 
   const testConnection = useCallback(
     async (id: string): Promise<{ ok: boolean; message?: string }> => {
-      const res = await fetch(`/api/datasources/${id}/test`, { method: "POST" })
+      const res = await fetch(`${apiBase}/api/datasources/${id}/test`, { method: "POST" })
       const data = await res.json()
       return { ok: res.ok && data.ok, message: data.message }
     },
     [],
   )
 
-  const duplicate = useCallback(
-    async (id: string): Promise<Datasource> => {
-      const res = await fetch(`/api/datasources/${id}/duplicate`, { method: "POST" })
-      if (!res.ok) throw new Error("复制失败")
-      const newDs = await res.json()
-      setDatasources((prev) => [...prev, newDs])
-      return newDs
-    },
-    [],
-  )
+  const duplicate = useCallback(async (id: string): Promise<Datasource> => {
+    const res = await fetch(`${apiBase}/api/datasources/${id}/duplicate`, { method: "POST" })
+    if (!res.ok) throw new Error("复制失败")
+    const newDs = await res.json()
+    setDatasources((prev) => [...prev, newDs])
+    return newDs
+  }, [])
 
-  const batchUpdate = useCallback(
-    async (action: "enable" | "disable", ids: string[]) => {
-      const res = await fetch("/api/datasources/batch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, ids }),
-      })
-      if (!res.ok) throw new Error("批量操作失败")
-      const enabled = action === "enable"
-      setDatasources((prev) =>
-        prev.map((d) => (ids.includes(d.id) ? { ...d, enabled } : d)),
-      )
-    },
-    [],
-  )
+  const batchUpdate = useCallback(async (action: "enable" | "disable", ids: string[]) => {
+    const res = await fetch(`${apiBase}/api/datasources/batch`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, ids }),
+    })
+    if (!res.ok) throw new Error("批量操作失败")
+    const enabled = action === "enable"
+    setDatasources((prev) => prev.map((d) => (ids.includes(d.id) ? { ...d, enabled } : d)))
+  }, [])
 
   return { datasources, loading, error, refresh, remove, testConnection, duplicate, batchUpdate }
 }

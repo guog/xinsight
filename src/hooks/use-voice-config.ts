@@ -2,6 +2,11 @@
 
 import { useState, useEffect, useCallback } from "react"
 
+const apiBase =
+  typeof window !== "undefined" && process.env.NEXT_PUBLIC_API_URL
+    ? process.env.NEXT_PUBLIC_API_URL
+    : ""
+
 /** 语音配置 hook — 获取服务端语音启用状态 + 控制语音模式显隐 */
 export function useVoiceConfig() {
   const [voiceEnabled, setVoiceEnabled] = useState(false)
@@ -10,7 +15,6 @@ export function useVoiceConfig() {
 
   useEffect(() => {
     let cancelled = false
-    const apiBase = process.env.NEXT_PUBLIC_API_URL ?? ""
     fetch(`${apiBase}/api/voice/config`)
       .then((res) => res.json())
       .then((data) => {
