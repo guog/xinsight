@@ -1,12 +1,11 @@
 "use client"
 
 import { useState, Suspense } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { Loader2, Sparkles } from "lucide-react"
 
 function LoginForm() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const redirect = searchParams.get("redirect") || "/"
 
@@ -33,8 +32,8 @@ function LoginForm() {
         const data = await res.json().catch(() => ({}))
         throw new Error(data.error || "登录失败")
       }
-      router.push(redirect)
-      router.refresh()
+      // 使用硬跳转确保在所有场景下可靠跳转（#92）
+      window.location.href = redirect
     } catch (err) {
       setError(err instanceof Error ? err.message : "登录失败")
       setPassword("")
