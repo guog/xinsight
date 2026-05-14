@@ -2,6 +2,7 @@ import { db } from "@/db"
 import { users, sessions } from "@/db/schema"
 import { eq, lt } from "drizzle-orm"
 import { cookies } from "next/headers"
+import { signSessionId } from "@/lib/session-sign"
 
 const SESSION_COOKIE = "xinsight_session"
 const SESSION_MAX_AGE = 7 * 24 * 60 * 60 * 1000 // 7 天
@@ -79,11 +80,12 @@ export function cleanExpiredSessions() {
   db.delete(sessions).where(lt(sessions.expiresAt, now)).run()
 }
 
-/** 获取 session cookie 配置（供 route handler 使用） */
-export function getSessionCookieOptions(sessionId: string) {
+/** 获取 session cookie 配置（供 route handler 使用），cookie 值为签名后的 sessionId */
+export async function getSessionCookieOptions(sessionId: string) {
+  const signedValue = await signSessionId(sessionId)
   return {
     name: SESSION_COOKIE,
-    value: sessionId,
+    value: signedValue,
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax" as const,
@@ -95,9 +97,18 @@ export function getSessionCookieOptions(sessionId: string) {
 /** 登出 → 删除 session（返回 sessionId 供 route handler 清除 cookie） */
 export async function logoutUser(_req?: Request) {
   const cookieStore = await cookies()
-  const sessionId = cookieStore.get(SESSION_COOKIE)?.value
-  if (sessionId) {
-    db.delete(sessions).where(eq(sessions.id, sessionId)).run()
+  const rawCookie = cookieStore.get(SESSION_COOKIE)?.value
+  let sessionId: string | null = null
+  if (rawCookie) {
+    if (rawCookie.includes(".")) {
+      const { verifySessionCookie } = await import("@/lib/session-sign")
+      sessionId = await verifySessionCookie(rawCookie)
+    } else {
+      sessionId = rawCookie
+    }
+    if (sessionId) {
+      db.delete(sessions).where(eq(sessions.id, sessionId)).run()
+    }
   }
   return sessionId
 }
@@ -105,7 +116,17 @@ export async function logoutUser(_req?: Request) {
 /** 获取当前登录用户（从 cookie 读 session） */
 export async function getCurrentUser() {
   const cookieStore = await cookies()
-  const sessionId = cookieStore.get(SESSION_COOKIE)?.value
+  const rawCookie = cookieStore.get(SESSION_COOKIE)?.value
+  if (!rawCookie) return null
+
+  // 支持签名格式（含 .）和旧格式（纯 UUID）
+  const { verifySessionCookie } = await import("@/lib/session-sign")
+  let sessionId: string | null = null
+  if (rawCookie.includes(".")) {
+    sessionId = await verifySessionCookie(rawCookie)
+  } else {
+    sessionId = rawCookie
+  }
   if (!sessionId) return null
 
   const session = db.select().from(sessions).where(eq(sessions.id, sessionId)).get()
