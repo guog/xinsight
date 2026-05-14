@@ -1,6 +1,6 @@
 import { db } from "@/db"
 import { users, sessions } from "@/db/schema"
-import { eq } from "drizzle-orm"
+import { eq, lt } from "drizzle-orm"
 import { cookies } from "next/headers"
 
 const SESSION_COOKIE = "xinsight_session"
@@ -62,10 +62,21 @@ export async function loginUser(username: string, password: string) {
     })
     .run()
 
+  // 概率性清理过期 session（约 1/10 概率）
+  if (Math.random() < 0.1) {
+    cleanExpiredSessions()
+  }
+
   return {
     user: { id: user.id, username: user.username, displayName: user.displayName, role: user.role },
     sessionId,
   }
+}
+
+/** 清理所有过期 session */
+export function cleanExpiredSessions() {
+  const now = new Date()
+  db.delete(sessions).where(lt(sessions.expiresAt, now)).run()
 }
 
 /** 获取 session cookie 配置（供 route handler 使用） */
