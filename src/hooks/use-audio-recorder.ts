@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 // 将 Float32Array 转换为 Int16Array (PCM 16bit)
 function float32ToInt16(float32: Float32Array): Int16Array {
@@ -96,6 +96,18 @@ export function useAudioRecorder() {
 
     setAnalyserNode(null)
     setIsRecording(false)
+  }, [])
+
+  // 组件卸载时自动清理资源
+  useEffect(() => {
+    return () => {
+       
+      processorRef.current?.disconnect()
+      streamRef.current?.getTracks().forEach((t) => t.stop())
+      if (contextRef.current) {
+        contextRef.current.close()
+      }
+    }
   }, [])
 
   return {
