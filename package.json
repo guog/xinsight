@@ -11,7 +11,7 @@
     "lint:fix": "eslint --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "mastra:dev": "mastra dev",
+    "mastra:dev": "PORT=3001 DATABASE_URL=$PWD/data/xinsight.db bun --bun mastra dev",
     "dev:all": "concurrently -n next,mastra,mes -c blue,magenta,green \"bun run dev\" \"bun run mastra:dev\" \"bun run --cwd packages/mes-mock-api dev\"",
     "db:push": "bun scripts/db-push.ts",
     "test": "vitest run",
