@@ -6,6 +6,7 @@ import { mastra } from "@/mastra"
 import { persistMessages, autoGenerateTitle } from "@/db/repositories/chat-repo"
 import { buildDatasourceContext } from "@/lib/schema/build-context"
 import { requireAuth, handleAuthError } from "@/lib/auth"
+import { isRetryableError } from "@/lib/retry-utils"
 
 // 允许流式响应最长 120 秒（Supervisor 多轮调度可能需要更长时间）
 export const maxDuration = 120
@@ -59,12 +60,17 @@ export async function POST(req: Request) {
         ...(contextSuffix ? { instructions: contextSuffix } : {}),
       })
     } catch (e) {
-      console.warn("[chat] first attempt failed, retrying...", e)
-      await new Promise((r) => setTimeout(r, 1000))
-      stream = await agent.stream(chatMessages, {
-        ...memoryOptions,
-        ...(contextSuffix ? { instructions: contextSuffix } : {}),
-      })
+      // 仅对可重试错误（速率限制、超时、网络错误）进行重试
+      if (isRetryableError(e)) {
+        console.warn("[chat] 可重试错误，1秒后重试...", e)
+        await new Promise((r) => setTimeout(r, 1000))
+        stream = await agent.stream(chatMessages, {
+          ...memoryOptions,
+          ...(contextSuffix ? { instructions: contextSuffix } : {}),
+        })
+      } else {
+        throw e
+      }
     }
 
     // 收集完整的 assistant 响应部分（文本 + 思考过程 + 工具调用）
