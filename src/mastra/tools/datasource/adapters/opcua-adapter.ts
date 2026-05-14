@@ -46,10 +46,13 @@ export class OpcuaAdapter implements DatasourceAdapter {
         ...this.buildAuthHeaders(config.auth),
       }
 
+      const requestTimeout = opcuaConfig.timeout ?? 30000
+
       const response = await fetch(opcuaConfig.endpointUrl, {
         method: "POST",
         headers: reqHeaders,
         body: JSON.stringify(body),
+        signal: AbortSignal.timeout(requestTimeout),
       })
 
       const duration = Date.now() - start
@@ -87,6 +90,7 @@ export class OpcuaAdapter implements DatasourceAdapter {
         method: "POST",
         headers: reqHeaders,
         body: JSON.stringify({ action: "browse", nodeId: "i=84" }),
+        signal: AbortSignal.timeout(10000),
       })
 
       if (!response.ok) {

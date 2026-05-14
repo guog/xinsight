@@ -61,10 +61,13 @@ export class MqttAdapter implements DatasourceAdapter {
       if (resolvedAction === "subscribe_once") body.timeout = timeout ?? mqttConfig.timeout
       if (endpointQos != null) body.qos = endpointQos
 
+      const requestTimeout = timeout ?? mqttConfig.timeout ?? 30000
+
       const response = await fetch(mqttConfig.brokerUrl, {
         method: "POST",
         headers: reqHeaders,
         body: JSON.stringify(body),
+        signal: AbortSignal.timeout(requestTimeout),
       })
 
       const duration = Date.now() - start
@@ -107,6 +110,7 @@ export class MqttAdapter implements DatasourceAdapter {
           topic: "$SYS/broker/version",
           timeout: 5000,
         }),
+        signal: AbortSignal.timeout(10000),
       })
 
       if (!response.ok) {

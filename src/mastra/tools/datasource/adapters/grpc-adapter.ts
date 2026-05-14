@@ -47,10 +47,13 @@ export class GrpcAdapter implements DatasourceAdapter {
         ...extraHeaders,
       }
 
+      const requestTimeout = grpcConfig.timeout ?? 30000
+
       const response = await fetch(grpcConfig.address, {
         method: "POST",
         headers: reqHeaders,
         body: JSON.stringify({ service: resolvedService, method: resolvedMethod, message }),
+        signal: AbortSignal.timeout(requestTimeout),
       })
 
       const duration = Date.now() - start
@@ -79,6 +82,7 @@ export class GrpcAdapter implements DatasourceAdapter {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: "{}",
+        signal: AbortSignal.timeout(10000),
       })
       return { ok: true, message: "连接成功" }
     } catch (err) {
