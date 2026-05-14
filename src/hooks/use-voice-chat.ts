@@ -8,7 +8,7 @@ interface VoiceChatOptions {
   modelId?: string
 }
 
-const WS_URL = process.env.NEXT_PUBLIC_VOICE_WS_URL || "ws://localhost:3001"
+const WS_URL = process.env.NEXT_PUBLIC_VOICE_WS_URL || "ws://localhost:3003"
 const MAX_RECONNECT = 3
 
 // ArrayBuffer 转 base64

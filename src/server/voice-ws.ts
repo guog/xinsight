@@ -339,7 +339,7 @@ let wss: WebSocketServer | null = null
 export function startVoiceWebSocketServer(): WebSocketServer {
   if (wss) return wss
 
-  const port = parseInt(process.env.VOICE_WS_PORT || "3001", 10)
+  const port = parseInt(process.env.VOICE_WS_PORT || "3003", 10)
   wss = new WebSocketServer({ port })
 
   wss.on("connection", (ws, req) => {
