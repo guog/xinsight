@@ -44,6 +44,7 @@ export function MobileChatPage() {
   const agentId = "factoryDirectorAgent"
   const [showDrawer, setShowDrawer] = useState(false)
   const [activeChatId, setActiveChatId] = useState<string | null>(null)
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false)
   const chatIdRef = useRef<string | null>(null)
   const { modelId } = useModel()
   const { getModelById } = useModels()
@@ -79,6 +80,7 @@ export function MobileChatPage() {
       setActiveChatId(chat.id)
       chatIdRef.current = chat.id
       setShowDrawer(false)
+      setIsLoadingHistory(true)
       try {
         const res = await fetch(`${API_BASE}/api/chats/${chat.id}/messages`)
         if (res.ok) {
@@ -95,6 +97,8 @@ export function MobileChatPage() {
         }
       } catch (e) {
         console.error("加载历史消息失败:", e)
+      } finally {
+        setIsLoadingHistory(false)
       }
     },
     [setMessages],
@@ -192,7 +196,11 @@ export function MobileChatPage() {
       {/* 对话区域 */}
       <Conversation className="flex-1 min-h-0">
         <ConversationContent>
-          {messages.length === 0 ? (
+          {isLoadingHistory ? (
+            <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+              加载历史消息中…
+            </div>
+          ) : messages.length === 0 ? (
             <WelcomeEmptyState agentName="智能工厂助手" onSuggestionClick={handleSuggestionClick} />
           ) : (
             messages.map((message) => (
@@ -229,29 +237,39 @@ export function MobileChatPage() {
                           ),
                         )
                       }
-                      case "tool-invocation": {
-                        const inv = (
-                          part as unknown as {
-                            toolInvocation: {
-                              toolName: string
-                              state: "call" | "partial-call" | "result"
-                              args?: Record<string, unknown>
-                              result?: unknown
-                            }
+                      default: {
+                        if (part.type.startsWith("tool-")) {
+                          const tp = part as unknown as {
+                            type: string
+                            toolCallId: string
+                            toolName?: string
+                            state:
+                              | "input-streaming"
+                              | "input-available"
+                              | "output-available"
+                              | "output-error"
+                            input?: unknown
+                            output?: unknown
                           }
-                        ).toolInvocation
-                        return (
-                          <AgentMessage
-                            key={`${message.id}-${i}-tool`}
-                            toolName={inv.toolName}
-                            state={inv.state}
-                            args={inv.args}
-                            result={inv.result}
-                          />
-                        )
-                      }
-                      default:
+                          const toolName = tp.toolName ?? tp.type.split("-").slice(1).join("-")
+                          const stateMap: Record<string, "call" | "partial-call" | "result"> = {
+                            "input-streaming": "partial-call",
+                            "input-available": "call",
+                            "output-available": "result",
+                            "output-error": "result",
+                          }
+                          return (
+                            <AgentMessage
+                              key={`${message.id}-${i}-tool`}
+                              toolName={toolName}
+                              state={stateMap[tp.state] ?? "call"}
+                              args={tp.input as Record<string, unknown>}
+                              result={tp.output}
+                            />
+                          )
+                        }
                         return null
+                      }
                     }
                   })}
                 </MessageContent>
@@ -310,7 +328,7 @@ export function MobileChatPage() {
                 <Square className="size-4" />
               </button>
             ) : status === "submitted" ? (
-              <PromptInputSubmit status="generating" disabled={false} />
+              <PromptInputSubmit status="submitted" disabled={false} />
             ) : (
               <PromptInputSubmit status="ready" disabled={!input.trim()} />
             )}
