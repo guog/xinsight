@@ -133,7 +133,7 @@ export async function requireAdmin() {
 }
 
 /** 将 auth 错误转为 HTTP Response，非 auth 错误返回 null */
-export function handleAuthError(error: unknown): Response {
+export function handleAuthError(error: unknown): Response | null {
   if (
     error instanceof Error &&
     (error.message === "未登录" || error.message === "需要管理员权限")
@@ -141,5 +141,5 @@ export function handleAuthError(error: unknown): Response {
     const status = error.message === "未登录" ? 401 : 403
     return Response.json({ error: error.message }, { status })
   }
-  return Response.json({ error: "未知认证错误" }, { status: 500 })
+  return null
 }
