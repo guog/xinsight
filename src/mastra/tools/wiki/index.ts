@@ -92,7 +92,8 @@ export const wikiSearchTool = createTool({
         // 计算匹配度 — 简单的 term frequency 评分
         let score = 0
         for (const term of queryTerms) {
-          const regex = new RegExp(term, "gi")
+          const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+          const regex = new RegExp(escaped, "gi")
           const matches = content.match(regex)
           if (matches) score += matches.length
         }
