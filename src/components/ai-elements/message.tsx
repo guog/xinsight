@@ -56,7 +56,7 @@ export const MessageContent = ({
     className={cn(
       "flex w-fit min-w-0 max-w-full flex-col gap-2 overflow-hidden text-sm transition-colors duration-200 chat-message-content",
       "group-[.is-user]:ml-auto group-[.is-user]:rounded-2xl group-[.is-user]:bg-secondary group-[.is-user]:px-4 group-[.is-user]:py-3 group-[.is-user]:text-foreground group-[.is-user]:shadow-sm",
-      "group-[.is-assistant]:text-foreground group-[.is-assistant]:leading-relaxed",
+      "group-[.is-assistant]:text-foreground group-[.is-assistant]:leading-relaxed group-[.is-assistant]:rounded-2xl group-[.is-assistant]:bg-muted/30 group-[.is-assistant]:px-5 group-[.is-assistant]:py-4 group-[.is-assistant]:border group-[.is-assistant]:border-border/40",
       className
     )}
     {...props}
