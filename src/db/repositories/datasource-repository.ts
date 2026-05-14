@@ -65,6 +65,16 @@ export interface DatasourceRepository {
   recordCall(id: string): Promise<DatasourceRecord>
 }
 
+/** 安全解析 JSON，失败时返回默认值 */
+function safeJsonParse<T>(value: string, fallback: T): T {
+  try {
+    return JSON.parse(value) as T
+  } catch {
+    console.warn(`[datasource] JSON 解析失败，使用默认值:`, value?.slice(0, 100))
+    return fallback
+  }
+}
+
 /** 将数据库行转换为 DatasourceRecord */
 function toRecord(row: typeof datasources.$inferSelect): DatasourceRecord {
   return {
@@ -72,9 +82,9 @@ function toRecord(row: typeof datasources.$inferSelect): DatasourceRecord {
     name: row.name,
     description: row.description,
     type: row.type,
-    auth: JSON.parse(row.auth),
-    config: JSON.parse(row.config),
-    endpoints: JSON.parse(row.endpoints),
+    auth: safeJsonParse<Record<string, unknown>>(row.auth, {}),
+    config: safeJsonParse<Record<string, unknown>>(row.config, {}),
+    endpoints: safeJsonParse<DatasourceEndpoint[]>(row.endpoints, []),
     enabled: row.enabled,
     lastTestedAt: row.lastTestedAt,
     lastTestResult: row.lastTestResult,
@@ -188,7 +198,7 @@ export class SqliteDatasourceRepository implements DatasourceRepository {
       .where(eq(agentDatasources.agentId, agentId))
     return rows.map((r) => ({
       datasourceId: r.datasourceId,
-      endpointIds: r.endpointIds ? JSON.parse(r.endpointIds) : null,
+      endpointIds: r.endpointIds ? safeJsonParse<string[]>(r.endpointIds, []) : null,
     }))
   }
 
