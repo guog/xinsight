@@ -11,13 +11,15 @@ export async function GET() {
     try {
       await requireAuth()
     } catch (error) {
-      return handleAuthError(error) ?? NextResponse.json({ error: "未知错误" }, { status: 500 })
+      return handleAuthError(error)
     }
 
     const repo = new SqliteDatasourceRepository(db)
     const datasources = await repo.findAll()
     // 脱敏敏感字段
-    const masked = datasources.map((ds) => maskSensitiveFields(ds as Record<string, unknown>))
+    const masked = datasources.map((ds) =>
+      maskSensitiveFields(ds as unknown as Record<string, unknown>),
+    )
     return NextResponse.json(masked)
   } catch (error) {
     console.error("获取数据源列表失败:", error)
@@ -41,15 +43,13 @@ export async function POST(request: Request) {
       )
     }
     const repo = new SqliteDatasourceRepository(db)
-    const datasource = await repo.create(parsed.data)
+    const id = crypto.randomUUID()
+    const datasource = await repo.create({
+      id,
+      ...parsed.data,
+    } as Parameters<typeof repo.create>[0])
     return NextResponse.json(datasource, { status: 201 })
   } catch (error) {
-    const authResp = handleAuthError(error)
-    if (authResp) return authResp
-    console.error("创建数据源失败:", error)
-    return NextResponse.json(
-      { error: "创建数据源失败", message: error instanceof Error ? error.message : "未知错误" },
-      { status: 500 },
-    )
+    return handleAuthError(error)
   }
 }

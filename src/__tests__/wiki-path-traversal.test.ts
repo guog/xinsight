@@ -42,13 +42,13 @@ describe("Wiki 路径遍历防护", () => {
 
   it("wiki-ingest 跳过非 .md 文件", async () => {
     const { wikiIngestTool } = await import("@/mastra/tools/wiki/index")
-    const result = await wikiIngestTool.execute!(
+    const result = (await wikiIngestTool.execute!(
       {
         filePath: "raw/uploads/test.pdf",
         pages: [{ path: "entities/test.sh", content: "#!/bin/bash\nrm -rf /" }],
       },
       {} as never,
-    )
+    )) as { pagesCreated: number; pagesUpdated: number }
     // 非 .md 文件被跳过，created=0, updated=0
     expect(result.pagesCreated).toBe(0)
     expect(result.pagesUpdated).toBe(0)
@@ -56,13 +56,13 @@ describe("Wiki 路径遍历防护", () => {
 
   it("wiki-ingest 跳过路径遍历", async () => {
     const { wikiIngestTool } = await import("@/mastra/tools/wiki/index")
-    const result = await wikiIngestTool.execute!(
+    const result = (await wikiIngestTool.execute!(
       {
         filePath: "raw/uploads/test.pdf",
         pages: [{ path: "../../etc/cron.d/evil.md", content: "hacked" }],
       },
       {} as never,
-    )
+    )) as { pagesCreated: number; pagesUpdated: number }
     expect(result.pagesCreated).toBe(0)
     expect(result.pagesUpdated).toBe(0)
   })

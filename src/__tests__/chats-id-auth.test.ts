@@ -39,10 +39,10 @@ const mockInsert = vi.fn(() => ({
 
 vi.mock("@/db", () => ({
   db: {
-    select: (...args: unknown[]) => mockSelect(...args),
-    update: (...args: unknown[]) => mockUpdate(...args),
-    delete: (...args: unknown[]) => mockDelete(...args),
-    insert: (...args: unknown[]) => mockInsert(...args),
+    select: () => mockSelect(),
+    update: () => mockUpdate(),
+    delete: () => mockDelete(),
+    insert: () => mockInsert(),
   },
 }))
 

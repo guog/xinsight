@@ -11,7 +11,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     try {
       await requireAuth()
     } catch (error) {
-      return handleAuthError(error) ?? NextResponse.json({ error: "未知错误" }, { status: 500 })
+      return handleAuthError(error)
     }
 
     const { id } = await params
@@ -20,7 +20,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     if (!datasource) {
       return NextResponse.json({ error: "数据源不存在" }, { status: 404 })
     }
-    return NextResponse.json(maskSensitiveFields(datasource as Record<string, unknown>))
+    return NextResponse.json(maskSensitiveFields(datasource as unknown as Record<string, unknown>))
   } catch (error) {
     console.error("获取数据源失败:", error)
     return NextResponse.json({ error: "获取数据源失败" }, { status: 500 })
@@ -45,13 +45,10 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     if (!existing) {
       return NextResponse.json({ error: "数据源不存在" }, { status: 404 })
     }
-    const datasource = await repo.update(id, parsed.data)
+    const datasource = await repo.update(id, parsed.data as Parameters<typeof repo.update>[1])
     return NextResponse.json(datasource)
   } catch (error) {
-    const authResp = handleAuthError(error)
-    if (authResp) return authResp
-    console.error("更新数据源失败:", error)
-    return NextResponse.json({ error: "更新数据源失败" }, { status: 500 })
+    return handleAuthError(error)
   }
 }
 
@@ -64,9 +61,6 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     await repo.delete(id)
     return NextResponse.json({ success: true })
   } catch (error) {
-    const authResp = handleAuthError(error)
-    if (authResp) return authResp
-    console.error("删除数据源失败:", error)
-    return NextResponse.json({ error: "删除数据源失败" }, { status: 500 })
+    return handleAuthError(error)
   }
 }
