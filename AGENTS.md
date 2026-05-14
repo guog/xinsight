@@ -10,9 +10,22 @@
 - **运行时 / 包管理器：** Bun（`bun install`、`bun run`、`bunx`）
 - **前端框架：** Next.js 16（App Router + Turbopack）
 - **AI Agent 与工作流：** Mastra framework（库模式，集成在 Next.js API Routes 中）
-- **AI SDK：** Vercel AI SDK v6 + `@mastra/ai-sdk`（流式桥接）
-- **UI 组件：** Vercel AI Elements（基于 shadcn/ui，安装到 `@/components/ai-elements/`）
+- **AI SDK：** Vercel AI SDK v6 + `@ai-sdk/react` v3 + `@mastra/ai-sdk`（流式桥接）
+- **UI 组件：** Vercel AI Elements + shadcn/ui v4（安装到 `@/components/ai-elements/` 和 `@/components/ui/`）
+- **数据库：** Drizzle ORM + LibSQL（`src/db/`），Mastra Memory 使用独立 LibSQL 存储
+- **类型校验：** Zod v4（注意与 v3 有破坏性变更）
+- **样式：** Tailwind CSS v4
+- **认证：** 自研 session 认证（bcrypt 密码哈希 + HMAC session 签名）
+- **跨平台：** Tauri（桌面）+ Capacitor（iOS / Android）
 - **语言：** 全栈 TypeScript
+
+## 项目能力概述
+
+- **14 个 Agent**：通用（chat、auto、wiki、research、code）+ 工业场景（energy、warehouse、production、equipment、quality、factory-director）
+- **5 种数据源协议适配器**：REST、gRPC、GraphQL、MQTT、OPC-UA
+- **语音交互**：TTS / STT（基于 DashScope）
+- **管理后台**：Provider 管理、数据源管理、Agent 配置、Wiki 知识库
+- **移动端适配**：独立移动端路由组（`/(mobile)/`）
 
 ## 核心约定
 
@@ -29,6 +42,9 @@
 - **Mastra 以库模式运行**：不独立部署 Mastra 服务器，直接在 Next.js API Routes 中调用 `mastra.getAgent()`
 - **流式响应链路**：`agent.stream()` → `toAISdkStream()` → `createUIMessageStreamResponse()` → 前端 `useChat()`
 - **Mastra Evals**：新建或修改 Agent 时须配置 `@mastra/evals` scorer（如 relevancy、toxicity、hallucination）
+- **数据库层**：Drizzle ORM + LibSQL，`src/db/` 包含 schema 定义、迁移脚本、种子数据（预置 admin/guest 账号）
+- **认证系统**：`/api/auth/`（登录/注册/登出/当前用户），基于 bcrypt + HMAC session，API key 使用 `ENCRYPTION_KEY` 加密存储
+- **管理后台 API**：`/api/admin/providers/`（Provider CRUD + 模型同步）、`/api/datasources/`（数据源 CRUD + 连接测试 + 协议自发现）、`/api/wiki/admin/`（Wiki 任务管理）
 - Mastra API 变化快——写代码前必须核对内嵌文档（`node_modules/@mastra/*/dist/docs/`）或远程文档（`https://mastra.ai/llms.txt`），不要信任训练数据
 - 模型格式为 `provider/model-name`（如 `deepseek/deepseek-chat`）。运行 `node skills/mastra/scripts/provider-registry.mjs` 查看可用 provider 和模型
 - 安装 AI Elements 组件：`bunx --bun shadcn@latest add "https://elements.ai-sdk.dev/api/registry/<component>.json"`
@@ -84,9 +100,17 @@
 
 ## 已安装的 OpenCode Skills
 
-| Skill         | 用途                                                      | 触发场景         |
-| ------------- | --------------------------------------------------------- | ---------------- |
-| `mastra`      | Mastra 框架指南、API 查询、Agent/Workflow 模式            | 任何 Mastra 开发 |
+| Skill | 用途 | 触发场景 |
+| ----- | ---- | -------- |
+| `agent-browser` | 浏览器自动化、网页交互、截图、表单填写 | 需要操作浏览器时 |
 | `ai-elements` | AI 聊天 UI 组件（conversation、message、prompt-input 等） | 构建 AI 聊天界面 |
+| `code-reviewer` | 代码审查（本地变更或远程 PR） | 代码 review |
+| `frontend-design` | 高质量前端界面设计与实现 | 构建/美化 Web UI |
+| `mastra` | Mastra 框架指南、API 查询、Agent/Workflow 模式 | 任何 Mastra 开发 |
+| `pr-creator` | 创建规范的 Pull Request | 发起 PR |
+| `prd-generator` | 生成产品需求文档（PRD） | 产品需求梳理 |
+| `vercel-react-best-practices` | React/Next.js 性能优化指南 | React 性能优化 |
+| `web-design-guidelines` | Web 界面设计规范审查 | UI/UX 审计 |
+| `webapp-testing` | Web 应用测试（Playwright） | 前端功能验证 |
 
 `skills/` 目录是指向 `.agents/skills/` 的符号链接，请勿直接编辑 skill 文件。

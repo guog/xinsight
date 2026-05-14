@@ -36,6 +36,22 @@ bun dev
 >
 > 登录后请及时修改密码。
 
+## 环境变量
+
+| 变量名 | 必填 | 说明 |
+| ------ | ---- | ---- |
+| `DEEPSEEK_API_KEY` | ✅ | DeepSeek 模型密钥 |
+| `QWEN_API_KEY` | 否 | 阿里通义千问密钥 |
+| `OPENAI_API_KEY` | 否 | OpenAI 密钥 |
+| `ANTHROPIC_API_KEY` | 否 | Anthropic 密钥 |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | 否 | Google Gemini 密钥 |
+| `DASHSCOPE_API_KEY` | 否 | DashScope 语音服务密钥（TTS/STT） |
+| `ENCRYPTION_KEY` | ✅ | API Key 加密存储密钥（32 字节 hex） |
+| `SESSION_SECRET` | ✅ | Session 签名密钥 |
+| `DATABASE_URL` | 否 | LibSQL 数据库 URL（默认本地文件） |
+
+> 所有密钥放在 `.env.local`（已 gitignore），绝不提交到仓库。
+
 ## 常用命令
 
 | 命令                 | 说明                        |
@@ -48,21 +64,46 @@ bun dev
 | `bun run lint:fix`   | ESLint 自动修复             |
 | `bun run format`     | Prettier 格式化             |
 | `bun run typecheck`  | TypeScript 类型检查         |
-| `bun run mastra:dev` | 启动 Mastra Studio（:4111） |
+| `bun run mastra:dev` | 启动 Mastra Studio（:3001） |
+| `bun run dev:all`    | 同时启动 Next.js + Mastra Studio |
+| `bun run db:push`    | 推送 Drizzle schema 到数据库 |
+| `bun run test:coverage` | 运行测试并生成覆盖率报告 |
+| `bun run format:check` | 检查格式（不修改文件） |
+| `bun run build:static` | 静态导出构建 |
+| `bun run tauri:dev`  | 启动 Tauri 桌面开发模式 |
+| `bun run tauri:build` | 构建 Tauri 桌面应用 |
+| `bun run cap:sync`   | 同步 Capacitor 配置到原生项目 |
+| `bun run cap:ios`    | 打开 iOS 项目（Xcode） |
+| `bun run cap:android` | 打开 Android 项目（Android Studio） |
 
 ## 目录结构
 
 ```
 src/
-  app/                  # Next.js App Router 页面与 API Routes
+  __tests__/              # 顶层测试目录
+  app/                    # Next.js App Router 页面与 API Routes
+    api/                  # API 端点（chat、auth、datasources、admin、wiki 等）
+    (mobile)/             # 移动端路由组
+    admin/                # 管理后台页面
+    wiki/                 # Wiki 知识库页面
   components/
-    ui/                 # shadcn/ui 组件（CLI 管理，勿手动新增）
-    ai-elements/        # AI Elements 组件（CLI 管理，勿手动新增）
-  lib/                  # 工具函数
+    ui/                   # shadcn/ui 组件（CLI 管理，勿手动新增）
+    ai-elements/          # AI Elements 组件（CLI 管理，勿手动新增）
+    datasource/           # 数据源管理表单组件
+    chart/                # 图表渲染组件
+    voice/                # 语音交互组件（波形图、语音面板）
+  config/                 # 应用配置
+  db/                     # Drizzle ORM schema、迁移、种子数据
+  hooks/                  # React hooks
+  lib/                    # 工具函数
   mastra/
-    index.ts            # Mastra 入口
-    agents/             # Agent 定义
-    tools/              # Tool 定义
+    index.ts              # Mastra 入口
+    agents/               # Agent 定义（14 个）
+    tools/                # Tool 定义（datasource、wiki、cross-source）
+    public/data/          # SQLite 数据库文件
+  server/                 # 服务端逻辑
+packages/
+  mes-mock-api/           # MES 模拟 API 服务（workspace 包）
 ```
 
 ## 开发流程
