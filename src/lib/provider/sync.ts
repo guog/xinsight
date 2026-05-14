@@ -2,6 +2,7 @@ import { db } from "@/db"
 import { llmProviders, llmModels } from "@/db/schema"
 import { eq } from "drizzle-orm"
 import { invalidateModelCache } from "@/lib/models"
+import { validateExternalUrl } from "@/lib/url-validation"
 
 interface SyncResult {
   success: boolean
@@ -19,6 +20,10 @@ async function fetchRemoteModels(
   apiFormat: "openai" | "ollama",
   apiKey: string,
 ): Promise<string[]> {
+  // SSRF 防护：校验 baseUrl
+  const urlError = validateExternalUrl(baseUrl)
+  if (urlError) throw new Error(`baseUrl 不安全: ${urlError}`)
+
   const timeout = 5000
 
   if (apiFormat === "ollama") {
