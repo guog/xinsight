@@ -1,4 +1,4 @@
-import { eq, and } from "drizzle-orm"
+import { eq, and, sql } from "drizzle-orm"
 import type { DB } from "@/db"
 import { datasources, agentDatasources } from "@/db/schema"
 import type { DatasourceEndpoint } from "@/mastra/tools/datasource/types"
@@ -218,15 +218,15 @@ export class SqliteDatasourceRepository implements DatasourceRepository {
   }
 
   async recordCall(id: string): Promise<DatasourceRecord> {
-    const current = await this.findById(id)
-    if (!current) throw new Error(`数据源不存在: ${id}`)
-    await this.db
+    const result = await this.db
       .update(datasources)
       .set({
         lastCalledAt: new Date(),
-        callCount: current.callCount + 1,
+        callCount: sql`${datasources.callCount} + 1`,
       })
       .where(eq(datasources.id, id))
-    return this.findById(id) as Promise<DatasourceRecord>
+      .returning()
+    if (!result.length) throw new Error(`数据源不存在: ${id}`)
+    return toRecord(result[0])
   }
 }
