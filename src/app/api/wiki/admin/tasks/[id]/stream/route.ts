@@ -16,19 +16,36 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   const encoder = new TextEncoder()
+  let intervalId: ReturnType<typeof setInterval> | null = null
+
   const stream = new ReadableStream({
-    async start(controller) {
+    start(controller) {
       const send = (data: unknown) => {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`))
+        try {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`))
+        } catch {
+          // 客户端已断开
+          if (intervalId) {
+            clearInterval(intervalId)
+            intervalId = null
+          }
+        }
       }
 
       // 轮询任务进度，每 500ms 推送一次
-      const interval = setInterval(() => {
+      intervalId = setInterval(() => {
         const current = taskRunner.getTask(id)
         if (!current) {
           send({ status: "not_found" })
-          clearInterval(interval)
-          controller.close()
+          if (intervalId) {
+            clearInterval(intervalId)
+            intervalId = null
+          }
+          try {
+            controller.close()
+          } catch {
+            /* 已关闭 */
+          }
           return
         }
 
@@ -40,10 +57,24 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
         // 任务结束时关闭流
         if (["completed", "failed", "cancelled"].includes(current.status)) {
-          clearInterval(interval)
-          controller.close()
+          if (intervalId) {
+            clearInterval(intervalId)
+            intervalId = null
+          }
+          try {
+            controller.close()
+          } catch {
+            /* 已关闭 */
+          }
         }
       }, 500)
+    },
+    cancel() {
+      // 客户端断开连接时自动调用
+      if (intervalId) {
+        clearInterval(intervalId)
+        intervalId = null
+      }
     },
   })
 
