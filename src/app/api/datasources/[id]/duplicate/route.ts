@@ -13,7 +13,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     if (!existing) {
       return NextResponse.json({ error: "数据源不存在" }, { status: 404 })
     }
-    const newId = `${id}-copy`
+    const newId = `${id}-copy-${Date.now().toString(36)}`
     const newDs = await repo.create({
       id: newId,
       name: `${existing.name}-copy`,
