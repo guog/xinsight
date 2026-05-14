@@ -49,6 +49,39 @@
 - **PR 规范：** 标题遵循 Conventional Commits 格式，body 包含 `## Summary` + 要点列表
 - **一个分支只做一件事：** 不要在同一分支混合不相关的改动
 
+## Issue 驱动工作流
+
+采用 **Tracking Issue + 子 Issue** 模式管理任务：
+
+### 结构
+
+- **Tracking Issue（跟踪总表）**：加 `tracking` 标签，body 中用 Task List（`- [ ] #子Issue`）关联所有子 Issue，GitHub 自动显示进度条
+- **子 Issue**：每个子 Issue 对应一个可独立合并的改动，加对应的优先级和类型标签
+- **一个子 Issue = 一个分支 = 一个 PR**
+
+### 标签体系
+
+| 标签                                            | 用途                         |
+| ----------------------------------------------- | ---------------------------- |
+| `tracking`                                      | 跟踪总表                     |
+| `status/in-progress`                            | 进行中（占位，防止重复劳动） |
+| `priority:critical` / `high` / `medium` / `low` | 优先级                       |
+| `security`                                      | 安全相关                     |
+
+### 工作流程
+
+1. **领取任务**：给子 Issue 加 `status/in-progress` 标签
+2. **开发**：按「Git 分支工作流」从 `main` 创建分支，开发并提交
+3. **关键信息记录**：开发过程中的关键决策、发现、阻塞等记录为子 Issue 的评论
+4. **发 PR**：PR body 中写 `Closes #子Issue`（合并后自动关闭子 Issue），同时写 `Part of #跟踪总表`（不自动关闭总表）
+5. **完成**：子 Issue 关闭后，跟踪总表的 Task List 自动勾选。全部子 Issue 完成后手动关闭跟踪总表
+
+### 注意事项
+
+- 拆分子 Issue 时，相近的小改动可合并为一个（如多个输入校验合为一个 Issue）
+- 安全问题优先修复，按依赖关系排序
+- 不要在跟踪总表上直接开发，它只用于汇总和追踪进度
+
 ## 已安装的 OpenCode Skills
 
 | Skill         | 用途                                                      | 触发场景         |
