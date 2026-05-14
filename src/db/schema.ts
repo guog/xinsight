@@ -122,6 +122,18 @@ export const wikiSettings = sqliteTable("wiki_settings", {
   value: text("value").notNull(),
 })
 
+/** 速率限制记录（基于 DB，支持多实例） */
+export const rateLimits = sqliteTable(
+  "rate_limits",
+  {
+    id: text("id").primaryKey(),
+    ip: text("ip").notNull(),
+    action: text("action").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [index("idx_rate_limits_ip_action").on(table.ip, table.action)],
+)
+
 /** LLM 提供商配置 */
 export const llmProviders = sqliteTable("llm_providers", {
   id: text("id").primaryKey(),

@@ -93,9 +93,9 @@ describe("messages route 结构验证", () => {
   )
 
   it("GET 和 POST 都进行所有权验证", () => {
-    expect(source).toContain("verifyOwnership")
+    expect(source).toContain("getOwnedChat")
     // 至少出现两次（GET 和 POST 各一次）
-    const matches = source.match(/verifyOwnership/g) || []
+    const matches = source.match(/getOwnedChat/g) || []
     expect(matches.length).toBeGreaterThanOrEqual(2)
   })
 
@@ -104,8 +104,8 @@ describe("messages route 结构验证", () => {
   })
 
   it("GET 和 POST 都导出", () => {
-    expect(source).toContain("export async function GET")
-    expect(source).toContain("export async function POST")
+    expect(source).toContain("export const GET")
+    expect(source).toContain("export const POST")
   })
 })
 

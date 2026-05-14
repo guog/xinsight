@@ -56,6 +56,11 @@ vi.mock("drizzle-orm", () => ({
   and: vi.fn((...args: unknown[]) => args),
 }))
 
+// Mock chat-ownership（使用与 DB mock 相同的 mockGet）
+vi.mock("@/lib/chat-ownership", () => ({
+  getOwnedChat: (..._args: unknown[]) => mockGet(),
+}))
+
 const fakeUser = { id: "user-1", username: "test", displayName: "测试", role: "user" }
 
 describe("/api/chats/[id] 认证与所有权", () => {
