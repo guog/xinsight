@@ -1,9 +1,10 @@
+import { join } from "node:path"
 import { drizzle } from "drizzle-orm/bun-sqlite"
 import { Database } from "bun:sqlite"
 import { migrate } from "drizzle-orm/bun-sqlite/migrator"
 import * as schema from "./schema"
 
-const dbPath = process.env.DATABASE_URL ?? "./data/xinsight.db"
+const dbPath = process.env.DATABASE_PATH ?? process.env.DATABASE_URL ?? join(process.cwd(), "data", "xinsight.db")
 const sqlite = new Database(dbPath)
 export const db = drizzle(sqlite, { schema })
 export type DB = typeof db
