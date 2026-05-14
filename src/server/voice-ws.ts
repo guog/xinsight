@@ -9,7 +9,7 @@ import { toAISdkStream } from "@mastra/ai-sdk"
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible"
 import { getProviderForModel, getModelById, getDefaultModelId } from "@/lib/models"
 import { db } from "@/db"
-import { chats, messages } from "@/db/schema"
+import { chats, messages, sessions, users } from "@/db/schema"
 import { eq } from "drizzle-orm"
 
 // 客户端 → 服务端消息类型
@@ -44,6 +44,27 @@ function send(ws: WebSocket, msg: ServerMessage) {
   if (ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify(msg))
   }
+}
+
+/** 从 cookie 字符串中解析 session 并验证用户 */
+function validateSessionFromCookie(
+  cookieHeader: string | undefined,
+): { id: string; username: string } | null {
+  if (!cookieHeader) return null
+  const match = cookieHeader.match(/(?:^|;\s*)xinsight_session=([^;]+)/)
+  if (!match) return null
+  const sessionId = match[1]
+
+  const session = db.select().from(sessions).where(eq(sessions.id, sessionId)).get()
+  if (!session) return null
+  if (session.expiresAt < new Date()) {
+    db.delete(sessions).where(eq(sessions.id, sessionId)).run()
+    return null
+  }
+
+  const user = db.select().from(users).where(eq(users.id, session.userId)).get()
+  if (!user) return null
+  return { id: user.id, username: user.username }
 }
 
 /** 按句子分割文本，返回 [完整句子们, 剩余部分] */
@@ -321,7 +342,15 @@ export function startVoiceWebSocketServer(): WebSocketServer {
   const port = parseInt(process.env.VOICE_WS_PORT || "3001", 10)
   wss = new WebSocketServer({ port })
 
-  wss.on("connection", handleConnection)
+  wss.on("connection", (ws, req) => {
+    // 认证检查：从 upgrade request 的 cookie 中提取并验证 session
+    const user = validateSessionFromCookie(req.headers.cookie)
+    if (!user) {
+      ws.close(4001, "未认证")
+      return
+    }
+    handleConnection(ws)
+  })
   wss.on("listening", () => {
     console.log(`🎙️ 语音 WebSocket 服务器已启动，端口: ${port}`)
   })
