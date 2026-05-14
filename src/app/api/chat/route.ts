@@ -54,22 +54,26 @@ export async function POST(req: Request) {
       ? `\n\n## 当前可用数据源\n以下是你可以查询的数据源和接口，直接使用 datasource-query 调用，无需先调用 datasource-list：\n${datasourceContext}`
       : ""
 
-    let stream
-    try {
-      stream = await agent.stream(chatMessages, {
-        ...memoryOptions,
-        ...(contextSuffix ? { instructions: contextSuffix } : {}),
-      })
-    } catch (e) {
-      // 仅对可重试错误（速率限制、超时、网络错误）进行重试
-      if (isRetryableError(e)) {
-        console.warn("[chat] 可重试错误，1秒后重试...", e)
-        await new Promise((r) => setTimeout(r, 1000))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let stream: any
+    const MAX_RETRIES = 3
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
         stream = await agent.stream(chatMessages, {
           ...memoryOptions,
           ...(contextSuffix ? { instructions: contextSuffix } : {}),
         })
-      } else {
+        break
+      } catch (e) {
+        if (isRetryableError(e) && attempt < MAX_RETRIES) {
+          // 指数退避 + jitter：1s, 2s, 4s（±25%）
+          const baseDelay = 1000 * Math.pow(2, attempt)
+          const jitter = baseDelay * 0.25 * (Math.random() * 2 - 1)
+          const delay = Math.round(baseDelay + jitter)
+          console.warn(`[chat] 可重试错误，${delay}ms 后重试 (${attempt + 1}/${MAX_RETRIES})...`, e)
+          await new Promise((r) => setTimeout(r, delay))
+          continue
+        }
         throw e
       }
     }

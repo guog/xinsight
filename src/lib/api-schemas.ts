@@ -6,8 +6,8 @@ export const CreateDatasourceSchema = z.object({
   name: z.string().min(1, "名称不能为空").max(200),
   description: z.string().max(1000).optional(),
   type: z.string().min(1, "类型不能为空"),
-  auth: z.union([z.string(), z.record(z.unknown())]),
-  config: z.union([z.string(), z.record(z.unknown())]),
+  auth: z.union([z.string(), z.record(z.string(), z.unknown())]),
+  config: z.union([z.string(), z.record(z.string(), z.unknown())]),
   endpoints: z.union([z.string(), z.array(z.unknown())]).optional(),
   enabled: z.boolean().optional(),
 })
@@ -17,8 +17,8 @@ export const UpdateDatasourceSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   description: z.string().max(1000).optional(),
   type: z.string().min(1).optional(),
-  auth: z.union([z.string(), z.record(z.unknown())]).optional(),
-  config: z.union([z.string(), z.record(z.unknown())]).optional(),
+  auth: z.union([z.string(), z.record(z.string(), z.unknown())]).optional(),
+  config: z.union([z.string(), z.record(z.string(), z.unknown())]).optional(),
   endpoints: z.union([z.string(), z.array(z.unknown())]).optional(),
   enabled: z.boolean().optional(),
 })
