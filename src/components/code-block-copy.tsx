@@ -34,10 +34,17 @@ export function CodeBlockCopyProvider() {
 
     addCopyButtons()
 
-    const observer = new MutationObserver(addCopyButtons)
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null
+    const observer = new MutationObserver(() => {
+      if (debounceTimer) clearTimeout(debounceTimer)
+      debounceTimer = setTimeout(addCopyButtons, 200)
+    })
     observer.observe(document.body, { childList: true, subtree: true })
 
-    return () => observer.disconnect()
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer)
+      observer.disconnect()
+    }
   }, [])
 
   return null
