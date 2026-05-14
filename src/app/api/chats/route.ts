@@ -3,6 +3,7 @@ import { db } from "@/db"
 import { chats } from "@/db/schema"
 import { desc, eq } from "drizzle-orm"
 import { getCurrentUser } from "@/lib/auth"
+import { CreateChatSchema } from "@/lib/api-schemas"
 
 /** GET /api/chats — 获取当前用户的对话列表 */
 export async function GET() {
@@ -30,7 +31,15 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json({ error: "未登录" }, { status: 401 })
     }
-    const body = await request.json()
+    const raw = await request.json()
+    const parsed = CreateChatSchema.safeParse(raw)
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "请求参数校验失败", details: parsed.error.issues },
+        { status: 400 },
+      )
+    }
+    const body = parsed.data
     const now = new Date()
     const chat = {
       id: crypto.randomUUID(),

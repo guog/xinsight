@@ -3,6 +3,7 @@ import { db } from "@/db"
 import { SqliteDatasourceRepository } from "@/db/repositories/datasource-repository"
 import { requireAdmin, requireAuth, handleAuthError } from "@/lib/auth"
 import { maskSensitiveFields } from "@/lib/mask-sensitive"
+import { UpdateDatasourceSchema } from "@/lib/api-schemas"
 
 /** GET /api/datasources/[id] — 获取单个数据源（脱敏） */
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -31,13 +32,20 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   try {
     await requireAdmin()
     const { id } = await params
-    const body = await request.json()
+    const raw = await request.json()
+    const parsed = UpdateDatasourceSchema.safeParse(raw)
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "请求参数校验失败", details: parsed.error.issues },
+        { status: 400 },
+      )
+    }
     const repo = new SqliteDatasourceRepository(db)
     const existing = await repo.findById(id)
     if (!existing) {
       return NextResponse.json({ error: "数据源不存在" }, { status: 404 })
     }
-    const datasource = await repo.update(id, body)
+    const datasource = await repo.update(id, parsed.data)
     return NextResponse.json(datasource)
   } catch (error) {
     const authResp = handleAuthError(error)
