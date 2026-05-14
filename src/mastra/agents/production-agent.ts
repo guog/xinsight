@@ -1,7 +1,7 @@
 import { Agent } from "@mastra/core/agent"
 import { DEFAULT_AGENT_MODEL } from "./model-config"
 import { datasourceQueryTool, datasourceListTool } from "../tools/datasource"
-import { CHART_SYSTEM_PROMPT } from "@/lib/chart/prompt"
+import { CHART_SYSTEM_PROMPT as PRODUCTION_CHART_PROMPT } from "@/lib/chart/prompt"
 
 /**
  * 生产管理专员
@@ -32,7 +32,7 @@ export const productionAgent = new Agent({
 - 涉及产量/进度时给出百分比和对比
 - 如有异常（如延期工单、低完成率）主动提醒
 
-${CHART_SYSTEM_PROMPT}`,
+${PRODUCTION_CHART_PROMPT}`,
   model: DEFAULT_AGENT_MODEL,
   tools: { datasourceQueryTool, datasourceListTool },
 })
