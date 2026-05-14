@@ -7,6 +7,22 @@ const MAX_JSON_SIZE = 1 * 1024 * 1024 // 1MB
 const DEFAULT_TIMEOUT = 30000
 const DEFAULT_RETRYABLE_STATUSES = [429, 500, 502, 503, 504]
 const RETRY_DELAYS = [1000, 2000]
+const SENSITIVE_PARAM_PATTERN = /key|token|secret|password|credential|auth/i
+
+/** 对 URL query 参数中的敏感值脱敏 */
+export function maskUrl(raw: string): string {
+  try {
+    const u = new URL(raw)
+    u.searchParams.forEach((_, key) => {
+      if (SENSITIVE_PARAM_PATTERN.test(key)) {
+        u.searchParams.set(key, "***")
+      }
+    })
+    return u.toString()
+  } catch {
+    return raw
+  }
+}
 
 export interface FetchWithRetryConfig {
   timeout?: number
@@ -50,7 +66,7 @@ export async function fetchWithRetry(
       })
 
       const duration = Date.now() - start
-      console.log(`[datasource] ${method} ${url} → ${response.status} (${duration}ms)`)
+      console.log(`[datasource] ${method} ${maskUrl(url)} → ${response.status} (${duration}ms)`)
 
       // Check if retryable
       if (
@@ -106,11 +122,11 @@ export async function fetchWithRetry(
       // Timeout detection
       if (err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError")) {
         const timeoutSec = Math.round(timeout / 1000)
-        console.log(`[datasource] ${method} ${url} → ERROR: 请求超时 (${timeoutSec}s)`)
+        console.log(`[datasource] ${method} ${maskUrl(url)} → ERROR: 请求超时 (${timeoutSec}s)`)
         return { error: `请求超时 (${timeoutSec}s)` }
       }
 
-      console.log(`[datasource] ${method} ${url} → ERROR: ${message}`)
+      console.log(`[datasource] ${method} ${maskUrl(url)} → ERROR: ${message}`)
 
       // Network error - retry if allowed
       if (allowRetry && attempt < maxRetries) {
