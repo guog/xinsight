@@ -5,12 +5,21 @@ import { toAISdkStream } from "@mastra/ai-sdk"
 import { mastra } from "@/mastra"
 import { persistMessages, autoGenerateTitle } from "@/db/repositories/chat-repo"
 import { buildDatasourceContext } from "@/lib/schema/build-context"
+import { requireAuth, handleAuthError } from "@/lib/auth"
 
 // 允许流式响应最长 120 秒（Supervisor 多轮调度可能需要更长时间）
 export const maxDuration = 120
 
 export async function POST(req: Request) {
   try {
+    // 认证检查：未登录返回 401
+    let user
+    try {
+      user = await requireAuth()
+    } catch (error) {
+      return handleAuthError(error)
+    }
+
     const {
       messages: chatMessages,
       chatId,
@@ -29,8 +38,8 @@ export async function POST(req: Request) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const agent = mastra.getAgent((agentId || "factoryDirectorAgent") as any)
 
-    // Memory 需要 resourceId + threadId 来关联对话上下文
-    const memoryOptions = chatId ? { resourceId: "user", threadId: chatId } : undefined
+    // Memory 需要 resourceId + threadId 来关联对话上下文（使用真实用户 ID 实现隔离）
+    const memoryOptions = chatId ? { resourceId: user.id, threadId: chatId } : undefined
 
     // 动态注入数据源上下文到 Agent 提示词
     let datasourceContext = ""
