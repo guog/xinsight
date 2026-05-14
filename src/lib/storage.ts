@@ -1,5 +1,9 @@
 /**
  * 本地存储工具 — 管理对话历史、模型设置、主题等
+ *
+ * 注意：此文件中的类型是客户端 localStorage 专用。
+ * DB 层的对话消息使用 `parts: JSON string`（UIMessage.parts），
+ * 与此处的 `content: string` 不同。客户端仅用于离线草稿缓存。
  */
 
 export interface Conversation {
@@ -12,6 +16,13 @@ export interface Conversation {
   updatedAt: number
 }
 
+/**
+ * 客户端消息类型（localStorage 离线草稿）
+ *
+ * 与 DB 层 messages 表结构不同：
+ * - DB: `parts` (JSON string, UIMessage.parts 格式)
+ * - 客户端: `content` (纯文本，用于简单缓存)
+ */
 export interface ConversationMessage {
   id: string
   role: "user" | "assistant"
