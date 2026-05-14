@@ -2,6 +2,7 @@ import { Mastra } from "@mastra/core"
 import { createLogger } from "@mastra/core/logger"
 import { Memory } from "@mastra/memory"
 import { LibSQLStore } from "@mastra/libsql"
+import { join } from "path"
 
 import { factoryDirectorAgent } from "./agents/factory-director"
 import { productionAgent } from "./agents/production-agent"
@@ -11,6 +12,8 @@ import { warehouseAgent } from "./agents/warehouse-agent"
 import { energyAgent } from "./agents/energy-agent"
 import { wikiAgent } from "./agents/wiki-agent"
 import { chatAgent } from "./agents/chat-agent"
+import { autoAgent } from "./agents/auto-agent"
+import { researchAgent } from "./agents/research-agent"
 
 /**
  * Mastra 实例 — 注册所有 Agent
@@ -28,7 +31,7 @@ import { chatAgent } from "./agents/chat-agent"
 const memory = new Memory({
   storage: new LibSQLStore({
     id: "xinsight-memory",
-    url: "file:./data/memory.db",
+    url: process.env.MEMORY_DB_URL || `file:${join(process.cwd(), "data", "memory.db")}`,
   }),
   options: {
     lastMessages: 20,
@@ -48,5 +51,7 @@ export const mastra = new Mastra({
     warehouseAgent,
     energyAgent,
     wikiAgent,
+    autoAgent,
+    researchAgent,
   },
 })
