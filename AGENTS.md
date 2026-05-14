@@ -101,16 +101,16 @@
 ## 已安装的 OpenCode Skills
 
 | Skill | 用途 | 触发场景 |
-| ----- | ---- | -------- |
-| `agent-browser` | 浏览器自动化、网页交互、截图、表单填写 | 需要操作浏览器时 |
+| --- | --- | --- |
+| `agent-browser` | 浏览器自动化（网页交互、表单填写、截图、数据抓取） | 需要操作浏览器时 |
 | `ai-elements` | AI 聊天 UI 组件（conversation、message、prompt-input 等） | 构建 AI 聊天界面 |
-| `code-reviewer` | 代码审查（本地变更或远程 PR） | 代码 review |
-| `frontend-design` | 高质量前端界面设计与实现 | 构建/美化 Web UI |
+| `code-reviewer` | 代码审查（本地变更或远程 PR） | 审查代码质量 |
+| `frontend-design` | 高质量前端界面设计与组件开发 | 构建 Web 页面或组件 |
 | `mastra` | Mastra 框架指南、API 查询、Agent/Workflow 模式 | 任何 Mastra 开发 |
-| `pr-creator` | 创建规范的 Pull Request | 发起 PR |
-| `prd-generator` | 生成产品需求文档（PRD） | 产品需求梳理 |
-| `vercel-react-best-practices` | React/Next.js 性能优化指南 | React 性能优化 |
-| `web-design-guidelines` | Web 界面设计规范审查 | UI/UX 审计 |
-| `webapp-testing` | Web 应用测试（Playwright） | 前端功能验证 |
+| `pr-creator` | PR 创建辅助（标题、描述、关联 Issue） | 创建 Pull Request |
+| `prd-generator` | 生成产品需求文档（PRD） | 编写产品规格说明 |
+| `vercel-react-best-practices` | React/Next.js 性能优化指南 | 优化前端性能 |
+| `web-design-guidelines` | Web 设计规范审查（可访问性、UX） | 审查 UI 设计 |
+| `webapp-testing` | Web 应用测试（Playwright 交互、截图、日志） | 测试前端功能 |
 
 `skills/` 目录是指向 `.agents/skills/` 的符号链接，请勿直接编辑 skill 文件。
