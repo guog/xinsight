@@ -44,8 +44,12 @@ function ensureFetched() {
       .then((data: Chat[]) => {
         cachedChats = data
         notifyListeners()
+        fetchPromise = null
       })
-      .catch((e) => console.error("获取对话列表失败:", e))
+      .catch((e) => {
+        console.error("获取对话列表失败:", e)
+        fetchPromise = null
+      })
   }
 }
 
