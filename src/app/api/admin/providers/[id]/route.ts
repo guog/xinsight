@@ -4,6 +4,7 @@ import { llmProviders } from "@/db/schema"
 import { eq } from "drizzle-orm"
 import { requireAdmin, handleAuthError } from "@/lib/auth"
 import { invalidateModelCache } from "@/lib/models"
+import { encrypt } from "@/lib/crypto"
 
 // PUT /api/admin/providers/[id]
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -20,7 +21,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   const updates: Record<string, unknown> = { updatedAt: new Date() }
   if (name !== undefined) updates.name = name
   if (baseUrl !== undefined) updates.baseUrl = baseUrl
-  if (apiKey !== undefined) updates.apiKey = apiKey
+  if (apiKey !== undefined) updates.apiKey = apiKey ? encrypt(apiKey) : ""
   if (enabled !== undefined) updates.enabled = enabled
   if (sortOrder !== undefined) updates.sortOrder = sortOrder
 
