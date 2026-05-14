@@ -44,7 +44,8 @@
   3. 在分支上完成开发、测试、提交（遵循 Conventional Commits）
   4. `git push -u origin <分支名>`
   5. 通过 `gh pr create` 发起 Pull Request，填写清晰的摘要
-  6. PR 合并后删除远程分支
+  6. **合并 PR 时必须使用变基（rebase）**：`git checkout main && git pull origin main && git rebase <分支名> && git push origin main`，禁止使用 merge commit
+  7. 合并后删除远程分支：`git push origin --delete <分支名> && git branch -d <分支名>`
 - **PR 规范：** 标题遵循 Conventional Commits 格式，body 包含 `## Summary` + 要点列表
 - **一个分支只做一件事：** 不要在同一分支混合不相关的改动
 
