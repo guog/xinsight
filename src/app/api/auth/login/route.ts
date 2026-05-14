@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
     const { user, sessionId } = await loginUser(username.trim(), password)
 
     const response = NextResponse.json(user)
-    const cookieOpts = getSessionCookieOptions(sessionId)
+    const cookieOpts = await getSessionCookieOptions(sessionId)
     response.cookies.set(cookieOpts.name, cookieOpts.value, {
       httpOnly: cookieOpts.httpOnly,
       secure: cookieOpts.secure,
