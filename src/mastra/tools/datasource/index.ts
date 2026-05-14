@@ -56,7 +56,7 @@ export const datasourceQueryTool = createTool({
 
     // 权限检查 — 只允许绑定的数据源
     if (!agentId) {
-      console.warn("[datasource] 缺少 agentId，跳过权限检查（请确认调用上下文）")
+      return { success: false, error: "缺少 Agent 上下文，无法进行权限校验" }
     } else {
       const bindings = await repo.getAgentEndpointBindings(agentId)
       if (bindings.length > 0 && !bindings.find((b) => b.datasourceId === datasourceId)) {
