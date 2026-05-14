@@ -3,6 +3,7 @@ import { db } from "@/db"
 import { chats, messages } from "@/db/schema"
 import { eq, and } from "drizzle-orm"
 import { requireAuth, handleAuthError } from "@/lib/auth"
+import { CreateMessageSchema } from "@/lib/api-schemas"
 
 /** 验证对话所有权 */
 async function verifyOwnership(chatId: string, userId: string) {
@@ -58,11 +59,24 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
 
     const body = await request.json()
+
+    // Zod 校验：role 限定 user/assistant，parts 限 100KB，忽略客户端 id
+    const parsed = CreateMessageSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "输入校验失败", details: parsed.error.flatten().fieldErrors },
+        { status: 400 },
+      )
+    }
+
     const message = {
-      id: body.id ?? crypto.randomUUID(),
+      id: crypto.randomUUID(),
       chatId: id,
-      role: body.role,
-      parts: typeof body.parts === "string" ? body.parts : JSON.stringify(body.parts),
+      role: parsed.data.role,
+      parts:
+        typeof parsed.data.parts === "string"
+          ? parsed.data.parts
+          : JSON.stringify(parsed.data.parts),
       createdAt: new Date(),
     }
     await db.insert(messages).values(message)
