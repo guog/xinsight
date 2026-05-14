@@ -9,12 +9,36 @@ vi.mock("@/mastra", () => ({
   mastra: mockMastra,
 }))
 
+// Mock auth
+const mockRequireAuth = vi.fn()
+vi.mock("@/lib/auth", async () => {
+  const { NextResponse } = await import("next/server")
+  return {
+    requireAuth: (...args: unknown[]) => mockRequireAuth(...args),
+    handleAuthError: (error: unknown) => {
+      if (error instanceof Error && error.message === "未登录") {
+        return NextResponse.json({ error: "未登录" }, { status: 401 })
+      }
+      return null
+    },
+  }
+})
+
 // 必须在 vi.mock 之后 import
 const { GET } = await import("@/app/api/agents/route")
 
 describe("GET /api/agents", () => {
   beforeEach(() => {
     mockListAgents.mockReset()
+    mockRequireAuth.mockReset()
+    mockRequireAuth.mockResolvedValue({ id: "user-1", username: "test", role: "user" })
+  })
+
+  it("未登录时返回 401", async () => {
+    mockRequireAuth.mockRejectedValue(new Error("未登录"))
+
+    const response = await GET()
+    expect(response.status).toBe(401)
   })
 
   it("返回所有已注册的 Agent 列表", async () => {

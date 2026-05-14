@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server"
 import { getVoiceConfig } from "@/lib/voice"
+import { requireAuth, handleAuthError } from "@/lib/auth"
 
 export async function GET() {
+  try {
+    await requireAuth()
+  } catch (error) {
+    return handleAuthError(error) ?? NextResponse.json({ error: "未知错误" }, { status: 500 })
+  }
+
   const config = getVoiceConfig()
 
   if (!config.enabled) {
