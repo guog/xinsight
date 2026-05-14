@@ -1,13 +1,30 @@
 import { NextResponse } from "next/server"
 import { db } from "@/db"
 import { chats, messages } from "@/db/schema"
-import { eq } from "drizzle-orm"
+import { eq, and } from "drizzle-orm"
+import { requireAuth, handleAuthError } from "@/lib/auth"
+
+/** 验证对话所有权，返回对话或 null */
+async function getOwnedChat(chatId: string, userId: string) {
+  return db
+    .select()
+    .from(chats)
+    .where(and(eq(chats.id, chatId), eq(chats.userId, userId)))
+    .get()
+}
 
 /** GET /api/chats/[id] — 获取单个对话及其消息 */
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    let user
+    try {
+      user = await requireAuth()
+    } catch (error) {
+      return handleAuthError(error)
+    }
+
     const { id } = await params
-    const chat = await db.select().from(chats).where(eq(chats.id, id)).get()
+    const chat = await getOwnedChat(id, user.id)
     if (!chat) {
       return NextResponse.json({ error: "对话不存在" }, { status: 404 })
     }
@@ -26,7 +43,19 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 /** PATCH /api/chats/[id] — 更新对话信息 */
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    let user
+    try {
+      user = await requireAuth()
+    } catch (error) {
+      return handleAuthError(error)
+    }
+
     const { id } = await params
+    const chat = await getOwnedChat(id, user.id)
+    if (!chat) {
+      return NextResponse.json({ error: "对话不存在" }, { status: 404 })
+    }
+
     const body = await request.json()
     const updates: Record<string, unknown> = { updatedAt: new Date() }
     if (body.title !== undefined) updates.title = body.title
@@ -46,7 +75,19 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 /** DELETE /api/chats/[id] — 删除对话 */
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    let user
+    try {
+      user = await requireAuth()
+    } catch (error) {
+      return handleAuthError(error)
+    }
+
     const { id } = await params
+    const chat = await getOwnedChat(id, user.id)
+    if (!chat) {
+      return NextResponse.json({ error: "对话不存在" }, { status: 404 })
+    }
+
     await db.delete(chats).where(eq(chats.id, id))
     return NextResponse.json({ success: true })
   } catch (error) {
