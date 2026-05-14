@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth"
-import { join, relative } from "path"
+import { join, relative, resolve } from "path"
 import { readdir, stat, unlink, readFile } from "fs/promises"
 import matter from "gray-matter"
 
@@ -60,10 +60,14 @@ export async function DELETE(req: NextRequest) {
 
   try {
     const { path: pagePath } = await req.json()
-    if (!pagePath || pagePath.includes("..")) {
+    if (!pagePath) {
       return NextResponse.json({ error: "无效路径" }, { status: 400 })
     }
-    const fullPath = join(WIKI_PATH, pagePath)
+    const fullPath = resolve(WIKI_PATH, pagePath)
+    const base = resolve(WIKI_PATH) + "/"
+    if (!fullPath.startsWith(base) && fullPath !== resolve(WIKI_PATH)) {
+      return NextResponse.json({ error: "无效路径" }, { status: 400 })
+    }
     await unlink(fullPath)
     return NextResponse.json({ ok: true })
   } catch (e: unknown) {

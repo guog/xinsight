@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth"
-import { join } from "path"
+import { join, resolve } from "path"
 import { readFile, writeFile } from "fs/promises"
 
 const WIKI_PATH = process.env.WIKI_PATH || join(process.cwd(), "wiki")
@@ -15,10 +15,11 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ pat
   try {
     const { path: pagePath } = await params
     const decoded = decodeURIComponent(pagePath)
-    if (decoded.includes("..")) {
+    const fullPath = resolve(WIKI_PATH, decoded)
+    const base = resolve(WIKI_PATH) + "/"
+    if (!fullPath.startsWith(base) && fullPath !== resolve(WIKI_PATH)) {
       return NextResponse.json({ error: "无效路径" }, { status: 400 })
     }
-    const fullPath = join(WIKI_PATH, decoded)
     const content = await readFile(fullPath, "utf-8")
     return NextResponse.json({ path: decoded, content })
   } catch (e: unknown) {
@@ -39,11 +40,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ path
   try {
     const { path: pagePath } = await params
     const decoded = decodeURIComponent(pagePath)
-    if (decoded.includes("..")) {
+    const fullPath = resolve(WIKI_PATH, decoded)
+    const base = resolve(WIKI_PATH) + "/"
+    if (!fullPath.startsWith(base) && fullPath !== resolve(WIKI_PATH)) {
       return NextResponse.json({ error: "无效路径" }, { status: 400 })
     }
     const { content } = await req.json()
-    const fullPath = join(WIKI_PATH, decoded)
     await writeFile(fullPath, content, "utf-8")
     return NextResponse.json({ ok: true })
   } catch (e: unknown) {
