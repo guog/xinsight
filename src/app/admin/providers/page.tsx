@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ProviderDialog } from "./components/provider-dialog"
@@ -43,7 +44,7 @@ export default function ProvidersPage() {
       const data = await res.json()
       setProviders(data)
     } catch {
-      alert("加载提供商列表失败")
+      toast.error("加载提供商列表失败")
     } finally {
       setLoading(false)
     }
@@ -68,9 +69,11 @@ export default function ProvidersPage() {
     try {
       const res = await fetch(`/api/admin/providers/${id}/test`, { method: "POST" })
       const data = await res.json()
-      alert(data.success ? "连接成功" : `连接失败: ${data.error || "未知错误"}`)
+      toast[data.success ? "success" : "error"](
+        data.success ? "连接成功" : `连接失败: ${data.error || "未知错误"}`,
+      )
     } catch {
-      alert("测试请求失败")
+      toast.error("测试请求失败")
     }
   }
 
@@ -78,13 +81,13 @@ export default function ProvidersPage() {
     try {
       const res = await fetch(`/api/admin/providers/${id}/sync`, { method: "POST" })
       if (res.ok) {
-        alert("同步完成")
+        toast.success("同步完成")
         fetchProviders()
       } else {
-        alert("同步失败")
+        toast.error("同步失败")
       }
     } catch {
-      alert("同步请求失败")
+      toast.error("同步请求失败")
     }
   }
 
@@ -97,7 +100,7 @@ export default function ProvidersPage() {
       })
       setProviders((ps) => ps.map((p) => (p.id === id ? { ...p, enabled } : p)))
     } catch {
-      alert("操作失败")
+      toast.error("操作失败")
     }
   }
 
@@ -107,7 +110,7 @@ export default function ProvidersPage() {
       await fetch(`/api/admin/providers/${id}`, { method: "DELETE" })
       fetchProviders()
     } catch {
-      alert("删除失败")
+      toast.error("删除失败")
     }
   }
 

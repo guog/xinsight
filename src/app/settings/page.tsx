@@ -3,6 +3,7 @@ import { useState, useEffect } from "react"
 import { useTheme } from "@/hooks/use-theme"
 import { useModel } from "@/hooks/use-model"
 import { useUser } from "@/hooks/use-user"
+import { APP_VERSION } from "@/lib/version"
 import { ArrowLeft, Sun, Moon, Monitor, Database } from "lucide-react"
 import Link from "next/link"
 import { useIsMobile } from "@/hooks/use-device"
@@ -168,7 +169,9 @@ function DesktopSettingsPage() {
           关于
         </h2>
         <div className="bg-card rounded-xl border border-border p-4">
-          <p className="text-sm text-muted-foreground">xinsight v0.1.0 — 基于多 Agent 的 AI 应用</p>
+          <p className="text-sm text-muted-foreground">
+            xinsight v{APP_VERSION} — 基于多 Agent 的 AI 应用
+          </p>
         </div>
       </section>
     </main>
