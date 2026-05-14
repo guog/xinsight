@@ -7,6 +7,14 @@ import { equipmentAgent } from "./equipment-agent"
 import { warehouseAgent } from "./warehouse-agent"
 import { energyAgent } from "./energy-agent"
 import { wikiAgent } from "./wiki-agent"
+import {
+  createAnswerRelevancyScorer,
+  createToxicityScorer,
+  createHallucinationScorer,
+} from "@mastra/evals/scorers/prebuilt"
+
+/** 评估模型 — 使用与 Agent 相同的模型 */
+const evalModel = DEFAULT_AGENT_MODEL
 
 /**
  * 厂长 Supervisor Agent
@@ -53,5 +61,19 @@ ${DIRECTOR_CHART_PROMPT}`,
     warehouseAgent,
     energyAgent,
     wikiAgent,
+  },
+  scorers: {
+    relevancy: {
+      scorer: createAnswerRelevancyScorer({ model: evalModel }),
+      sampling: { type: "ratio", rate: 0.5 },
+    },
+    toxicity: {
+      scorer: createToxicityScorer({ model: evalModel }),
+      sampling: { type: "ratio", rate: 0.3 },
+    },
+    hallucination: {
+      scorer: createHallucinationScorer({ model: evalModel }),
+      sampling: { type: "ratio", rate: 0.3 },
+    },
   },
 })
