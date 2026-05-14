@@ -7,7 +7,9 @@ import { Loader2, Sparkles } from "lucide-react"
 
 function LoginForm() {
   const searchParams = useSearchParams()
-  const redirect = searchParams.get("redirect") || "/"
+  const rawRedirect = searchParams.get("redirect") || "/"
+  // 防止 Open Redirect：仅允许站内相对路径
+  const redirect = rawRedirect.startsWith("/") && !rawRedirect.startsWith("//") ? rawRedirect : "/"
 
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
