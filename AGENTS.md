@@ -61,6 +61,8 @@
 
 ## Git 分支工作流
 
+> ⚠️ **Turbopack workspace root 陷阱**：如果项目上层目录（如 `~/`）存在 `package.json`、`pnpm-lock.yaml` 或 `pnpm-workspace.yaml`，Turbopack 会将上层目录误判为 workspace root，导致 `bun dev` 时 CPU 100% 卡死或 ChunkLoadError。解决方案：删除上层目录的这些文件，而非在 `next.config.ts` 中设置 `turbopack.root`（该配置本身会引发 chunk 路径错乱）。
+
 - **禁止直接在 `main` 分支上修改代码。** 每次改动必须从 `main` 创建新分支后再开始。
 - **分支命名：** `feat/<简短描述>` 或 `fix/<简短描述>`（如 `feat/add-chat-history`、`fix/stream-error-handling`）。描述使用英文短横线连接。
 - **工作流程：**
