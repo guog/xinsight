@@ -26,6 +26,9 @@
 - **语音交互**：TTS / STT（基于 DashScope）
 - **管理后台**：Provider 管理、数据源管理、Agent 配置、Wiki 知识库
 - **移动端适配**：独立移动端路由组（`/(mobile)/`）
+- **Memory 增强**：Working Memory（跨会话用户画像）+ Semantic Recall（语义召回历史）+ 观察性记忆
+- **可观测性**：Mastra Observability 本地 tracing（存储到 LibSQL）
+- **MCP Server**：支持 Cursor / Claude Desktop 等 MCP 客户端直接调用 xinsight 工具（`bun run mcp:stdio`）
 
 ## 核心约定
 
@@ -42,6 +45,12 @@
 - **Mastra 以库模式运行**：不独立部署 Mastra 服务器，直接在 Next.js API Routes 中调用 `mastra.getAgent()`
 - **流式响应链路**：`agent.stream()` → `toAISdkStream()` → `createUIMessageStreamResponse()` → 前端 `useChat()`
 - **Mastra Evals**：新建或修改 Agent 时须配置 `@mastra/evals` scorer（如 relevancy、toxicity、hallucination）
+- **Memory 架构**：`@mastra/memory` + `@mastra/libsql`（LibSQLStore + LibSQLVector），嵌入使用 `@mastra/fastembed`（本地运行，无需 API key）
+  - Working Memory：resource 级别跨线程持久化用户画像
+  - Semantic Recall：向量搜索召回历史对话（topK=5）
+  - 观察性记忆：自动从对话提取关键信息
+- **可观测性**：`@mastra/observability`（MastraStorageExporter），traces 存储到本地 Storage DB（`data/storage.db`），可在 Mastra Studio 查看
+- **MCP Server**：`src/mastra/mcp-server.ts`，以 stdio 模式暴露数据源工具，供 Cursor / Claude Desktop 调用
 - **数据库层**：Drizzle ORM + LibSQL，`src/db/` 包含 schema 定义、迁移脚本、种子数据（预置 admin/guest 账号）
 - **认证系统**：`/api/auth/`（登录/注册/登出/当前用户），基于 bcrypt + HMAC session，API key 使用 `ENCRYPTION_KEY` 加密存储
 - **管理后台 API**：`/api/admin/providers/`（Provider CRUD + 模型同步）、`/api/datasources/`（数据源 CRUD + 连接测试 + 协议自发现）、`/api/wiki/admin/`（Wiki 任务管理）
@@ -100,17 +109,17 @@
 
 ## 已安装的 OpenCode Skills
 
-| Skill | 用途 | 触发场景 |
-| --- | --- | --- |
-| `agent-browser` | 浏览器自动化（网页交互、表单填写、截图、数据抓取） | 需要操作浏览器时 |
-| `ai-elements` | AI 聊天 UI 组件（conversation、message、prompt-input 等） | 构建 AI 聊天界面 |
-| `code-reviewer` | 代码审查（本地变更或远程 PR） | 审查代码质量 |
-| `frontend-design` | 高质量前端界面设计与组件开发 | 构建 Web 页面或组件 |
-| `mastra` | Mastra 框架指南、API 查询、Agent/Workflow 模式 | 任何 Mastra 开发 |
-| `pr-creator` | PR 创建辅助（标题、描述、关联 Issue） | 创建 Pull Request |
-| `prd-generator` | 生成产品需求文档（PRD） | 编写产品规格说明 |
-| `vercel-react-best-practices` | React/Next.js 性能优化指南 | 优化前端性能 |
-| `web-design-guidelines` | Web 设计规范审查（可访问性、UX） | 审查 UI 设计 |
-| `webapp-testing` | Web 应用测试（Playwright 交互、截图、日志） | 测试前端功能 |
+| Skill                         | 用途                                                      | 触发场景            |
+| ----------------------------- | --------------------------------------------------------- | ------------------- |
+| `agent-browser`               | 浏览器自动化（网页交互、表单填写、截图、数据抓取）        | 需要操作浏览器时    |
+| `ai-elements`                 | AI 聊天 UI 组件（conversation、message、prompt-input 等） | 构建 AI 聊天界面    |
+| `code-reviewer`               | 代码审查（本地变更或远程 PR）                             | 审查代码质量        |
+| `frontend-design`             | 高质量前端界面设计与组件开发                              | 构建 Web 页面或组件 |
+| `mastra`                      | Mastra 框架指南、API 查询、Agent/Workflow 模式            | 任何 Mastra 开发    |
+| `pr-creator`                  | PR 创建辅助（标题、描述、关联 Issue）                     | 创建 Pull Request   |
+| `prd-generator`               | 生成产品需求文档（PRD）                                   | 编写产品规格说明    |
+| `vercel-react-best-practices` | React/Next.js 性能优化指南                                | 优化前端性能        |
+| `web-design-guidelines`       | Web 设计规范审查（可访问性、UX）                          | 审查 UI 设计        |
+| `webapp-testing`              | Web 应用测试（Playwright 交互、截图、日志）               | 测试前端功能        |
 
 `skills/` 目录是指向 `.agents/skills/` 的符号链接，请勿直接编辑 skill 文件。

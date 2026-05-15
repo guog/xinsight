@@ -20,6 +20,17 @@ vi.mock("@mastra/memory", () => ({
 }))
 vi.mock("@mastra/libsql", () => ({
   LibSQLStore: vi.fn(),
+  LibSQLVector: vi.fn(),
+}))
+vi.mock("@mastra/fastembed", () => ({
+  fastembed: {},
+}))
+vi.mock("@mastra/observability", () => ({
+  Observability: vi.fn(),
+  MastraStorageExporter: vi.fn(),
+}))
+vi.mock("@mastra/editor", () => ({
+  MastraEditor: vi.fn(),
 }))
 
 // Mock 所有 Agent
