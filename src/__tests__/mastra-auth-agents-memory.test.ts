@@ -9,9 +9,9 @@ describe("mastra 权限检查 + Agent 注册 + Memory 路径", () => {
       "utf-8",
     )
 
-    it("无 agentId 时输出警告而非跳过检查", () => {
+    it("无 agentId 时返回错误而非跳过检查", () => {
       expect(source).toContain("!agentId")
-      expect(source).toMatch(/console\.warn.*缺少 agentId/)
+      expect(source).toContain("缺少 Agent 上下文")
     })
 
     it("有 agentId 时执行绑定检查", () => {

@@ -3,6 +3,7 @@
 import { WebSocketServer, WebSocket } from "ws"
 import { createSTTSession, type STTSession } from "@/lib/voice/dashscope-stt"
 import { createTTSSession, type TTSSession } from "@/lib/voice/dashscope-tts"
+import { splitSentences } from "@/lib/text-utils"
 import { getVoiceConfig } from "@/lib/voice"
 import { mastra } from "@/mastra"
 import { toAISdkStream } from "@mastra/ai-sdk"
@@ -65,25 +66,6 @@ function validateSessionFromCookie(
   const user = db.select().from(users).where(eq(users.id, session.userId)).get()
   if (!user) return null
   return { id: user.id, username: user.username }
-}
-
-/** 按句子分割文本，返回 [完整句子们, 剩余部分] */
-function splitSentences(text: string): [string[], string] {
-  const sentenceEnders = /([。！？.!?\n])/
-  const parts = text.split(sentenceEnders)
-  const sentences: string[] = []
-  let i = 0
-  while (i < parts.length - 1) {
-    if (sentenceEnders.test(parts[i + 1] ?? "")) {
-      sentences.push(parts[i]! + parts[i + 1]!)
-      i += 2
-    } else {
-      sentences.push(parts[i]!)
-      i += 1
-    }
-  }
-  const remainder = i < parts.length ? parts[i]! : ""
-  return [sentences.filter((s) => s.trim().length > 0), remainder]
 }
 
 /** 处理 LLM 流式输出并推送给客户端 + TTS */
