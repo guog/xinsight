@@ -20,6 +20,7 @@ const apiBase =
 let cachedChats: Chat[] = []
 let cacheListeners: Array<() => void> = []
 let fetchPromise: Promise<void> | null = null
+let hasFetched = false
 const EMPTY_CHATS: Chat[] = []
 
 function notifyListeners() {
@@ -38,25 +39,28 @@ function getSnapshot() {
 }
 
 function ensureFetched() {
-  if (!fetchPromise) {
-    fetchPromise = fetch(`${apiBase}/api/chats`)
-      .then((res) => (res.ok ? res.json() : []))
-      .then((data: Chat[]) => {
-        cachedChats = data
-        notifyListeners()
-        fetchPromise = null
-      })
-      .catch((e) => {
-        console.error("获取对话列表失败:", e)
-        fetchPromise = null
-      })
-  }
+  if (hasFetched || fetchPromise) return
+  fetchPromise = fetch(`${apiBase}/api/chats`)
+    .then((res) => (res.ok ? res.json() : []))
+    .then((data: Chat[]) => {
+      cachedChats = data
+      hasFetched = true
+      notifyListeners()
+    })
+    .catch((e) => {
+      console.error("获取对话列表失败:", e)
+    })
+    .finally(() => {
+      fetchPromise = null
+    })
 }
 
+/** 清空缓存（用户登出或切换时调用） */
 /** 清空缓存（用户登出或切换时调用） */
 export function clearChatsCache() {
   cachedChats = []
   fetchPromise = null
+  hasFetched = false
   notifyListeners()
 }
 
@@ -111,11 +115,13 @@ export function useChats() {
       .then((res) => (res.ok ? res.json() : []))
       .then((data: Chat[]) => {
         cachedChats = data
+        hasFetched = true
         notifyListeners()
-        fetchPromise = null
       })
       .catch((e) => {
         console.error("获取对话列表失败:", e)
+      })
+      .finally(() => {
         fetchPromise = null
       })
     return fetchPromise
