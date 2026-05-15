@@ -7,6 +7,9 @@ vi.mock("@mastra/core", () => ({
   },
 }))
 vi.mock("@mastra/core/logger", () => ({
+  ConsoleLogger: class {
+    constructor() {}
+  },
   createLogger: vi.fn(() => ({})),
 }))
 

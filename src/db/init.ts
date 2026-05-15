@@ -10,7 +10,12 @@ export async function initDatabase() {
   } catch (e) {
     const msg = (e as Error).message
     // 仅跳过"已存在"类的冲突错误，其他错误需要重新抛出
-    if (msg.includes("already exists") || msg.includes("duplicate column")) {
+    // 跳过"已存在"类的冲突错误（包括 drizzle 包装后的 ALTER TABLE ADD 重复列错误）
+    if (
+      msg.includes("already exists") ||
+      msg.includes("duplicate column") ||
+      (msg.includes("Failed to run the query") && msg.includes("ADD"))
+    ) {
       console.warn("Migration skipped (already applied):", msg)
     } else {
       console.error("Migration failed:", msg)

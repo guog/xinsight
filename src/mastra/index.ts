@@ -1,5 +1,5 @@
 import { Mastra } from "@mastra/core"
-import { createLogger } from "@mastra/core/logger"
+import { ConsoleLogger } from "@mastra/core/logger"
 import { MastraEditor } from "@mastra/editor"
 import { Memory } from "@mastra/memory"
 import { LibSQLStore, LibSQLVector } from "@mastra/libsql"
@@ -81,7 +81,7 @@ const memory = new Memory({
 })
 
 export const mastra = new Mastra({
-  logger: createLogger({ name: "xinsight", level: "info" }),
+  logger: new ConsoleLogger({ name: "xinsight", level: "info" }),
   storage,
   memory: { default: memory },
   agents: {
