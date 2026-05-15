@@ -32,6 +32,8 @@ export const datasourceQueryTool = createTool({
       .describe("接口 ID（来自 datasource-list 返回的 endpoints[].id）"),
     params: z
       .record(z.string(), z.unknown())
+      .optional()
+      .default({})
       .describe("查询参数（会与 endpoint 默认参数合并，用户参数优先）"),
   }),
   outputSchema: z.object({
@@ -48,8 +50,13 @@ export const datasourceQueryTool = createTool({
   }),
   execute: async (inputData, context) => {
     const { datasourceId, endpointId, params } = inputData
-    const ctx = context as unknown as { agentId?: string; resourceId?: string }
-    const agentId = ctx.agentId ?? ctx.resourceId
+    const ctx = context as unknown as {
+      agentId?: string
+      resourceId?: string
+      agent?: { agentId?: string; resourceId?: string }
+    }
+    const agentId =
+      ctx.agent?.agentId ?? ctx.agent?.resourceId ?? ctx.agentId ?? ctx.resourceId
 
     const config = await repo.findById(datasourceId)
     if (!config) return { success: false, error: `数据源 "${datasourceId}" 未找到` }
@@ -76,7 +83,7 @@ export const datasourceQueryTool = createTool({
     }
 
     // 合并 endpoint 默认参数 + 用户传入参数
-    let mergedParams = params
+    let mergedParams = params ?? {}
     if (endpointId) {
       const endpoint = config.endpoints?.find((ep: { id: string }) => ep.id === endpointId)
       if (!endpoint) {
@@ -160,8 +167,13 @@ export const datasourceListTool = createTool({
     ),
   }),
   execute: async (_inputData, context) => {
-    const ctx = context as unknown as { agentId?: string; resourceId?: string }
-    const agentId = ctx.agentId ?? ctx.resourceId
+    const ctx = context as unknown as {
+      agentId?: string
+      resourceId?: string
+      agent?: { agentId?: string; resourceId?: string }
+    }
+    const agentId =
+      ctx.agent?.agentId ?? ctx.agent?.resourceId ?? ctx.agentId ?? ctx.resourceId
     // 获取端点级绑定信息，用于过滤 endpoints
     const endpointBindings = agentId ? await repo.getAgentEndpointBindings(agentId) : null
     const list = agentId ? await repo.findByAgentId(agentId) : await repo.findAllEnabled()
