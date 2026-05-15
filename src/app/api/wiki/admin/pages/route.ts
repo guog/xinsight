@@ -26,7 +26,7 @@ async function scanPages(dir: string): Promise<Record<string, unknown>[]> {
         type: frontmatter.type || "page",
         tags: frontmatter.tags || [],
         size: fileStat.size,
-        modified: fileStat.mtime.toISOString(),
+        modifiedAt: fileStat.mtime.toISOString(),
       })
     }
   }

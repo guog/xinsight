@@ -8,7 +8,21 @@ export async function initDatabase() {
   try {
     migrate(db, { migrationsFolder: "./drizzle" })
   } catch (e) {
-    console.warn("Migration skipped:", (e as Error).message)
+    const msg = (e as Error).message
+    // 仅跳过"已存在"类的冲突错误，其他错误需要重新抛出
+    if (msg.includes("already exists") || msg.includes("duplicate column")) {
+      console.warn("Migration skipped (already applied):", msg)
+    } else {
+      console.error("Migration failed:", msg)
+      // 回退：尝试逐条执行 db:push 式的 schema 同步
+      try {
+        const { execSync } = await import("child_process")
+        execSync("bun run db:push", { stdio: "inherit", timeout: 30_000 })
+        console.info("Fallback db:push succeeded")
+      } catch (pushErr) {
+        console.error("Fallback db:push also failed:", pushErr)
+      }
+    }
   }
   await seedUsers().catch((e) => console.warn("Seed users failed:", (e as Error).message))
   await seedProvidersFromEnv().catch((e) => console.error("Provider seed failed:", e))

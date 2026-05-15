@@ -42,7 +42,7 @@ export default function ProvidersPage() {
     try {
       const res = await fetch("/api/admin/providers")
       const data = await res.json()
-      setProviders(data)
+      setProviders(Array.isArray(data) ? data : data.providers ?? [])
     } catch {
       toast.error("加载提供商列表失败")
     } finally {
