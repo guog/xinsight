@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useRef, useEffect } from "react"
+import { useState, useCallback, useRef, useEffect, useMemo } from "react"
 import dynamic from "next/dynamic"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
@@ -80,19 +80,25 @@ function DesktopChatPage() {
 
   const chatApiUrl = API_BASE ? `${API_BASE}/api/chat` : "/api/chat"
 
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        api: chatApiUrl,
+        body: {
+          modelId,
+          agentId,
+          get chatId() {
+            return chatIdRef.current
+          },
+        },
+      }),
+    [chatApiUrl, modelId, agentId],
+  )
+
   const { messages, sendMessage, status, setMessages, stop, regenerate } = useChat({
     // 节流：每 50ms 批量合并流式更新，避免多 Agent 并行时每 token 触发 re-render，由 100 降低至 50 提升流畅度同时兼顾性能
     experimental_throttle: 50,
-    transport: new DefaultChatTransport({
-      api: chatApiUrl,
-      body: {
-        modelId,
-        agentId,
-        get chatId() {
-          return chatIdRef.current
-        },
-      },
-    }),
+    transport,
   })
 
   /** 流式结束后刷新侧边栏（更新自动生成的标题等） */
@@ -222,13 +228,13 @@ function DesktopChatPage() {
       />
 
       {/* 主内容区 */}
-      <main className="flex flex-col flex-1 min-w-0 max-w-4xl mx-auto w-full px-2 py-3 sm:px-4 sm:py-4 md:px-6 pb-safe">
+      <main className="flex flex-col flex-1 min-w-0 w-full py-3 sm:py-4 pb-safe">
         {/* 首次使用引导 */}
         {!isOnboardingComplete && <OnboardingWizard onComplete={markComplete} />}
         {/* 对话区域 */}
         <ErrorBoundary>
           <Conversation>
-            <ConversationContent>
+            <ConversationContent className="max-w-4xl mx-auto w-full px-2 sm:px-4 md:px-6">
               {messages.length === 0 ? (
                 <WelcomeEmptyState
                   agentName="智能工厂助手"
@@ -394,7 +400,7 @@ function DesktopChatPage() {
         </ErrorBoundary>
 
         {/* 输入区域 */}
-        <div className="relative mt-2 sm:mt-4 w-full max-w-3xl mx-auto before:absolute before:inset-x-0 before:-top-6 before:h-6 before:bg-gradient-to-t before:from-background before:to-transparent before:pointer-events-none">
+        <div className="relative mt-2 sm:mt-4 w-full max-w-4xl mx-auto px-2 sm:px-4 md:px-6 before:absolute before:inset-x-0 before:-top-6 before:h-6 before:bg-gradient-to-t before:from-background before:to-transparent before:pointer-events-none">
           {/* 工具栏 */}
           <div className="flex items-center gap-2 mb-1.5 px-1">
             <span className="text-xs font-medium text-muted-foreground">🏭 智能工厂助手</span>
