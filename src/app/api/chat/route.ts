@@ -95,9 +95,13 @@ export async function POST(req: Request) {
         }).getReader()
 
         // 过滤冗余事件（性能关键）：
-        // - data-tool-agent / rest：每 token 发完整 agent state，导致浏览器 OOM（PR #56）
+        // - rest：每 token 发完整 agent state，导致浏览器 OOM（PR #56）
         // - tool-input-delta：partial JSON 流，多 Agent 并行时产生海量碎片，前端仅需 start + available
-        const BLOCKED_TYPES = new Set(["data-tool-agent", "rest", "tool-input-delta"])
+        // - data-tool-agent：完整累积状态，替换为轻量 delta 转发（见下方处理逻辑）
+        const BLOCKED_TYPES = new Set(["rest", "tool-input-delta"])
+
+        // 子 Agent 流式进度：记录已发送的文本长度，仅发送增量（key = runId）
+        const agentTextOffsets = new Map<string, number>()
 
         try {
           const seenTypes = new Set<string>()
@@ -114,6 +118,42 @@ export async function POST(req: Request) {
             }
             // 跳过冗余中间态事件
             if (BLOCKED_TYPES.has(chunk.type)) continue
+
+            // data-tool-agent：提取文本增量，转为轻量 transient 事件，丢弃原始重型数据
+            if (chunk.type === "data-tool-agent") {
+              const runId = chunk.id as string
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const data = chunk.data as Record<string, any>
+              const fullText = (data?.text as string) ?? ""
+              const prevOffset = agentTextOffsets.get(runId) ?? 0
+              if (process.env.NODE_ENV === "development" && prevOffset === 0) {
+                console.log(
+                  "[chat] data-tool-agent first chunk, id:",
+                  runId,
+                  "data.id:",
+                  data?.id,
+                  "data keys:",
+                  Object.keys(data ?? {}),
+                )
+              }
+              if (fullText.length > prevOffset) {
+                const delta = fullText.slice(prevOffset)
+                agentTextOffsets.set(runId, fullText.length)
+                // 使用 runId 作为 key（前端通过 toolCallId 匹配，若不匹配则回退到 toolName）
+                await writer.write({
+                  type: "data-agent-progress",
+                  id: runId,
+                  data: {
+                    runId,
+                    toolCallId: data?.id ?? runId,
+                    textDelta: delta,
+                  },
+                  transient: true,
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                } as any)
+              }
+              continue
+            }
             // 收集文本和推理用于持久化
             if (chunk.type === "text-delta") {
               const text = chunk.delta ?? chunk.value ?? ""

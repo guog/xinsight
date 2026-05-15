@@ -43,6 +43,7 @@ import { CodeBlockCopyProvider } from "@/components/code-block-copy"
 import { useVoiceConfig } from "@/hooks/use-voice-config"
 import { useIsMobile } from "@/hooks/use-device"
 import { MobileChatPage } from "@/components/mobile-chat-page"
+import { AgentProgressContext, createAgentProgressStore } from "@/hooks/use-agent-progress"
 
 const VoiceChatPanel = dynamic(
   () => import("@/components/voice-chat-panel").then((m) => m.VoiceChatPanel),
@@ -76,6 +77,9 @@ function DesktopChatPage() {
   const { isOnboardingComplete, markComplete } = useOnboarding()
   const { voiceEnabled, isVoiceMode, enterVoiceMode, exitVoiceMode } = useVoiceConfig()
 
+  // 子 Agent 流式进度 store（稳定引用，不随 render 重建）
+  const agentProgressStore = useMemo(() => createAgentProgressStore(), [])
+
   const { createChat, refresh: refreshChats } = useChats()
 
   const chatApiUrl = API_BASE ? `${API_BASE}/api/chat` : "/api/chat"
@@ -99,6 +103,19 @@ function DesktopChatPage() {
     // 节流：每 50ms 批量合并流式更新，避免多 Agent 并行时每 token 触发 re-render，由 100 降低至 50 提升流畅度同时兼顾性能
     experimental_throttle: 50,
     transport,
+    // 接收子 Agent 流式进度（transient data-agent-progress 事件）
+    onData: (dataPart) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const part = dataPart as any
+      if (part.type === "data-agent-progress" && part.data?.textDelta) {
+        // 存储多个 key 以便前端匹配（runId 和 toolCallId 可能不同）
+        const { runId, toolCallId, textDelta } = part.data
+        agentProgressStore.append(runId, textDelta)
+        if (toolCallId && toolCallId !== runId) {
+          agentProgressStore.append(toolCallId, textDelta)
+        }
+      }
+    },
   })
 
   /** 流式结束后刷新侧边栏（更新自动生成的标题等） */
@@ -118,7 +135,8 @@ function DesktopChatPage() {
     setActiveChatId(null)
     chatIdRef.current = null
     setMessages([])
-  }, [setMessages])
+    agentProgressStore.clear()
+  }, [setMessages, agentProgressStore])
 
   /** 选择已有对话 */
   const handleSelectChat = useCallback(
@@ -215,238 +233,227 @@ function DesktopChatPage() {
   const currentModel = getModelById(modelId)
 
   return (
-    <div className="flex h-dvh">
-      <CodeBlockCopyProvider />
-      {/* 语音模式覆盖层 */}
-      {isVoiceMode && <VoiceChatPanel onClose={exitVoiceMode} />}
-      {/* 侧边栏 */}
-      <Sidebar
-        activeChatId={activeChatId}
-        onNewChat={handleNewChat}
-        onSelectChat={handleSelectChat}
-        onDeleteChat={handleDeleteChat}
-      />
+    <AgentProgressContext value={agentProgressStore}>
+      <div className="flex h-dvh">
+        <CodeBlockCopyProvider />
+        {/* 语音模式覆盖层 */}
+        {isVoiceMode && <VoiceChatPanel onClose={exitVoiceMode} />}
+        {/* 侧边栏 */}
+        <Sidebar
+          activeChatId={activeChatId}
+          onNewChat={handleNewChat}
+          onSelectChat={handleSelectChat}
+          onDeleteChat={handleDeleteChat}
+        />
 
-      {/* 主内容区 */}
-      <main className="flex flex-col flex-1 min-w-0 w-full py-3 sm:py-4 pb-safe">
-        {/* 首次使用引导 */}
-        {!isOnboardingComplete && <OnboardingWizard onComplete={markComplete} />}
-        {/* 对话区域 */}
-        <ErrorBoundary>
-          <Conversation>
-            <ConversationContent className="max-w-4xl mx-auto w-full px-2 sm:px-4 md:px-6">
-              {messages.length === 0 ? (
-                <WelcomeEmptyState
-                  agentName="智能工厂助手"
-                  onSuggestionClick={handleSuggestionClick}
-                />
-              ) : (
-                messages.map((message) => {
-                  const hasToolParts =
-                    message.role === "assistant" &&
-                    message.parts.some((p: { type: string }) => p.type.startsWith("tool-"))
-                  return (
-                    <Message from={message.role} key={message.id}>
-                      <MessageContent>
-                        <div className={hasToolParts ? "flex gap-3" : ""}>
-                          {hasToolParts && (
-                            <div className="flex-shrink-0 mt-1">
-                              <div className="size-7 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs font-semibold text-slate-600 dark:text-slate-300">
-                                厂
-                              </div>
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            {message.parts.map((part, i) => {
-                              switch (part.type) {
-                                case "reasoning": {
-                                  const rp = part as {
-                                    type: "reasoning"
-                                    text: string
-                                    state?: "streaming" | "done"
+        {/* 主内容区 */}
+        <main className="flex flex-col flex-1 min-w-0 w-full py-3 sm:py-4 pb-safe">
+          {/* 首次使用引导 */}
+          {!isOnboardingComplete && <OnboardingWizard onComplete={markComplete} />}
+          {/* 对话区域 */}
+          <ErrorBoundary>
+            <Conversation>
+              <ConversationContent className="max-w-4xl mx-auto w-full px-2 sm:px-4 md:px-6">
+                {messages.length === 0 ? (
+                  <WelcomeEmptyState
+                    agentName="智能工厂助手"
+                    onSuggestionClick={handleSuggestionClick}
+                  />
+                ) : (
+                  messages.map((message) => {
+                    return (
+                      <Message from={message.role} key={message.id}>
+                        <MessageContent>
+                          {message.parts.map((part, i) => {
+                            switch (part.type) {
+                              case "reasoning": {
+                                const rp = part as {
+                                  type: "reasoning"
+                                  text: string
+                                  state?: "streaming" | "done"
+                                }
+                                return (
+                                  <Reasoning
+                                    key={`${message.id}-${i}-thinking`}
+                                    isStreaming={rp.state === "streaming"}
+                                    defaultOpen={rp.state === "streaming"}
+                                    className="rounded-xl border border-purple-200/50 bg-gradient-to-r from-purple-50/50 to-violet-50/30 dark:border-purple-800/30 dark:from-purple-950/20 dark:to-violet-950/10"
+                                  >
+                                    <ReasoningTrigger
+                                      getThinkingMessage={(isStreaming, duration) => (
+                                        <span className="inline-flex items-center gap-1.5">
+                                          {isStreaming || duration === 0
+                                            ? "思考中…"
+                                            : duration === undefined
+                                              ? "已深度思考"
+                                              : `已深度思考 ${duration} 秒`}
+                                        </span>
+                                      )}
+                                    />
+                                    <ReasoningContent>{rp.text}</ReasoningContent>
+                                  </Reasoning>
+                                )
+                              }
+                              case "text": {
+                                const segments = parseChartBlocks(part.text)
+
+                                // Find full text content for copy action
+                                const fullText = segments
+                                  .filter((s) => s.type === "text")
+                                  .map((s) => (s as { content: string }).content)
+                                  .join("\n")
+                                  .trim()
+                                return segments.map((seg, j) =>
+                                  seg.type === "chart" ? (
+                                    <ChartBlock
+                                      key={`${message.id}-${i}-chart-${j}`}
+                                      config={seg.config}
+                                    />
+                                  ) : (
+                                    <div
+                                      key={`${message.id}-${i}-text-${j}`}
+                                      className="group/text relative"
+                                    >
+                                      <MessageResponse>{seg.content}</MessageResponse>
+                                      {status !== "streaming" &&
+                                        message.role === "assistant" &&
+                                        j === segments.length - 1 && (
+                                          <div className="mt-2 opacity-0 group-hover/text:opacity-100 transition-opacity">
+                                            <MessageActions>
+                                              <MessageAction
+                                                tooltip="复制为格式化报告"
+                                                onClick={() => {
+                                                  navigator.clipboard.writeText(fullText)
+                                                }}
+                                              >
+                                                <Copy className="size-4" />
+                                              </MessageAction>
+                                            </MessageActions>
+                                          </div>
+                                        )}
+                                    </div>
+                                  ),
+                                )
+                              }
+                              default: {
+                                // AI SDK v6: tool parts have type="tool-{toolName}"
+                                // with fields: toolCallId, toolName, state, input, output
+                                if (part.type.startsWith("tool-")) {
+                                  const tp = part as unknown as {
+                                    type: string
+                                    toolCallId: string
+                                    toolName?: string
+                                    state:
+                                      | "input-streaming"
+                                      | "input-available"
+                                      | "output-available"
+                                      | "output-error"
+                                    input?: unknown
+                                    output?: unknown
+                                  }
+                                  // Extract toolName from type: "tool-agent-productionAgent" → "agent-productionAgent"
+                                  const toolName =
+                                    tp.toolName ?? tp.type.split("-").slice(1).join("-")
+                                  // Map v6 states to AgentMessage states
+                                  const stateMap: Record<
+                                    string,
+                                    "call" | "partial-call" | "result"
+                                  > = {
+                                    "input-streaming": "partial-call",
+                                    "input-available": "call",
+                                    "output-available": "result",
+                                    "output-error": "result",
                                   }
                                   return (
-                                    <Reasoning
-                                      key={`${message.id}-${i}-thinking`}
-                                      isStreaming={rp.state === "streaming"}
-                                      defaultOpen={rp.state === "streaming"}
-                                      className="rounded-xl border border-purple-200/50 bg-gradient-to-r from-purple-50/50 to-violet-50/30 dark:border-purple-800/30 dark:from-purple-950/20 dark:to-violet-950/10"
-                                    >
-                                      <ReasoningTrigger
-                                        getThinkingMessage={(isStreaming, duration) => (
-                                          <span className="inline-flex items-center gap-1.5">
-                                            {isStreaming || duration === 0
-                                              ? "思考中…"
-                                              : duration === undefined
-                                                ? "已深度思考"
-                                                : `已深度思考 ${duration} 秒`}
-                                          </span>
-                                        )}
-                                      />
-                                      <ReasoningContent>{rp.text}</ReasoningContent>
-                                    </Reasoning>
+                                    <AgentMessage
+                                      key={`${message.id}-${i}-tool`}
+                                      toolCallId={tp.toolCallId}
+                                      toolName={toolName}
+                                      state={stateMap[tp.state] ?? "call"}
+                                      args={tp.input as Record<string, unknown>}
+                                      result={tp.output}
+                                    />
                                   )
                                 }
-                                case "text": {
-                                  const segments = parseChartBlocks(part.text)
-
-                                  // Find full text content for copy action
-                                  const fullText = segments
-                                    .filter((s) => s.type === "text")
-                                    .map((s) => (s as { content: string }).content)
-                                    .join("\n")
-                                    .trim()
-                                  return segments.map((seg, j) =>
-                                    seg.type === "chart" ? (
-                                      <ChartBlock
-                                        key={`${message.id}-${i}-chart-${j}`}
-                                        config={seg.config}
-                                      />
-                                    ) : (
-                                      <div
-                                        key={`${message.id}-${i}-text-${j}`}
-                                        className="group/text relative"
-                                      >
-                                        <MessageResponse>{seg.content}</MessageResponse>
-                                        {status !== "streaming" &&
-                                          message.role === "assistant" &&
-                                          j === segments.length - 1 && (
-                                            <div className="mt-2 opacity-0 group-hover/text:opacity-100 transition-opacity">
-                                              <MessageActions>
-                                                <MessageAction
-                                                  tooltip="复制为格式化报告"
-                                                  onClick={() => {
-                                                    navigator.clipboard.writeText(fullText)
-                                                  }}
-                                                >
-                                                  <Copy className="size-4" />
-                                                </MessageAction>
-                                              </MessageActions>
-                                            </div>
-                                          )}
-                                      </div>
-                                    ),
-                                  )
-                                }
-                                default: {
-                                  // AI SDK v6: tool parts have type="tool-{toolName}"
-                                  // with fields: toolCallId, toolName, state, input, output
-                                  if (part.type.startsWith("tool-")) {
-                                    const tp = part as unknown as {
-                                      type: string
-                                      toolCallId: string
-                                      toolName?: string
-                                      state:
-                                        | "input-streaming"
-                                        | "input-available"
-                                        | "output-available"
-                                        | "output-error"
-                                      input?: unknown
-                                      output?: unknown
-                                    }
-                                    // Extract toolName from type: "tool-agent-productionAgent" → "agent-productionAgent"
-                                    const toolName =
-                                      tp.toolName ?? tp.type.split("-").slice(1).join("-")
-                                    // Map v6 states to AgentMessage states
-                                    const stateMap: Record<
-                                      string,
-                                      "call" | "partial-call" | "result"
-                                    > = {
-                                      "input-streaming": "partial-call",
-                                      "input-available": "call",
-                                      "output-available": "result",
-                                      "output-error": "result",
-                                    }
-                                    return (
-                                      <AgentMessage
-                                        key={`${message.id}-${i}-tool`}
-                                        toolName={toolName}
-                                        state={stateMap[tp.state] ?? "call"}
-                                        args={tp.input as Record<string, unknown>}
-                                        result={tp.output}
-                                      />
-                                    )
-                                  }
-                                  return null
-                                }
+                                return null
                               }
-                            })}
-                          </div>
-                        </div>
-                      </MessageContent>
-                      {(message as { createdAt?: Date }).createdAt && (
-                        <time className="block text-[10px] text-muted-foreground/60 mt-1 px-1 select-none">
-                          {formatMessageTime((message as { createdAt?: Date }).createdAt!)}
-                        </time>
-                      )}
-                      {message.role === "assistant" &&
-                        message === messages[messages.length - 1] &&
-                        status !== "streaming" && (
-                          <button
-                            onClick={() => regenerate()}
-                            className="group inline-flex items-center gap-1 mt-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground rounded-md hover:bg-muted transition-all duration-200"
-                          >
-                            <RotateCcw className="size-3 transition-transform duration-300 group-hover:-rotate-180" />
-                            重新生成
-                          </button>
+                            }
+                          })}
+                        </MessageContent>
+                        {(message as { createdAt?: Date }).createdAt && (
+                          <time className="block text-[10px] text-muted-foreground/60 mt-1 px-1 select-none">
+                            {formatMessageTime((message as { createdAt?: Date }).createdAt!)}
+                          </time>
                         )}
-                    </Message>
-                  )
-                })
-              )}
-            </ConversationContent>
-            <ConversationScrollButton />
-          </Conversation>
-        </ErrorBoundary>
+                        {message.role === "assistant" &&
+                          message === messages[messages.length - 1] &&
+                          status !== "streaming" && (
+                            <button
+                              onClick={() => regenerate()}
+                              className="group inline-flex items-center gap-1 mt-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground rounded-md hover:bg-muted transition-all duration-200"
+                            >
+                              <RotateCcw className="size-3 transition-transform duration-300 group-hover:-rotate-180" />
+                              重新生成
+                            </button>
+                          )}
+                      </Message>
+                    )
+                  })
+                )}
+              </ConversationContent>
+              <ConversationScrollButton />
+            </Conversation>
+          </ErrorBoundary>
 
-        {/* 输入区域 */}
-        <div className="relative mt-2 sm:mt-4 w-full max-w-4xl mx-auto px-2 sm:px-4 md:px-6 before:absolute before:inset-x-0 before:-top-6 before:h-6 before:bg-gradient-to-t before:from-background before:to-transparent before:pointer-events-none">
-          {/* 工具栏 */}
-          <div className="flex items-center gap-2 mb-1.5 px-1">
-            <span className="text-xs font-medium text-muted-foreground">🏭 智能工厂助手</span>
-            <span className="text-xs text-muted-foreground">·</span>
-            {/* Model label */}
-            <span className="text-xs text-muted-foreground">{currentModel?.name ?? modelId}</span>
-          </div>
-
-          {/* Input */}
-          <PromptInput
-            onSubmit={handleSubmit}
-            className="relative shadow-sm hover:shadow-md focus-within:shadow-md focus-within:ring-1 focus-within:ring-ring/30 transition-all duration-200 rounded-xl"
-          >
-            <PromptInputTextarea
-              value={input}
-              placeholder="输入你的问题..."
-              onChange={(e) => setInput(e.currentTarget.value)}
-              className="pr-20"
-            />
-            <div className="absolute bottom-1 right-1 flex items-center gap-1.5">
-              <FileUpload disabled={status === "streaming"} />
-              {voiceEnabled && (
-                <button
-                  onClick={enterVoiceMode}
-                  title="语音模式"
-                  className="flex items-center justify-center size-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                >
-                  <Mic className="size-4" />
-                </button>
-              )}
-              {status === "streaming" ? (
-                <button
-                  onClick={() => stop()}
-                  className="flex items-center justify-center size-8 rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors animate-pulse shadow-sm shadow-destructive/30"
-                >
-                  <Square className="size-4" />
-                </button>
-              ) : status === "submitted" ? (
-                <PromptInputSubmit status="submitted" disabled={false} />
-              ) : (
-                <PromptInputSubmit status="ready" disabled={!input.trim()} />
-              )}
+          {/* 输入区域 */}
+          <div className="relative mt-2 sm:mt-4 w-full max-w-4xl mx-auto px-2 sm:px-4 md:px-6 before:absolute before:inset-x-0 before:-top-6 before:h-6 before:bg-gradient-to-t before:from-background before:to-transparent before:pointer-events-none">
+            {/* 工具栏 */}
+            <div className="flex items-center gap-2 mb-1.5 px-1">
+              <span className="text-xs font-medium text-muted-foreground">🏭 智能工厂助手</span>
+              <span className="text-xs text-muted-foreground">·</span>
+              {/* Model label */}
+              <span className="text-xs text-muted-foreground">{currentModel?.name ?? modelId}</span>
             </div>
-          </PromptInput>
-        </div>
-      </main>
-    </div>
+
+            {/* Input */}
+            <PromptInput
+              onSubmit={handleSubmit}
+              className="relative shadow-sm hover:shadow-md focus-within:shadow-md focus-within:ring-1 focus-within:ring-ring/30 transition-all duration-200 rounded-xl"
+            >
+              <PromptInputTextarea
+                value={input}
+                placeholder="输入你的问题..."
+                onChange={(e) => setInput(e.currentTarget.value)}
+                className="pr-20"
+              />
+              <div className="absolute bottom-1 right-1 flex items-center gap-1.5">
+                <FileUpload disabled={status === "streaming"} />
+                {voiceEnabled && (
+                  <button
+                    onClick={enterVoiceMode}
+                    title="语音模式"
+                    className="flex items-center justify-center size-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                  >
+                    <Mic className="size-4" />
+                  </button>
+                )}
+                {status === "streaming" ? (
+                  <button
+                    onClick={() => stop()}
+                    className="flex items-center justify-center size-8 rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors animate-pulse shadow-sm shadow-destructive/30"
+                  >
+                    <Square className="size-4" />
+                  </button>
+                ) : status === "submitted" ? (
+                  <PromptInputSubmit status="submitted" disabled={false} />
+                ) : (
+                  <PromptInputSubmit status="ready" disabled={!input.trim()} />
+                )}
+              </div>
+            </PromptInput>
+          </div>
+        </main>
+      </div>
+    </AgentProgressContext>
   )
 }

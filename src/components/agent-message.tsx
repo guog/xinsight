@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, memo, useMemo } from "react"
+import { useState, memo, useMemo, useEffect, useCallback } from "react"
 import { Streamdown } from "streamdown"
 import { cjk } from "@streamdown/cjk"
 import { code } from "@streamdown/code"
 import { math } from "@streamdown/math"
 import { mermaid } from "@streamdown/mermaid"
-import { Database, ChevronDown, ChevronRight, Brain, Users, MessageSquare } from "lucide-react"
+import { Database, ChevronDown, ChevronRight, Brain, CheckCircle2, AlertCircle } from "lucide-react"
+import { useAgentStreamingText } from "@/hooks/use-agent-progress"
 import { AGENT_MAP, TOOL_AGENT_MAP } from "@/config/agent-registry"
 import {
   Tool,
@@ -19,6 +20,20 @@ import {
 import { parseChartBlocks } from "@/lib/chart/parse-chart-block"
 import { ChartBlock } from "@/components/chart/chart-block"
 import { cn } from "@/lib/utils"
+
+/* ─── 全局注入心跳动画（仅一次） ─── */
+let heartbeatInjected = false
+function ensureHeartbeatStyle() {
+  if (heartbeatInjected || typeof document === "undefined") return
+  heartbeatInjected = true
+  const style = document.createElement("style")
+  style.textContent = `
+@keyframes agent-heartbeat {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}`
+  document.head.appendChild(style)
+}
 
 const DEFAULT_AGENT = {
   name: "助手",
@@ -36,7 +51,9 @@ interface AgentMessageProps {
   state: "call" | "partial-call" | "result"
   args?: Record<string, unknown>
   result?: unknown
-  /** 是否显示会议头部（首个 agent 委派才显示） */
+  /** 用于匹配子 Agent 流式进度的 toolCallId */
+  toolCallId?: string
+  /** 已废弃，保留兼容 */
   showMeetingHeader?: boolean
   className?: string
 }
@@ -49,6 +66,14 @@ function extractAgentResultText(result: unknown): string | null {
   if (!result || typeof result !== "object") return null
   const r = result as Record<string, unknown>
   if (typeof r.text === "string" && r.text.trim()) return r.text
+  return null
+}
+
+function extractAgentError(result: unknown): string | null {
+  if (!result || typeof result !== "object") return null
+  const r = result as Record<string, unknown>
+  if (typeof r.error === "string" && r.error.trim()) return r.error
+  if (typeof r.text === "string" && /^(错误|error|failed|失败)/i.test(r.text.trim())) return r.text
   return null
 }
 
@@ -122,58 +147,55 @@ function formatToolName(toolName: string): string {
     .trim()
 }
 
-/* ─── 进行中动画（带步骤提示） ─── */
-function TypingIndicator({ name }: { name: string }) {
-  return (
-    <div className="flex items-center gap-2 mb-1.5">
-      <span className="text-xs text-muted-foreground/70">
-        <span className="font-medium mr-1">{name}</span>正在深度思考 / 查询数据...
-      </span>
-      <span className="flex items-center gap-0.5">
-        {[0, 1, 2].map((i) => (
-          <span
-            key={i}
-            className="size-1.5 rounded-full bg-muted-foreground/60 animate-bounce"
-            style={{ animationDelay: `${i * 150}ms`, animationDuration: "0.8s" }}
-          />
-        ))}
-      </span>
-    </div>
-  )
-}
+/* ─── Google 风格旋转彩色光圈头像 + 心跳动画 ─── */
+const AgentAvatar = memo(function AgentAvatar({
+  avatar,
+  avatarBg,
+  color,
+  isProcessing,
+}: {
+  avatar: string
+  avatarBg: string
+  color: string
+  isProcessing: boolean
+}) {
+  useEffect(() => {
+    if (isProcessing) ensureHeartbeatStyle()
+  }, [isProcessing])
 
-/* ─── 会议头部横幅 ─── */
-function MeetingHeader() {
   return (
-    <div className="flex items-center gap-3 py-3 mb-2 animate-in fade-in slide-in-from-bottom-2 duration-500">
-      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-slate-100 to-slate-50 dark:from-slate-800/60 dark:to-slate-900/40 border border-slate-200/60 dark:border-slate-700/40 shadow-sm">
-        <Users className="size-3.5 text-slate-500 dark:text-slate-400" />
-        <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
-          🏭 专家研讨会
-        </span>
+    <div className="relative flex-shrink-0">
+      {/* 旋转彩虹光圈 */}
+      {isProcessing && (
+        <div
+          className="absolute -inset-[3px] rounded-full animate-spin"
+          style={{
+            background: "conic-gradient(from 0deg, #4285f4, #ea4335, #fbbc04, #34a853, #4285f4)",
+            animationDuration: "1.5s",
+          }}
+        />
+      )}
+      {/* 白色间隔环 */}
+      {isProcessing && <div className="absolute -inset-[1px] rounded-full bg-background" />}
+      {/* 头像 */}
+      <div
+        className={cn(
+          "relative z-10 flex size-8 items-center justify-center rounded-full text-xs font-bold transition-transform duration-300",
+          avatarBg,
+          color,
+        )}
+        style={
+          isProcessing ? { animation: "agent-heartbeat 1.2s ease-in-out infinite" } : undefined
+        }
+      >
+        {avatar}
       </div>
-      <div className="flex-1 border-t border-dashed border-slate-300/50 dark:border-slate-600/50" />
     </div>
   )
-}
-
-/* ─── Supervisor 引导消息 ─── */
-function SupervisorIntro({ text = "正在召集专家讨论..." }: { text?: string }) {
-  return (
-    <div className="flex items-start gap-3 pb-3 animate-in fade-in slide-in-from-bottom-2 duration-500">
-      <div className="relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-bold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 shadow-sm ring-2 ring-background">
-        厂
-      </div>
-      <div className="flex items-center gap-2 mt-1.5">
-        <span className="text-xs font-medium text-slate-500 dark:text-slate-400">主管</span>
-        <span className="text-xs text-muted-foreground/70">{text}</span>
-      </div>
-    </div>
-  )
-}
+})
 
 /* ─── 思考过程展示 ─── */
-function ReasoningBlock({ reasoning }: { reasoning: string }) {
+const ReasoningBlock = memo(function ReasoningBlock({ reasoning }: { reasoning: string }) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -186,24 +208,17 @@ function ReasoningBlock({ reasoning }: { reasoning: string }) {
         <span>思考过程</span>
         {open ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
       </button>
-      <div
-        className={cn(
-          "grid transition-all duration-300 ease-in-out",
-          open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
-        )}
-      >
-        <div className="overflow-hidden">
-          <div className="mt-1.5 px-3 py-2 rounded-lg bg-muted/30 border border-border/30 text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">
-            {reasoning}
-          </div>
+      {open && (
+        <div className="mt-1.5 px-3 py-2 rounded-lg bg-muted/30 border border-border/30 text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">
+          {reasoning}
         </div>
-      </div>
+      )}
     </div>
   )
-}
+})
 
-/* ─── 可折叠数据源结果（增强版） ─── */
-function CollapsibleToolResult({
+/* ─── 可折叠数据源结果 ─── */
+const CollapsibleToolResult = memo(function CollapsibleToolResult({
   toolResult,
 }: {
   toolResult: { toolName: string; result: unknown }
@@ -235,30 +250,23 @@ function CollapsibleToolResult({
         )}
       </button>
 
-      {/* Mini data preview when collapsed */}
       {!open && preview && (
         <div className="px-3 pb-2 -mt-1">
           <div className="text-[10px] text-muted-foreground/50 font-mono truncate">{preview}</div>
         </div>
       )}
 
-      <div
-        className={cn(
-          "grid transition-all duration-300 ease-in-out",
-          open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
-        )}
-      >
-        <div className="overflow-hidden">
-          <div className="px-3 pb-3 pt-1 border-t border-border/30">
-            <pre className="text-xs bg-muted/20 dark:bg-muted/10 rounded-lg p-3 overflow-x-auto max-h-80 font-mono text-foreground/80 leading-relaxed">
-              <code>{JSON.stringify(toolResult.result, null, 2)}</code>
-            </pre>
-          </div>
+      {/* 仅展开时渲染 JSON */}
+      {open && (
+        <div className="px-3 pb-3 pt-1 border-t border-border/30">
+          <pre className="text-xs bg-muted/20 dark:bg-muted/10 rounded-lg p-3 overflow-x-auto max-h-80 font-mono text-foreground/80 leading-relaxed">
+            <code>{JSON.stringify(toolResult.result, null, 2)}</code>
+          </pre>
         </div>
-      </div>
+      )}
     </div>
   )
-}
+})
 
 /* ─── 主组件 ─── */
 export function AgentMessage({
@@ -266,6 +274,7 @@ export function AgentMessage({
   state,
   args,
   result,
+  toolCallId,
   showMeetingHeader,
   className,
 }: AgentMessageProps) {
@@ -276,7 +285,7 @@ export function AgentMessage({
         state={state}
         args={args}
         result={result}
-        showMeetingHeader={showMeetingHeader}
+        toolCallId={toolCallId}
         className={className}
       />
     )
@@ -292,117 +301,196 @@ export function AgentMessage({
     />
   )
 }
-/* ─── 会议风格：子 Agent 发言气泡 ─── */
-function DelegateAgentMessage({
-  toolName,
-  state,
-  result,
-  showMeetingHeader,
-  className,
-}: AgentMessageProps) {
-  const agentInfo = AGENT_MAP[toolName] ?? DEFAULT_AGENT
-  const isDone = state === "result"
-  const agentText = isDone ? extractAgentResultText(result) : null
-  const agentReasoning = isDone ? extractAgentReasoning(result) : null
-  const subToolResults = isDone ? extractSubAgentToolResults(result) : null
+
+/* ─── 状态图标（仅 done / error） ─── */
+const AgentStatusIcon = memo(function AgentStatusIcon({ status }: { status: "done" | "error" }) {
+  switch (status) {
+    case "done":
+      return <CheckCircle2 className="size-3.5 text-emerald-500" />
+    case "error":
+      return <AlertCircle className="size-3.5 text-red-500" />
+  }
+})
+
+/* ─── 折叠内容（懒渲染，展开后才挂载重组件） ─── */
+const DelegateContent = memo(function DelegateContent({
+  agentText,
+  agentReasoning,
+  agentError,
+  subToolResults,
+  isProcessing,
+  toolCallId,
+  args,
+}: {
+  agentText: string | null
+  agentReasoning: string | null
+  agentError: string | null
+  subToolResults: Array<{ toolName: string; result: unknown }> | null
+  isProcessing: boolean
+  toolCallId?: string
+  args?: Record<string, unknown>
+}) {
+  // 流式进度文本（仅 isProcessing 时有意义，done 后使用 agentText）
+  const streamingText = useAgentStreamingText(isProcessing ? toolCallId : undefined)
+
+  // 缓存 chart 解析结果
+  const displayText = isProcessing ? streamingText : agentText
+  const segments = useMemo(() => (displayText ? parseChartBlocks(displayText) : []), [displayText])
 
   return (
-    <>
-      {/* Meeting header + supervisor intro shown only for first delegation */}
-      {showMeetingHeader !== false && (
-        <>
-          <MeetingHeader />
-          <SupervisorIntro text={isDone ? "专家意见汇总完毕" : "正在召集专家讨论..."} />
-        </>
+    <div className="pl-11 pt-1.5 pb-2">
+      {/* 错误信息 */}
+      {agentError && (
+        <div className="mb-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-200/50 dark:border-red-800/30 text-xs text-red-600 dark:text-red-400">
+          {agentError}
+        </div>
       )}
 
-      <div
-        className={cn(
-          "relative flex items-start gap-3 py-3 group animate-in fade-in slide-in-from-bottom-3 duration-500 fill-mode-backwards chat-message",
-          className,
-        )}
-      >
-        {/* 时间线连接线 */}
-        <div className="absolute left-[18px] top-12 bottom-0 w-px bg-gradient-to-b from-border/40 to-transparent group-last:hidden" />
+      {/* 思考过程 */}
+      {agentReasoning && <ReasoningBlock reasoning={agentReasoning} />}
 
-        {/* 头像圆圈 */}
+      {/* 正文 + 图表 */}
+      {segments.map((seg, j) =>
+        seg.type === "chart" ? (
+          <ChartBlock key={`chart-${j}`} config={seg.config} />
+        ) : (
+          <div
+            key={`text-${j}`}
+            className="text-sm text-foreground/90 leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
+          >
+            <Streamdown plugins={streamdownPlugins}>{seg.content}</Streamdown>
+          </div>
+        ),
+      )}
+
+      {!isProcessing && !agentText && !agentError && (
+        <span className="text-xs text-muted-foreground italic">（无回复内容）</span>
+      )}
+
+      {/* 流式输出：处理中且有流式文本时显示 */}
+      {isProcessing && streamingText && segments.length === 0 && (
+        <div className="text-sm text-foreground/90 leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+          <Streamdown plugins={streamdownPlugins}>{streamingText}</Streamdown>
+        </div>
+      )}
+
+      {isProcessing && !streamingText && (
+        <span className="text-xs text-muted-foreground/50 italic">等待结果…</span>
+      )}
+
+      {/* 数据源结果 */}
+      {subToolResults && subToolResults.length > 0 && (
+        <div className="mt-2.5 space-y-2">
+          {subToolResults.map((tr, idx) => (
+            <CollapsibleToolResult key={idx} toolResult={tr} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+})
+
+/* ─── 扁平化子 Agent 区块（始终可展开） ─── */
+const DelegateAgentMessage = memo(function DelegateAgentMessage({
+  toolName,
+  state,
+  args,
+  result,
+  toolCallId,
+  className,
+}: Omit<AgentMessageProps, "showMeetingHeader">) {
+  const agentInfo = AGENT_MAP[toolName] ?? DEFAULT_AGENT
+  const isDone = state === "result"
+  const isProcessing = !isDone
+
+  // 始终计算数据，保持在 JS 变量中随时可用
+  const agentText = useMemo(
+    () => (isDone ? extractAgentResultText(result) : null),
+    [isDone, result],
+  )
+  const agentReasoning = useMemo(
+    () => (isDone ? extractAgentReasoning(result) : null),
+    [isDone, result],
+  )
+  const agentError = useMemo(() => (isDone ? extractAgentError(result) : null), [isDone, result])
+  const subToolResults = useMemo(
+    () => (isDone ? extractSubAgentToolResults(result) : null),
+    [isDone, result],
+  )
+
+  const agentStatus: "done" | "error" | null = isDone ? (agentError ? "error" : "done") : null
+
+  // 子 Agent 默认折叠
+  const [open, setOpen] = useState(false)
+  // 记录是否曾经展开过，保留已渲染内容避免闪烁
+  const [hasOpened, setHasOpened] = useState(false)
+  const toggleOpen = useCallback(() => {
+    setOpen((prev) => {
+      if (!prev) setHasOpened(true)
+      return !prev
+    })
+  }, [])
+
+  // 决定是否挂载重内容：当前展开 或 曾经展开过且已完成
+  const shouldMount = open || (hasOpened && isDone)
+
+  return (
+    <div className={cn("py-1 animate-in fade-in slide-in-from-bottom-2 duration-400", className)}>
+      {/* 触发行：[带 title 的头像] [状态图标（仅 done/error）] [折叠箭头] */}
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={toggleOpen}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault()
+            toggleOpen()
+          }
+        }}
+        className="flex items-center gap-2 w-full py-1 text-left hover:bg-muted/30 rounded-lg px-1.5 -mx-1.5 transition-colors group cursor-pointer"
+      >
+        {/* 使用原生 title 替代 Tooltip 组件，零 JS 开销 */}
+        <div title={`${agentInfo.name} · ${agentInfo.role}`}>
+          <AgentAvatar
+            avatar={agentInfo.avatar}
+            avatarBg={agentInfo.avatarBg}
+            color={agentInfo.color}
+            isProcessing={isProcessing}
+          />
+        </div>
+        {agentStatus && <AgentStatusIcon status={agentStatus} />}
+        <ChevronDown
+          className={cn(
+            "size-3.5 ml-auto text-muted-foreground/40 transition-transform duration-200 group-hover:text-muted-foreground",
+            open ? "rotate-0" : "-rotate-90",
+          )}
+        />
+      </div>
+
+      {/* 折叠内容：仅当 shouldMount 时才挂载重组件 */}
+      {shouldMount && (
         <div
           className={cn(
-            "relative z-10 flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-bold shadow-md ring-2 ring-background transition-transform duration-300 group-hover:scale-110 chat-avatar",
-            agentInfo.avatarBg,
-            agentInfo.color,
+            "grid transition-all duration-300 ease-in-out",
+            open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
           )}
         >
-          {agentInfo.avatar}
-        </div>
-
-        {/* 发言内容 */}
-        <div className="flex-1 min-w-0">
-          {/* 名字 + 角色 */}
-          <div className="flex items-center gap-2 mb-1.5">
-            <MessageSquare className="size-3 text-muted-foreground/50" />
-            <span className={cn("font-semibold text-sm", agentInfo.color)}>{agentInfo.name}</span>
-            <span className="text-xs text-muted-foreground/60 italic">{agentInfo.role}</span>
+          <div className="overflow-hidden">
+            <DelegateContent
+              agentText={agentText}
+              agentReasoning={agentReasoning}
+              agentError={agentError}
+              subToolResults={subToolResults}
+              isProcessing={isProcessing}
+              toolCallId={toolCallId}
+              args={args}
+            />
           </div>
-
-          {/* 气泡 + 三角指针 */}
-          <div className="relative">
-            {/* 三角指针 */}
-            <div className="absolute left-[-6px] top-3 size-3 rotate-45 bg-gradient-to-br border-l border-b border-border/40 from-white/80 to-white/60 dark:from-slate-800/80 dark:to-slate-800/60" />
-
-            <div
-              className={cn(
-                "relative rounded-2xl rounded-tl-md px-4 py-3 border border-border/40 shadow-sm transition-all duration-500",
-                !isDone
-                  ? "bg-gradient-to-br from-muted/60 via-muted/30 to-muted/60 animate-pulse"
-                  : cn("bg-gradient-to-br shadow-md", agentInfo.bgColor),
-              )}
-            >
-              {/* 进行中 → 打字指示器 */}
-              {!isDone && <TypingIndicator name={agentInfo.name} />}
-
-              {/* 思考过程 */}
-              {isDone && agentReasoning && <ReasoningBlock reasoning={agentReasoning} />}
-
-              {/* 完成 → Markdown 渲染 + 图表 */}
-              {isDone &&
-                agentText &&
-                (() => {
-                  const segments = parseChartBlocks(agentText)
-                  return segments.map((seg, j) =>
-                    seg.type === "chart" ? (
-                      <ChartBlock key={`chart-${j}`} config={seg.config} />
-                    ) : (
-                      <div
-                        key={`text-${j}`}
-                        className="text-sm text-foreground/90 leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
-                      >
-                        <Streamdown plugins={streamdownPlugins}>{seg.content}</Streamdown>
-                      </div>
-                    ),
-                  )
-                })()}
-
-              {/* 无文本结果的兜底 */}
-              {isDone && !agentText && (
-                <span className="text-xs text-muted-foreground italic">（无回复内容）</span>
-              )}
-            </div>
-          </div>
-
-          {/* 数据源调用结果 — 可折叠 */}
-          {isDone && subToolResults && subToolResults.length > 0 && (
-            <div className="mt-2.5 space-y-2">
-              {subToolResults.map((tr, idx) => (
-                <CollapsibleToolResult key={idx} toolResult={tr} />
-              ))}
-            </div>
-          )}
         </div>
-      </div>
-    </>
+      )}
+    </div>
   )
-}
+})
 
 /* ─── 直接工具调用（非 Agent 委派） ─── */
 function DirectToolMessage({ toolName, state, args, result, className }: AgentMessageProps) {
