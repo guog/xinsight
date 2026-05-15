@@ -16,6 +16,16 @@ const app = new OpenAPIHono()
 // CORS
 app.use("/*", cors())
 
+// 根路由 — 方便连接测试
+app.get("/", (c) =>
+  c.json({
+    name: "MES Mock API",
+    version: "0.1.0",
+    docs: "/api/docs",
+    health: "/api/health",
+  }),
+)
+
 // 健康检查
 app.get("/api/health", (c) => c.json({ status: "ok", timestamp: new Date().toISOString() }))
 
