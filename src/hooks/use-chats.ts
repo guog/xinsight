@@ -39,6 +39,7 @@ function getSnapshot() {
 }
 
 function ensureFetched() {
+  if (typeof window === "undefined") return
   if (hasFetched || fetchPromise) return
   fetchPromise = fetch(`${apiBase}/api/chats`)
     .then((res) => (res.ok ? res.json() : []))

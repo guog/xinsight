@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
   ...(isStaticExport ? { output: "export" } : {}),
   // bun:sqlite 等 Bun 内置模块需要标记为外部依赖，避免 Turbopack 尝试打包
   serverExternalPackages: ["bun:sqlite", "@anush008/tokenizers", "@mastra/fastembed", "fastembed"],
+  turbopack: {
+    root: ".",
+  },
 }
 
 export default nextConfig

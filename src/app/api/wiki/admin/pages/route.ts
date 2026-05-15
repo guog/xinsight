@@ -4,7 +4,9 @@ import { join, relative, resolve } from "path"
 import { readdir, stat, unlink, readFile } from "fs/promises"
 import matter from "gray-matter"
 
-const WIKI_PATH = process.env.WIKI_PATH || join(process.cwd(), "wiki")
+function getWikiPath() {
+  return process.env.WIKI_PATH || join(/* turbopackIgnore: true */ process.cwd(), "wiki")
+}
 
 // 递归扫描所有 wiki 页面
 async function scanPages(dir: string): Promise<Record<string, unknown>[]> {
@@ -17,7 +19,7 @@ async function scanPages(dir: string): Promise<Record<string, unknown>[]> {
       results.push(...(await scanPages(fullPath)))
     } else if (entry.name.endsWith(".md") || entry.name.endsWith(".mdx")) {
       const fileStat = await stat(fullPath)
-      const relPath = relative(WIKI_PATH, fullPath)
+      const relPath = relative(getWikiPath(), fullPath)
       const raw = await readFile(fullPath, "utf-8")
       const { data: frontmatter } = matter(raw)
       results.push({
@@ -41,7 +43,7 @@ export async function GET() {
   }
 
   try {
-    const pages = await scanPages(WIKI_PATH)
+    const pages = await scanPages(getWikiPath())
     return NextResponse.json(pages)
   } catch (e: unknown) {
     return NextResponse.json(
@@ -63,9 +65,9 @@ export async function DELETE(req: NextRequest) {
     if (!pagePath) {
       return NextResponse.json({ error: "无效路径" }, { status: 400 })
     }
-    const fullPath = resolve(WIKI_PATH, pagePath)
-    const base = resolve(WIKI_PATH) + "/"
-    if (!fullPath.startsWith(base) && fullPath !== resolve(WIKI_PATH)) {
+    const fullPath = resolve(getWikiPath(), pagePath)
+    const base = resolve(getWikiPath()) + "/"
+    if (!fullPath.startsWith(base) && fullPath !== resolve(getWikiPath())) {
       return NextResponse.json({ error: "无效路径" }, { status: 400 })
     }
     await unlink(fullPath)
