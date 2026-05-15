@@ -1,5 +1,5 @@
 import { Agent } from "@mastra/core/agent"
-import { DEFAULT_AGENT_MODEL } from "./model-config"
+import { FALLBACK_MODEL_ID } from "@/lib/models"
 import { datasourceQueryTool, datasourceListTool } from "../tools/datasource"
 import { datasourceBatchQueryTool } from "../tools/cross-source"
 import { createDefaultScorers } from "./eval-config"
@@ -22,7 +22,7 @@ export const chatAgent = new Agent({
     "你是 xinsight 的 AI 助手，擅长回答用户问题并提供有价值的洞察。" +
     "请使用中文回复，除非用户明确使用其他语言。" +
     "回答应简洁、准确、有帮助。",
-  model: DEFAULT_AGENT_MODEL,
+  model: FALLBACK_MODEL_ID,
   tools: { datasourceQueryTool, datasourceListTool, datasourceBatchQueryTool },
   scorers: createDefaultScorers(),
 })

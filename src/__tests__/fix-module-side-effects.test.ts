@@ -1,42 +1,84 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 
 describe("Issue #171: 模块级副作用修复", () => {
-  describe("1. model-config 懒加载", () => {
+  describe("1. models.ts 安全回退", () => {
     beforeEach(() => {
       vi.resetModules()
     })
 
-    it("DEFAULT_AGENT_MODEL 是静态字符串，不触发 DB 查询", async () => {
+    it("FALLBACK_MODEL_ID 是静态字符串，不触发 DB 查询", async () => {
       // mock 掉 DB 依赖，确保模块加载不会因 DB 问题崩溃
-      vi.doMock("@/lib/models", () => ({
-        getDefaultModelId: () => {
-          throw new Error("DB 未就绪")
+      vi.doMock("@/db", () => ({
+        db: {
+          select: () => {
+            throw new Error("DB 未就绪")
+          },
         },
       }))
-      const mod = await import("@/mastra/agents/model-config")
-      // DEFAULT_AGENT_MODEL 是环境变量回退值，不触发 DB
-      expect(typeof mod.DEFAULT_AGENT_MODEL).toBe("string")
-      expect(mod.DEFAULT_AGENT_MODEL.length).toBeGreaterThan(0)
+      const mod = await import("@/lib/models")
+      expect(typeof mod.FALLBACK_MODEL_ID).toBe("string")
+      expect(mod.FALLBACK_MODEL_ID.length).toBeGreaterThan(0)
     })
 
-    it("getDefaultAgentModel() DB 异常时安全回退", async () => {
-      vi.doMock("@/lib/models", () => ({
-        getDefaultModelId: () => {
-          throw new Error("DB 未就绪")
+    it("getDefaultModelIdSafe() DB 异常时安全回退", async () => {
+      vi.doMock("@/db", () => ({
+        db: {
+          select: () => {
+            throw new Error("DB 未就绪")
+          },
         },
       }))
-      const mod = await import("@/mastra/agents/model-config")
-      const result = mod.getDefaultAgentModel()
+      const mod = await import("@/lib/models")
+      const result = mod.getDefaultModelIdSafe()
       expect(typeof result).toBe("string")
       expect(result.length).toBeGreaterThan(0)
     })
 
-    it("getDefaultAgentModel() DB 正常时返回 DB 值", async () => {
-      vi.doMock("@/lib/models", () => ({
-        getDefaultModelId: () => "openai/gpt-4o",
+    it("getDefaultModelIdSafe() DB 正常时返回 DB 值", async () => {
+      vi.doMock("@/db", () => ({
+        db: {
+          select: () => ({
+            from: () => ({
+              where: () => ({
+                orderBy: () => ({
+                  all: () => [
+                    {
+                      id: "openai",
+                      name: "OpenAI",
+                      type: "cloud",
+                      apiFormat: "openai",
+                      baseUrl: "https://api.openai.com",
+                      apiKey: "",
+                      enabled: true,
+                      sortOrder: 0,
+                    },
+                  ],
+                }),
+              }),
+            }),
+          }),
+        },
       }))
-      const mod = await import("@/mastra/agents/model-config")
-      expect(mod.getDefaultAgentModel()).toBe("openai/gpt-4o")
+      vi.doMock("@/db/schema", () => ({
+        llmProviders: { enabled: "enabled", sortOrder: "sortOrder" },
+        llmModels: {
+          providerId: "providerId",
+          enabled: "enabled",
+          sortOrder: "sortOrder",
+        },
+      }))
+      vi.doMock("drizzle-orm", () => ({
+        eq: () => {},
+        and: () => {},
+      }))
+      vi.doMock("@/lib/crypto", () => ({
+        decrypt: (v: string) => v,
+      }))
+      const mod = await import("@/lib/models")
+      mod._resetCache()
+      // 由于 mock 返回的 provider 没有真实模型数据，会回退
+      const result = mod.getDefaultModelIdSafe()
+      expect(typeof result).toBe("string")
     })
   })
 

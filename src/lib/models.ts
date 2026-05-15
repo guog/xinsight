@@ -6,6 +6,9 @@ import { llmProviders, llmModels } from "@/db/schema"
 import { eq, and } from "drizzle-orm"
 import { decrypt } from "@/lib/crypto"
 
+/** 全局回退模型 ID — 当 DB 不可用或无模型配置时使用 */
+export const FALLBACK_MODEL_ID = process.env.DEFAULT_MODEL_ID ?? "deepseek/deepseek-v4-pro"
+
 export interface ModelInfo {
   id: string
   name: string
@@ -112,9 +115,19 @@ export function getModelById(id: string): ModelInfo | undefined {
 
 export function getDefaultModelId(): string {
   const models = getModels()
-  return models.length > 0
-    ? models[0].id
-    : (process.env.DEFAULT_MODEL_ID ?? "deepseek/deepseek-v4-pro")
+  return models.length > 0 ? models[0].id : FALLBACK_MODEL_ID
+}
+
+/**
+ * 安全获取默认模型 ID — DB 异常时回退到 FALLBACK_MODEL_ID。
+ * 适用于模块加载阶段（如 Agent 定义），避免 DB 未就绪时崩溃。
+ */
+export function getDefaultModelIdSafe(): string {
+  try {
+    return getDefaultModelId()
+  } catch {
+    return FALLBACK_MODEL_ID
+  }
 }
 
 export function getProviderForModel(modelId: string): ProviderInfo | undefined {

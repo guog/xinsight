@@ -1,5 +1,5 @@
 import { Agent } from "@mastra/core/agent"
-import { DEFAULT_AGENT_MODEL } from "./model-config"
+import { FALLBACK_MODEL_ID } from "@/lib/models"
 import { datasourceQueryTool, datasourceListTool } from "../tools/datasource"
 import { CHART_SYSTEM_PROMPT as QUALITY_CHART_PROMPT } from "@/lib/chart/prompt"
 
@@ -35,6 +35,6 @@ export const qualityAgent = new Agent({
 - 对高发缺陷类型进行排名和分析
 
 ${QUALITY_CHART_PROMPT}`,
-  model: DEFAULT_AGENT_MODEL,
+  model: FALLBACK_MODEL_ID,
   tools: { datasourceQueryTool, datasourceListTool },
 })

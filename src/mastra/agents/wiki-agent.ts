@@ -1,5 +1,5 @@
 import { Agent } from "@mastra/core/agent"
-import { DEFAULT_AGENT_MODEL } from "./model-config"
+import { FALLBACK_MODEL_ID } from "@/lib/models"
 import { wikiSearchTool, wikiReadTool, wikiListTool } from "../tools/wiki"
 
 /**
@@ -25,6 +25,6 @@ export const wikiAgent = new Agent({
 - 回答要有条理，用 markdown 格式
 - 使用中文回复
 - 引用来源时用 [[页面名]] 格式标注`,
-  model: DEFAULT_AGENT_MODEL,
+  model: FALLBACK_MODEL_ID,
   tools: { wikiSearchTool, wikiReadTool, wikiListTool },
 })

@@ -1,6 +1,6 @@
 import { Agent } from "@mastra/core/agent"
 import { CHART_SYSTEM_PROMPT as WAREHOUSE_CHART_PROMPT } from "@/lib/chart/prompt"
-import { DEFAULT_AGENT_MODEL } from "./model-config"
+import { FALLBACK_MODEL_ID } from "@/lib/models"
 import { datasourceQueryTool, datasourceListTool } from "../tools/datasource"
 
 /**
@@ -34,6 +34,6 @@ export const warehouseAgent = new Agent({
 - 当库存低于安全水位或积压严重时主动预警
 
 ${WAREHOUSE_CHART_PROMPT}`,
-  model: DEFAULT_AGENT_MODEL,
+  model: FALLBACK_MODEL_ID,
   tools: { datasourceQueryTool, datasourceListTool },
 })

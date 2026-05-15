@@ -1,5 +1,5 @@
 import { Agent } from "@mastra/core/agent"
-import { DEFAULT_AGENT_MODEL } from "./model-config"
+import { FALLBACK_MODEL_ID } from "@/lib/models"
 import { CHART_SYSTEM_PROMPT as DIRECTOR_CHART_PROMPT } from "@/lib/chart/prompt"
 import { productionAgent } from "./production-agent"
 import { qualityAgent } from "./quality-agent"
@@ -47,7 +47,7 @@ export const factoryDirectorAgent = new Agent({
 - 发现问题时给出改进建议和优先级
 
 ${DIRECTOR_CHART_PROMPT}`,
-  model: DEFAULT_AGENT_MODEL,
+  model: FALLBACK_MODEL_ID,
   agents: {
     productionAgent,
     qualityAgent,
