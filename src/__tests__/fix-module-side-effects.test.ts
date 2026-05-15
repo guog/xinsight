@@ -42,9 +42,7 @@ describe("Issue #171: 模块级副作用修复", () => {
 
   describe("2. JSON 截断不再产生无效 JSON", () => {
     it("大数组应被安全截取而非字符串截断", async () => {
-      const { fetchWithRetry } = await import(
-        "@/mastra/tools/datasource/adapters/fetch-with-retry"
-      )
+      const { fetchWithRetry } = await import("@/mastra/tools/datasource/adapters/fetch-with-retry")
       // 构造超过 1MB 的 JSON 数组响应
       const bigArray = Array.from({ length: 50000 }, (_, i) => ({
         id: i,
@@ -59,7 +57,7 @@ describe("Issue #171: 模块级副作用修复", () => {
           status: 200,
           headers: { "content-type": "application/json" },
         }),
-      )
+      ) as unknown as typeof fetch
 
       try {
         const result = await fetchWithRetry("https://example.com/api", { method: "GET" })

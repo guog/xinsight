@@ -118,11 +118,11 @@ export const wikiSearchTool = createTool({
     // 按相关度排序
     results.sort((a, b) => {
       const scoreA = queryTerms.reduce(
-        (s, t) => s + (a.snippet.toLowerCase().includes(t) ? 1 : 0),
+        (s: number, t: string) => s + (a.snippet.toLowerCase().includes(t) ? 1 : 0),
         0,
       )
       const scoreB = queryTerms.reduce(
-        (s, t) => s + (b.snippet.toLowerCase().includes(t) ? 1 : 0),
+        (s: number, t: string) => s + (b.snippet.toLowerCase().includes(t) ? 1 : 0),
         0,
       )
       return scoreB - scoreA

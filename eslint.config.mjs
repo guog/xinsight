@@ -18,10 +18,19 @@ const eslintConfig = defineConfig([
           ignoreRestSiblings: true,
         },
       ],
+      "@typescript-eslint/no-explicit-any": "warn",
     },
   },
   // Override default ignores of eslint-config-next.
-  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts", ".agents/**", "skills/**"]),
+  globalIgnores([
+    ".next/**",
+    "out/**",
+    "build/**",
+    "next-env.d.ts",
+    ".agents/**",
+    "skills/**",
+    ".mastra/**",
+  ]),
 ])
 
 export default eslintConfig
