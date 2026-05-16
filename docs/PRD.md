@@ -5,6 +5,8 @@
 > **状态:** 活跃开发中  
 > **关联文档:** [SRS.md](./SRS.md) — 软件需求规格说明书
 
+_注意：对于 #206 核心重构（自定义角色 Agent 与数据源管理），请参考 RFC：[0001-agent-datasource-refactor.md](./rfcs/0001-agent-datasource-refactor.md)_
+
 ---
 
 ## 1. 产品概述
