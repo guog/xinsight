@@ -1,6 +1,5 @@
 import { Agent } from "@mastra/core/agent"
 import { FALLBACK_MODEL_ID } from "@/lib/models"
-import { datasourceQueryTool, datasourceListTool } from "../tools/datasource"
 import { datasourceBatchQueryTool } from "../tools/cross-source"
 
 /**
@@ -16,5 +15,5 @@ export const codeAgent = new Agent({
     "请使用中文解释代码逻辑，代码本身使用标准英文。" +
     "遵循最佳实践，代码应简洁、可读、可维护。",
   model: FALLBACK_MODEL_ID,
-  tools: { datasourceQueryTool, datasourceListTool, datasourceBatchQueryTool },
+  tools: { datasourceBatchQueryTool },
 })

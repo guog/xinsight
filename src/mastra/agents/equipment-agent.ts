@@ -1,6 +1,6 @@
 import { Agent } from "@mastra/core/agent"
 import { FALLBACK_MODEL_ID } from "@/lib/models"
-import { datasourceQueryTool, datasourceListTool } from "../tools/datasource"
+
 import { CHART_SYSTEM_PROMPT as EQUIPMENT_CHART_PROMPT } from "@/lib/chart/prompt"
 
 /**
@@ -24,8 +24,8 @@ export const equipmentAgent = new Agent({
 - **基础数据**：产线/工位等参考信息
 
 工作方式：
-1. 先用 datasourceListTool 查看可用端点
-2. 根据问题选择合适的端点，用 datasourceQueryTool 查询数据
+1. 查看可用的数据源工具（格式：数据源ID--端点ID）
+2. 根据问题选择合适的工具直接调用
 3. 从设备管理角度进行专业分析
 
 回答规范：
@@ -36,5 +36,5 @@ export const equipmentAgent = new Agent({
 
 ${EQUIPMENT_CHART_PROMPT}`,
   model: FALLBACK_MODEL_ID,
-  tools: { datasourceQueryTool, datasourceListTool },
+  tools: {},
 })
