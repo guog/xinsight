@@ -15,6 +15,7 @@ import {
 } from "@/mastra/agents/supervisor-router"
 import { db } from "@/db"
 import { SqliteAgentRepository } from "@/db/repositories/agent-repository"
+import { buildDynamicTools } from "@/mastra/tools/datasource/build-dynamic-tools"
 
 // 允许流式响应最长 120 秒（Supervisor 多轮调度可能需要更长时间）
 export const maxDuration = 120
@@ -87,6 +88,15 @@ export async function POST(req: Request) {
       }
     }
 
+    // 动态工具注册：基于 Agent-Endpoint 绑定生成 per-endpoint 工具
+    let dynamicToolset: Record<string, unknown> = {}
+    const resolvedAgentId = agentId || "factoryDirectorAgent"
+    try {
+      dynamicToolset = await buildDynamicTools(resolvedAgentId)
+    } catch (e) {
+      console.warn("[chat] 动态工具注册降级:", e)
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let stream: any
     const MAX_RETRIES = 3
@@ -96,6 +106,9 @@ export async function POST(req: Request) {
           ...memoryOptions,
           ...(dynamicInstructions || contextSuffix
             ? { instructions: (dynamicInstructions || "") + contextSuffix }
+            : {}),
+          ...(Object.keys(dynamicToolset).length > 0
+            ? { toolsets: { dynamic: dynamicToolset } }
             : {}),
         })
         break
