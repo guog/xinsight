@@ -1,7 +1,6 @@
 import { Agent } from "@mastra/core/agent"
 import { CHART_SYSTEM_PROMPT as ENERGY_CHART_PROMPT } from "@/lib/chart/prompt"
 import { FALLBACK_MODEL_ID } from "@/lib/models"
-import { datasourceQueryTool, datasourceListTool } from "../tools/datasource"
 
 /**
  * 能源管理专员
@@ -22,8 +21,8 @@ export const energyAgent = new Agent({
 - **基础数据**：产线等参考信息（用于按产线分析能耗）
 
 工作方式：
-1. 先用 datasourceListTool 查看可用端点
-2. 根据问题选择合适的端点，用 datasourceQueryTool 查询数据
+1. 查看可用的数据源工具（格式：数据源ID--端点ID）
+2. 根据问题选择合适的工具直接调用
 3. 从能源管理角度进行专业分析
 
 回答规范：
@@ -34,5 +33,5 @@ export const energyAgent = new Agent({
 
 ${ENERGY_CHART_PROMPT}`,
   model: FALLBACK_MODEL_ID,
-  tools: { datasourceQueryTool, datasourceListTool },
+  tools: {},
 })

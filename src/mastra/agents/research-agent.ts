@@ -1,6 +1,5 @@
 import { Agent } from "@mastra/core/agent"
 import { FALLBACK_MODEL_ID } from "@/lib/models"
-import { datasourceQueryTool, datasourceListTool } from "../tools/datasource"
 import { datasourceBatchQueryTool } from "../tools/cross-source"
 
 /**
@@ -16,5 +15,5 @@ export const researchAgent = new Agent({
     "请使用中文回复，除非用户明确使用其他语言。" +
     "回答应有条理、引用可靠来源、提供多角度分析。",
   model: FALLBACK_MODEL_ID,
-  tools: { datasourceQueryTool, datasourceListTool, datasourceBatchQueryTool },
+  tools: { datasourceBatchQueryTool },
 })

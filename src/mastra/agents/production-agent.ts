@@ -1,6 +1,6 @@
 import { Agent } from "@mastra/core/agent"
 import { FALLBACK_MODEL_ID } from "@/lib/models"
-import { datasourceQueryTool, datasourceListTool } from "../tools/datasource"
+
 import { CHART_SYSTEM_PROMPT as PRODUCTION_CHART_PROMPT } from "@/lib/chart/prompt"
 
 /**
@@ -22,8 +22,8 @@ export const productionAgent = new Agent({
 - **追溯管理**：产品批次追溯、全链路溯源（原材料→工序→检验）
 
 工作方式：
-1. 先用 datasourceListTool 查看可用端点
-2. 根据问题选择合适的端点，用 datasourceQueryTool 查询数据
+1. 查看可用的数据源工具（格式：数据源ID--端点ID）
+2. 根据问题选择合适的工具直接调用
 3. 对数据进行分析、汇总，给出专业的生产管理视角
 
 回答规范：
@@ -34,5 +34,5 @@ export const productionAgent = new Agent({
 
 ${PRODUCTION_CHART_PROMPT}`,
   model: FALLBACK_MODEL_ID,
-  tools: { datasourceQueryTool, datasourceListTool },
+  tools: {},
 })

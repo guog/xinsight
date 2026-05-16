@@ -60,7 +60,7 @@ export async function POST(req: Request) {
       // 降级处理：DB 查询失败时不影响对话
     }
     const contextSuffix = datasourceContext
-      ? `\n\n## 当前可用数据源\n以下是你可以查询的数据源和接口，直接使用 datasource-query 调用，无需先调用 datasource-list：\n${datasourceContext}`
+      ? `\n\n## 当前可用数据源\n以下数据源已注册为独立工具，直接按工具名调用即可（格式：数据源ID--端点ID）：\n${datasourceContext}`
       : ""
 
     // Supervisor 动态路由：加载 DB 中启用的 Agent 列表，生成路由提示
