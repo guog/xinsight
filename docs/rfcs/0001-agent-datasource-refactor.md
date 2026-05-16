@@ -105,6 +105,7 @@
 
 - **Architecture:** Supervisor 路由分发模式 (基于 Mastra 动态工具和 Supervisor Agent 模式重构)。
 - **Data Source:** 使用 OpenAPI 解析，需要确保能处理并映射到 Mastra 工具的入参 (Schema)。
+- **Dynamic Tool Registration:** 需使用 `activeTools` 机制来在 chat route 过滤特定的数据源 endpoints，避免给大模型注入过多无关工具导致调用不稳定（特别是对于 DeepSeek 模型超过 20+ 工具时的限制）。
 - **Knowledge Base:** 继续基于 Karpathy 的 LLM Wiki 原理，通过结构化 Markdown 和关键词搜索实现。
 
 ---
