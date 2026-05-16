@@ -97,6 +97,26 @@ describe("buildDynamicTools", () => {
     expect(Object.keys(tools)).toEqual(["ds-1--ep-1"])
   })
 
+  it("无绑定记录时允许所有端点", async () => {
+    const ep1 = makeEndpoint({ id: "ep-1" })
+    const ep2 = makeEndpoint({ id: "ep-2" })
+    mockFindByAgentId.mockResolvedValue([makeDatasource({ endpoints: [ep1, ep2] })])
+    mockGetAgentEndpointBindings.mockResolvedValue([])
+    const buildDynamicTools = await importBuild()
+    const tools = await buildDynamicTools("agent-1")
+    expect(Object.keys(tools)).toHaveLength(2)
+  })
+
+  it("endpointIds 为空数组时禁止所有端点", async () => {
+    const ep1 = makeEndpoint({ id: "ep-1" })
+    const ep2 = makeEndpoint({ id: "ep-2" })
+    mockFindByAgentId.mockResolvedValue([makeDatasource({ endpoints: [ep1, ep2] })])
+    mockGetAgentEndpointBindings.mockResolvedValue([{ datasourceId: "ds-1", endpointIds: [] }])
+    const buildDynamicTools = await importBuild()
+    const tools = await buildDynamicTools("agent-1")
+    expect(Object.keys(tools)).toEqual([])
+  })
+
   it("上限 20 个工具", async () => {
     const endpoints = Array.from({ length: 25 }, (_, i) =>
       makeEndpoint({ id: `ep-${i}`, name: `端点${i}` }),
