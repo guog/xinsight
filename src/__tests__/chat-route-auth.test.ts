@@ -29,6 +29,25 @@ vi.mock("@/lib/schema/build-context", () => ({
   buildDatasourceContext: vi.fn().mockResolvedValue(""),
 }))
 
+// Mock db (uses bun:sqlite, unavailable in Node/Vitest)
+vi.mock("@/db", () => ({
+  db: {},
+}))
+
+// Mock agent-repository
+vi.mock("@/db/repositories/agent-repository", () => ({
+  SqliteAgentRepository: vi.fn().mockImplementation(() => ({
+    findEnabled: vi.fn().mockResolvedValue([]),
+  })),
+}))
+
+// Mock supervisor-router
+vi.mock("@/mastra/agents/supervisor-router", () => ({
+  classifyIntent: vi.fn().mockReturnValue([{ id: "chat-agent", name: "通用对话" }]),
+  buildWorkerList: vi.fn().mockReturnValue([]),
+  buildSupervisorInstructions: vi.fn().mockReturnValue(""),
+}))
+
 // Mock ai SDK
 vi.mock("ai", () => ({
   createUIMessageStream: vi.fn(() => new ReadableStream()),
