@@ -12,6 +12,14 @@ export interface ParsedOpenApiResult {
   authType?: "none" | "bearer" | "basic" | "apikey"
 }
 
+/** 解析选项 */
+export interface ParseOpenApiOptions {
+  /** 仅导入 GET（Read）操作，Phase 1 推荐 */
+  readOnly?: boolean
+  /** 允许的 HTTP 方法列表，优先级高于 readOnly */
+  methods?: string[]
+}
+
 const HTTP_METHODS = ["get", "post", "put", "patch", "delete"] as const
 
 /**
@@ -19,6 +27,7 @@ const HTTP_METHODS = ["get", "post", "put", "patch", "delete"] as const
  */
 export async function parseOpenApiSpec(
   input: string | Record<string, unknown>,
+  options?: ParseOpenApiOptions,
 ): Promise<ParsedOpenApiResult> {
   const spec = await resolveInput(input)
 
@@ -35,7 +44,7 @@ export async function parseOpenApiSpec(
   const baseUrl =
     ((spec.servers as Array<Record<string, unknown>>)?.[0]?.url as string) || undefined
 
-  const endpoints = extractEndpoints(spec)
+  const endpoints = extractEndpoints(spec, options)
   const authType = detectAuthType(spec)
 
   return { baseUrl, endpoints, info, authType }
@@ -151,14 +160,99 @@ function mapOpenApiType(type: string | undefined): StructuredParam["type"] {
   }
 }
 
-function extractEndpoints(spec: Record<string, unknown>): RestEndpoint[] {
+/**
+ * 解析 $ref 引用，支持 #/components/schemas/... 等本地引用
+ * 不支持外部文件引用（$ref 指向其他文件）
+ */
+function resolveRef(spec: Record<string, unknown>, obj: unknown, depth = 0): unknown {
+  if (!obj || typeof obj !== "object" || depth > 10) return obj
+
+  const record = obj as Record<string, unknown>
+  if (typeof record.$ref === "string") {
+    const refPath = record.$ref
+    if (!refPath.startsWith("#/")) return obj // 不支持外部引用
+
+    const parts = refPath.slice(2).split("/")
+    let current: unknown = spec
+    for (const part of parts) {
+      if (!current || typeof current !== "object") return obj
+      current = (current as Record<string, unknown>)[part]
+    }
+    // 递归解析，防止嵌套 $ref
+    return resolveRef(spec, current, depth + 1)
+  }
+
+  return obj
+}
+
+/**
+ * 深度解析对象中所有 $ref 引用
+ */
+function deepResolveRefs(spec: Record<string, unknown>, obj: unknown, depth = 0): unknown {
+  if (!obj || typeof obj !== "object" || depth > 8) return obj
+
+  const record = obj as Record<string, unknown>
+  // 先解析顶层 $ref
+  const resolved = resolveRef(spec, record, 0)
+  if (resolved !== record) {
+    return deepResolveRefs(spec, resolved, depth + 1)
+  }
+
+  if (Array.isArray(record)) {
+    return record.map((item) => deepResolveRefs(spec, item, depth + 1))
+  }
+
+  const result: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(record)) {
+    result[key] = deepResolveRefs(spec, value, depth + 1)
+  }
+  return result
+}
+
+/**
+ * 合并 path 级别和 operation 级别的 parameters（operation 级别优先）
+ */
+function mergeParameters(
+  pathParams?: Array<Record<string, unknown>> | undefined,
+  operationParams?: Array<Record<string, unknown>> | undefined,
+): Array<Record<string, unknown>> {
+  if (!pathParams) return operationParams ?? []
+  if (!operationParams) return pathParams
+
+  // operation 级别参数覆盖 path 级别同名参数
+  const opParamKeys = new Set(operationParams.map((p) => `${p.in}:${p.name}`))
+  const merged = [...operationParams]
+  for (const p of pathParams) {
+    if (!opParamKeys.has(`${p.in}:${p.name}`)) {
+      merged.push(p)
+    }
+  }
+  return merged
+}
+
+function extractEndpoints(
+  spec: Record<string, unknown>,
+  options?: ParseOpenApiOptions,
+): RestEndpoint[] {
   const paths = spec.paths as Record<string, Record<string, unknown>> | undefined
   if (!paths) return []
+
+  // 确定允许的方法
+  const allowedMethods = options?.methods
+    ? options.methods.map((m) => m.toLowerCase())
+    : options?.readOnly
+      ? ["get"]
+      : HTTP_METHODS.slice()
 
   const endpoints: RestEndpoint[] = []
 
   for (const [path, pathItem] of Object.entries(paths)) {
+    // 合并 path 级别的 parameters
+    const pathParams = pathItem.parameters as Array<Record<string, unknown>> | undefined
+
     for (const method of HTTP_METHODS) {
+      if (!allowedMethods.includes(method)) continue
+
       const operation = pathItem[method] as Record<string, unknown> | undefined
       if (!operation) continue
 
@@ -169,8 +263,10 @@ function extractEndpoints(spec: Record<string, unknown>): RestEndpoint[] {
       const id = operationId || `${method}-${path.replace(/\//g, "-")}`
       const name = summary || operationId || `${method.toUpperCase()} ${path}`
 
-      // 提取 query 参数
-      const parameters = operation.parameters as Array<Record<string, unknown>> | undefined
+      // 提取 query 参数（合并 path 级别和 operation 级别参数）
+      const operationParams = operation.parameters as Array<Record<string, unknown>> | undefined
+      const mergedParams = mergeParameters(pathParams, operationParams)
+      const parameters = mergedParams.map((p) => resolveRef(spec, p) as Record<string, unknown>)
       const queryParams: Record<string, string> = {}
       if (parameters) {
         for (const param of parameters) {
@@ -181,8 +277,10 @@ function extractEndpoints(spec: Record<string, unknown>): RestEndpoint[] {
         }
       }
 
-      // 提取 requestBody
-      const requestBody = operation.requestBody as Record<string, unknown> | undefined
+      // 提取 requestBody（解析 $ref）
+      const requestBody = deepResolveRefs(spec, operation.requestBody) as
+        | Record<string, unknown>
+        | undefined
       let requestBodyStr: string | undefined
       if (requestBody) {
         const content = requestBody.content as Record<string, Record<string, unknown>> | undefined
@@ -198,9 +296,11 @@ function extractEndpoints(spec: Record<string, unknown>): RestEndpoint[] {
         paramSchema = JSON.stringify(parameters)
       }
 
-      // 提取 responseExample
+      // 提取 responseExample（解析 $ref）
       let responseExample: string | undefined
-      const responses = operation.responses as Record<string, Record<string, unknown>> | undefined
+      const responses = deepResolveRefs(spec, operation.responses) as
+        | Record<string, Record<string, unknown>>
+        | undefined
       const okResponse = responses?.["200"] || responses?.["201"]
       if (okResponse) {
         const content = okResponse.content as Record<string, Record<string, unknown>> | undefined

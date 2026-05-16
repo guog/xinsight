@@ -12,7 +12,11 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { url, content } = body as { url?: string; content?: string }
+    const { url, content, readOnly } = body as {
+      url?: string
+      content?: string
+      readOnly?: boolean
+    }
 
     if (!url && !content) {
       return NextResponse.json({ error: "需要提供 url 或 content" }, { status: 400 })
@@ -27,7 +31,7 @@ export async function POST(request: Request) {
     }
 
     const input = url || content!
-    const result = await parseOpenApiSpec(input)
+    const result = await parseOpenApiSpec(input, { readOnly })
 
     return NextResponse.json(result)
   } catch (err) {
