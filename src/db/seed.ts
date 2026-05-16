@@ -1,5 +1,5 @@
 import { db } from "@/db"
-import { users } from "@/db/schema"
+import { users, customAgents } from "@/db/schema"
 import { eq } from "drizzle-orm"
 
 /** 预置用户列表 */
@@ -31,6 +31,75 @@ export async function seedUsers() {
         displayName,
         passwordHash,
         role,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .run()
+  }
+}
+
+/** 内置 Agent 列表 */
+const BUILTIN_AGENTS = [
+  { id: "chatAgent", name: "通用对话", description: "通用问答与闲聊", icon: "💬" },
+  {
+    id: "factoryDirectorAgent",
+    name: "厂长（Supervisor）",
+    description: "统筹协调所有子 Agent，意图路由与指代消解",
+    icon: "🏭",
+  },
+  {
+    id: "productionAgent",
+    name: "生产管理",
+    description: "生产订单、排程、工艺路线、产品溯源",
+    icon: "⚙️",
+  },
+  {
+    id: "qualityAgent",
+    name: "质量管理",
+    description: "质量检验、缺陷分析、SPC 统计过程控制",
+    icon: "✅",
+  },
+  {
+    id: "equipmentAgent",
+    name: "设备管理",
+    description: "设备状态、OEE、MTBF/MTTR、维保记录",
+    icon: "🔧",
+  },
+  {
+    id: "warehouseAgent",
+    name: "仓储物流",
+    description: "库存管理、出入库记录、库位管理",
+    icon: "📦",
+  },
+  {
+    id: "energyAgent",
+    name: "能源管理",
+    description: "能耗监测（电/水/气/汽）、能源告警",
+    icon: "⚡",
+  },
+  { id: "wikiAgent", name: "知识库", description: "搜索和检索知识库文档", icon: "📚" },
+  { id: "autoAgent", name: "自动模式", description: "自动切换对话/研究/代码模式", icon: "🤖" },
+  { id: "researchAgent", name: "深度研究", description: "深度分析与结构化报告生成", icon: "🔬" },
+] as const
+
+/**
+ * 预置内置 Agent 记录。
+ * 幂等操作——已存在的 Agent 不会重复创建。
+ */
+export async function seedBuiltinAgents() {
+  const now = new Date()
+  for (const agent of BUILTIN_AGENTS) {
+    const existing = db.select().from(customAgents).where(eq(customAgents.id, agent.id)).get()
+    if (existing) continue
+
+    db.insert(customAgents)
+      .values({
+        id: agent.id,
+        name: agent.name,
+        description: agent.description,
+        icon: agent.icon,
+        isBuiltin: true,
+        enabled: true,
         createdAt: now,
         updatedAt: now,
       })

@@ -39,6 +39,20 @@ export const datasources = sqliteTable("datasources", {
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
 })
 
+/** 自定义 Agent 配置表 */
+export const customAgents = sqliteTable("custom_agents", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  systemPrompt: text("system_prompt").notNull().default(""),
+  modelId: text("model_id"), // 格式: "providerId/modelSlug"，null 时使用系统默认
+  icon: text("icon"), // emoji 或图标名称
+  isBuiltin: integer("is_builtin", { mode: "boolean" }).notNull().default(false),
+  enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+})
+
 /** Agent 与数据源多对多关联 */
 export const agentDatasources = sqliteTable(
   "agent_datasources",
@@ -77,6 +91,28 @@ export const messages = sqliteTable(
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   },
   (table) => [index("idx_messages_chat_id").on(table.chatId)],
+)
+
+/** 消息反馈（点赞/踩） */
+export const messageFeedbacks = sqliteTable(
+  "message_feedbacks",
+  {
+    id: text("id").primaryKey(),
+    messageId: text("message_id").notNull(),
+    chatId: text("chat_id")
+      .notNull()
+      .references(() => chats.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    type: text("type").notNull(), // "up" | "down"
+    comment: text("comment"),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [
+    index("idx_message_feedbacks_chat").on(table.chatId),
+    index("idx_message_feedbacks_message").on(table.messageId),
+  ],
 )
 
 /** 知识库反馈 */
