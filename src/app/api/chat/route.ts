@@ -8,6 +8,13 @@ import { buildDatasourceContext } from "@/lib/schema/build-context"
 import { requireAuth, handleAuthError } from "@/lib/auth"
 import { isRetryableError } from "@/lib/retry-utils"
 import { buildAssistantParts } from "@/lib/chat-utils"
+import {
+  classifyIntent,
+  buildWorkerList,
+  buildSupervisorInstructions,
+} from "@/mastra/agents/supervisor-router"
+import { db } from "@/db"
+import { SqliteAgentRepository } from "@/db/repositories/agent-repository"
 
 // 允许流式响应最长 120 秒（Supervisor 多轮调度可能需要更长时间）
 export const maxDuration = 120
@@ -55,6 +62,31 @@ export async function POST(req: Request) {
       ? `\n\n## 当前可用数据源\n以下是你可以查询的数据源和接口，直接使用 datasource-query 调用，无需先调用 datasource-list：\n${datasourceContext}`
       : ""
 
+    // Supervisor 动态路由：加载 DB 中启用的 Agent 列表，生成路由提示
+    let dynamicInstructions = ""
+    const isSupervisor =
+      !agentId || agentId === "factoryDirectorAgent" || agentId === "factory-director"
+    if (isSupervisor) {
+      try {
+        const agentRepo = new SqliteAgentRepository(db)
+        const enabledAgents = await agentRepo.findEnabled()
+        const workers = buildWorkerList(enabledAgents)
+        const lastUserMessage = chatMessages[chatMessages.length - 1]
+        const userQuery =
+          lastUserMessage?.parts
+            ?.filter((p): p is { type: "text"; text: string } => p.type === "text")
+            .map((p) => p.text)
+            .join(" ") ?? ""
+        const routed = classifyIntent(userQuery, workers)
+        const routingHint = routed.some((r) => r.id === "chat-agent")
+          ? undefined
+          : routed.map((r) => `- **${r.name}**（${r.id}）`).join("\n")
+        dynamicInstructions = buildSupervisorInstructions(workers, routingHint)
+      } catch (e) {
+        console.warn("[chat] 动态路由降级:", e)
+      }
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let stream: any
     const MAX_RETRIES = 3
@@ -62,7 +94,9 @@ export async function POST(req: Request) {
       try {
         stream = await agent.stream(chatMessages, {
           ...memoryOptions,
-          ...(contextSuffix ? { instructions: contextSuffix } : {}),
+          ...(dynamicInstructions || contextSuffix
+            ? { instructions: (dynamicInstructions || "") + contextSuffix }
+            : {}),
         })
         break
       } catch (e) {
