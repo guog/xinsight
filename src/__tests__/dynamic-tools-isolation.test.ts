@@ -111,4 +111,17 @@ describe("动态工具权限隔离", () => {
     const tools = await build("unbound-agent")
     expect(tools).toEqual({})
   })
+
+  it("endpointIds 为空数组时禁止所有端点", async () => {
+    mockFindByAgentId.mockResolvedValue([
+      makeDatasource({
+        id: "ds-1",
+        endpoints: [makeEndpoint("ep-1", "端点1"), makeEndpoint("ep-2", "端点2")],
+      }),
+    ])
+    mockGetAgentEndpointBindings.mockResolvedValue([{ datasourceId: "ds-1", endpointIds: [] }])
+
+    const tools = await build("restricted-agent")
+    expect(tools).toEqual({})
+  })
 })

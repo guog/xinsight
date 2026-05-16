@@ -47,7 +47,8 @@ export async function buildDynamicTools(agentId: string) {
     const allowedEps = bindingMap.get(ds.id)
     for (const ep of ds.endpoints ?? []) {
       if (count >= MAX_TOOLS) break
-      if (allowedEps && !allowedEps.includes(ep.id)) continue
+      // null = 全部允许，[] = 全部禁止，[...ids] = 仅允许指定端点
+      if (allowedEps !== undefined && allowedEps !== null && !allowedEps.includes(ep.id)) continue
 
       const toolId = `${ds.id}--${ep.id}`
       const sParams = (ep as Record<string, unknown>).structuredParams as
@@ -67,6 +68,14 @@ export async function buildDynamicTools(agentId: string) {
           success: z.boolean(),
           data: z.unknown().optional(),
           error: z.string().optional(),
+          metadata: z
+            .object({
+              duration: z.number().optional(),
+              datasourceId: z.string().optional(),
+              datasourceName: z.string().optional(),
+              paramHints: z.string().optional(),
+            })
+            .optional(),
         }),
         execute: async (input) => {
           const adapter = getAdapter(ds.type)
