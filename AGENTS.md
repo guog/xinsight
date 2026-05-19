@@ -125,3 +125,14 @@
 | `webapp-testing`              | Web 应用测试（Playwright 交互、截图、日志）               | 测试前端功能        |
 
 `skills/` 目录是指向 `.agents/skills/` 的符号链接，请勿直接编辑 skill 文件。
+
+## Issue 完成与 PR 流程
+
+完成一个 Issue 时，必须按以下顺序执行：
+
+1. **自检验收项**：对照 Issue 中列出的验收标准逐条检查，确认全部满足
+2. **更新验收项状态**：在 Issue 中勾选已完成的验收项（checkbox）
+3. **发起 PR**：创建 Pull Request，关联 Issue
+4. **立即执行测试计划**：PR 创建后，立刻运行 PR body 中列出的测试计划项（手动验证、自动测试等）
+5. **更新测试计划状态**：测试完成后，即时编辑 PR body 勾选已通过的测试项
+6. **提交审查评论**：每次审查完 PR 后，将发现的问题以评论形式提交到 PR 中（使用 `gh pr comment` 或 `gh pr review`），确保审查结论留痕可追溯

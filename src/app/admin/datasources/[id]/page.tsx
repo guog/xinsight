@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useDeferredValue } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
 import { Loader2, Pencil, Zap, ArrowLeft, Globe, Key, Server, Search } from "lucide-react"
@@ -37,6 +37,7 @@ export default function DatasourceDetailPage() {
   const [loading, setLoading] = useState(true)
   const [testStatus, setTestStatus] = useState<"idle" | "testing" | "ok" | "failed">("idle")
   const [endpointSearch, setEndpointSearch] = useState("")
+  const deferredEndpointSearch = useDeferredValue(endpointSearch)
   const [testDetails, setTestDetails] = useState<{
     statusCode?: number
     latency?: number
@@ -230,7 +231,9 @@ export default function DatasourceDetailPage() {
       <section className="bg-card border border-border rounded-xl p-4 space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-medium flex items-center gap-2">
-            <Server className="size-4" /> 接口定义 ({ds.endpoints.length})
+            <Server className="size-4" /> 接口定义 (
+            {filterEndpoints(ds.endpoints, deferredEndpointSearch).length}
+            {deferredEndpointSearch && `/${ds.endpoints.length}`})
           </h3>
           {ds.endpoints.length > 0 && (
             <div className="relative">
@@ -249,7 +252,11 @@ export default function DatasourceDetailPage() {
           <p className="text-sm text-muted-foreground">未定义接口</p>
         ) : (
           <div className="space-y-3">
-            {filterEndpoints(ds.endpoints, endpointSearch).map((ep, i) => (
+            {filterEndpoints(ds.endpoints, deferredEndpointSearch).length === 0 &&
+              deferredEndpointSearch && (
+                <p className="text-sm text-muted-foreground py-2">无匹配接口</p>
+              )}
+            {filterEndpoints(ds.endpoints, deferredEndpointSearch).map((ep, i) => (
               <div key={ep.id || i} className="border border-border rounded-lg p-3 space-y-2">
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-sm">{ep.name || ep.id || `接口 ${i + 1}`}</span>

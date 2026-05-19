@@ -59,3 +59,29 @@ describe("filterEndpoints", () => {
     expect(filterEndpoints(endpoints, "不存在的内容")).toEqual([])
   })
 })
+
+describe("filterEndpoints — undefined fields", () => {
+  const sparse = [
+    { id: "a", name: "设备查询" },
+    { id: "b", path: "/api/items", method: "POST" },
+    { id: "c" },
+  ]
+
+  it("匹配 name 时忽略缺失的 path/method/description", () => {
+    expect(filterEndpoints(sparse, "设备")).toHaveLength(1)
+    expect(filterEndpoints(sparse, "设备")[0].id).toBe("a")
+  })
+
+  it("匹配 path 时忽略缺失的 name/description", () => {
+    expect(filterEndpoints(sparse, "items")).toHaveLength(1)
+    expect(filterEndpoints(sparse, "items")[0].id).toBe("b")
+  })
+
+  it("全部字段缺失时不报错且不匹配", () => {
+    expect(filterEndpoints(sparse, "anything")).toHaveLength(0)
+  })
+
+  it("空搜索返回全部（含缺失字段的项）", () => {
+    expect(filterEndpoints(sparse, "")).toHaveLength(3)
+  })
+})

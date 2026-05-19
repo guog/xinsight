@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useDeferredValue } from "react"
+import { Search } from "lucide-react"
 import { filterEndpoints } from "@/lib/endpoint-filter"
 import type { AdminAgent } from "@/hooks/use-admin-agents"
 
@@ -55,7 +56,8 @@ export function AgentForm({ initialData, initialBindings, onSubmit, isEdit }: Ag
   // Datasource binding state
   const [datasources, setDatasources] = useState<Datasource[]>([])
   const [bindings, setBindings] = useState<DatasourceBinding[]>(initialBindings ?? [])
-  const [endpointSearch, setEndpointSearch] = useState("")
+  const [endpointSearchMap, setEndpointSearchMap] = useState<Record<string, string>>({})
+  const deferredSearchMap = useDeferredValue(endpointSearchMap)
 
   useEffect(() => {
     fetch("/api/admin/models")
@@ -322,20 +324,19 @@ export function AgentForm({ initialData, initialBindings, onSubmit, isEdit }: Ag
       {/* 数据源绑定 */}
       {datasources.length > 0 && (
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-medium">数据源绑定</label>
-            <input
-              type="text"
-              value={endpointSearch}
-              onChange={(e) => setEndpointSearch(e.target.value)}
-              placeholder="搜索接口..."
-              className="border-input bg-background rounded-md border px-2.5 py-1 text-xs w-44 focus:outline-none focus:ring-1 focus:ring-ring"
-            />
-          </div>
+          <label className="text-sm font-medium">数据源绑定</label>
           <div className="border-input rounded-md border p-3 space-y-3">
             {datasources.map((ds) => {
               const endpoints = parseEndpoints(ds.endpoints)
               const checked = isDatasourceChecked(ds.id)
+              const dsSearch = deferredSearchMap[ds.id] ?? ""
+              const filtered = filterEndpoints(endpoints, dsSearch)
+              const checkedEpIds = getBinding(ds.id)?.endpointIds ?? []
+              const checkedButHidden = dsSearch
+                ? endpoints.filter(
+                    (ep) => checkedEpIds.includes(ep.id) && !filtered.some((f) => f.id === ep.id),
+                  )
+                : []
               return (
                 <div key={ds.id} className="space-y-2">
                   <div className="flex items-center gap-2">
@@ -353,33 +354,67 @@ export function AgentForm({ initialData, initialBindings, onSubmit, isEdit }: Ag
                   </div>
                   {checked && endpoints.length > 0 && (
                     <div className="ml-6 space-y-1.5">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          id={`ds-${ds.id}-all`}
-                          checked={isAllEndpoints(ds.id)}
-                          onChange={() => toggleAllEndpoints(ds.id)}
-                          className="h-3.5 w-3.5 rounded border"
-                        />
-                        <label htmlFor={`ds-${ds.id}-all`} className="text-xs font-medium">
-                          全部 Endpoints
-                        </label>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id={`ds-${ds.id}-all`}
+                            checked={isAllEndpoints(ds.id)}
+                            onChange={() => toggleAllEndpoints(ds.id)}
+                            className="h-3.5 w-3.5 rounded border"
+                          />
+                          <label htmlFor={`ds-${ds.id}-all`} className="text-xs font-medium">
+                            全部 Endpoints
+                          </label>
+                        </div>
+                        <div className="relative">
+                          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+                          <input
+                            type="text"
+                            value={endpointSearchMap[ds.id] ?? ""}
+                            onChange={(e) =>
+                              setEndpointSearchMap((m) => ({ ...m, [ds.id]: e.target.value }))
+                            }
+                            placeholder="搜索接口..."
+                            className="pl-8 pr-3 py-1.5 text-xs border border-border rounded-md bg-background w-48 focus:outline-none focus:ring-1 focus:ring-ring"
+                          />
+                        </div>
                       </div>
-                      {!isAllEndpoints(ds.id) &&
-                        filterEndpoints(endpoints, endpointSearch).map((ep) => (
-                          <div key={ep.id} className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              id={`ep-${ds.id}-${ep.id}`}
-                              checked={isEndpointChecked(ds.id, ep.id)}
-                              onChange={() => toggleEndpoint(ds.id, ep.id)}
-                              className="h-3.5 w-3.5 rounded border"
-                            />
-                            <label htmlFor={`ep-${ds.id}-${ep.id}`} className="text-xs">
-                              {ep.name || ep.path || ep.id}
-                            </label>
-                          </div>
-                        ))}
+                      {!isAllEndpoints(ds.id) && (
+                        <>
+                          {filtered.map((ep) => (
+                            <div key={ep.id} className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                id={`ep-${ds.id}-${ep.id}`}
+                                checked={isEndpointChecked(ds.id, ep.id)}
+                                onChange={() => toggleEndpoint(ds.id, ep.id)}
+                                className="h-3.5 w-3.5 rounded border"
+                              />
+                              <label htmlFor={`ep-${ds.id}-${ep.id}`} className="text-xs">
+                                {ep.name || ep.path || ep.id}
+                              </label>
+                            </div>
+                          ))}
+                          {checkedButHidden.map((ep) => (
+                            <div key={ep.id} className="flex items-center gap-2 opacity-60">
+                              <input
+                                type="checkbox"
+                                id={`ep-${ds.id}-${ep.id}`}
+                                checked
+                                onChange={() => toggleEndpoint(ds.id, ep.id)}
+                                className="h-3.5 w-3.5 rounded border"
+                              />
+                              <label htmlFor={`ep-${ds.id}-${ep.id}`} className="text-xs">
+                                {ep.name || ep.path || ep.id}
+                              </label>
+                            </div>
+                          ))}
+                          {filtered.length === 0 && checkedButHidden.length === 0 && dsSearch && (
+                            <p className="text-xs text-muted-foreground py-1">无匹配接口</p>
+                          )}
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
