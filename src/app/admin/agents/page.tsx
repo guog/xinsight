@@ -1,131 +1,221 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Bot, Database, Loader2 } from "lucide-react"
+import { useState, useMemo } from "react"
+import Link from "next/link"
+import { Plus, Pencil, Trash2, Search, Shield } from "lucide-react"
+import { toast } from "sonner"
+import { useAdminAgents } from "@/hooks/use-admin-agents"
+import { ListSkeleton } from "@/components/skeleton"
 
-interface Agent {
-  id: string
-  name: string
-}
+type TypeFilter = "all" | "builtin" | "custom"
 
-interface Datasource {
-  id: string
-  name: string
-  type: string
-  enabled: boolean
-}
-
-interface AgentDetail extends Agent {
-  datasources: Datasource[]
-}
+const typeFilters: { value: TypeFilter; label: string }[] = [
+  { value: "all", label: "全部" },
+  { value: "builtin", label: "内置" },
+  { value: "custom", label: "自定义" },
+]
 
 export default function AgentsPage() {
-  const [agents, setAgents] = useState<AgentDetail[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
+  const { agents, loading, error, refresh, remove, toggleEnabled } = useAdminAgents()
+  const [search, setSearch] = useState("")
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all")
 
-  useEffect(() => {
-    async function load() {
-      try {
-        // 加载 agents
-        const agentsRes = await fetch("/api/agents")
-        if (!agentsRes.ok) throw new Error("加载 Agent 列表失败")
-        const agentList: Agent[] = await agentsRes.json()
-
-        // 加载数据源列表
-        const dsRes = await fetch("/api/datasources")
-        const dsList: Datasource[] = dsRes.ok ? await dsRes.json() : []
-
-        // 加载每个 agent 绑定的数据源
-        const details: AgentDetail[] = await Promise.all(
-          agentList.map(async (agent) => {
-            try {
-              // 尝试从数据源反查绑定关系
-              const bindingsRes = await fetch(`/api/agents/${agent.id}/datasources`)
-              const bindings: { datasourceId: string }[] = bindingsRes.ok
-                ? await bindingsRes.json()
-                : []
-              const boundDs = bindings
-                .map((b) => dsList.find((d) => d.id === b.datasourceId))
-                .filter(Boolean) as Datasource[]
-              return { ...agent, datasources: boundDs }
-            } catch {
-              return { ...agent, datasources: [] }
-            }
-          }),
+  const filtered = useMemo(() => {
+    return agents.filter((agent) => {
+      // type filter
+      if (typeFilter === "builtin" && !agent.isBuiltin) return false
+      if (typeFilter === "custom" && agent.isBuiltin) return false
+      // search filter
+      if (search) {
+        const q = search.toLowerCase()
+        return (
+          agent.name.toLowerCase().includes(q) ||
+          agent.id.toLowerCase().includes(q) ||
+          (agent.description?.toLowerCase().includes(q) ?? false)
         )
-
-        setAgents(details)
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "加载失败")
-      } finally {
-        setLoading(false)
       }
+      return true
+    })
+  }, [agents, typeFilter, search])
+
+  const handleDelete = async (id: string) => {
+    try {
+      await remove(id)
+      toast.success("Agent 已删除")
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "删除失败")
+    } finally {
+      setDeleteConfirm(null)
     }
-    load()
-  }, [])
+  }
+
+  const handleToggle = async (id: string, enabled: boolean) => {
+    try {
+      await toggleEnabled(id, enabled)
+      toast.success(enabled ? "已启用" : "已禁用")
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "更新失败")
+    }
+  }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
-      </div>
-    )
+    return <ListSkeleton count={6} />
   }
 
   if (error) {
     return (
-      <div className="text-center py-20">
+      <div className="text-center py-20 space-y-4">
         <p className="text-sm text-destructive">{error}</p>
+        <button onClick={refresh} className="text-sm text-primary hover:underline">
+          重试
+        </button>
       </div>
     )
   }
 
   return (
     <div className="animate-in fade-in duration-300 space-y-4">
-      <h2 className="text-lg font-medium">Agent 列表</h2>
-      <p className="text-sm text-muted-foreground">
-        以下是 Mastra 中注册的所有 Agent，及其绑定的数据源。
-      </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-medium">Agent 管理</h2>
+          <p className="text-sm text-muted-foreground">
+            管理内置和自定义 Agent，启用或禁用、编辑配置。
+          </p>
+        </div>
+        <Link
+          href="/admin/agents/new"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+        >
+          <Plus className="size-4" />
+          新建 Agent
+        </Link>
+      </div>
 
-      {agents.length === 0 ? (
-        <div className="text-center py-20 text-sm text-muted-foreground">暂无 Agent</div>
+      {/* 搜索和筛选 */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="搜索 Agent 名称、ID 或描述..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full rounded-lg border border-border bg-background pl-9 pr-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+        <div className="flex gap-1 rounded-lg border border-border p-1">
+          {typeFilters.map((f) => (
+            <button
+              key={f.value}
+              onClick={() => setTypeFilter(f.value)}
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                typeFilter === f.value
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Agent 卡片网格 */}
+      {filtered.length === 0 ? (
+        <div className="text-center py-20 text-sm text-muted-foreground">暂无匹配的 Agent</div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {agents.map((agent) => (
+          {filtered.map((agent) => (
             <div
               key={agent.id}
               className="bg-card border border-border rounded-xl p-4 space-y-3 transition-shadow duration-200 hover:shadow-md"
             >
-              <div className="flex items-center gap-2">
-                <Bot className="size-5 text-primary" />
-                <div>
-                  <div className="font-medium text-sm">{agent.name}</div>
-                  <div className="text-xs text-muted-foreground">{agent.id}</div>
+              {/* 头部：图标、名称、ID、内置标记 */}
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">{agent.icon || "🤖"}</span>
+                  <div>
+                    <div className="font-medium text-sm">{agent.name}</div>
+                    <div className="text-xs text-muted-foreground">{agent.id}</div>
+                  </div>
                 </div>
+                {agent.isBuiltin && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-xs text-accent-foreground">
+                    <Shield className="size-3" />
+                    内置
+                  </span>
+                )}
               </div>
 
-              <div className="space-y-1">
-                <div className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                  <Database className="size-3" /> 绑定数据源
-                </div>
-                {agent.datasources.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">未绑定数据源</p>
+              {/* 启用开关 */}
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">
+                  {agent.enabled ? "已启用" : "已禁用"}
+                </span>
+                <button
+                  onClick={() => handleToggle(agent.id, !agent.enabled)}
+                  disabled={agent.isBuiltin}
+                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 ${
+                    agent.enabled ? "bg-primary" : "bg-muted"
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block size-4 transform rounded-full bg-background shadow-lg ring-0 transition-transform ${
+                      agent.enabled ? "translate-x-4" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* 描述 */}
+              {agent.description && (
+                <p className="text-xs text-muted-foreground line-clamp-2">{agent.description}</p>
+              )}
+
+              {/* 操作按钮 */}
+              <div className="flex items-center gap-2 pt-1 border-t border-border">
+                {agent.isBuiltin ? (
+                  <Link
+                    href={`/admin/agents/${agent.id}`}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    查看详情
+                  </Link>
                 ) : (
-                  <div className="flex flex-wrap gap-1">
-                    {agent.datasources.map((ds) => (
-                      <span
-                        key={ds.id}
-                        className={`px-2 py-0.5 text-xs rounded-full ${
-                          ds.enabled
-                            ? "bg-primary/10 text-primary"
-                            : "bg-muted text-muted-foreground"
-                        }`}
+                  <>
+                    <Link
+                      href={`/admin/agents/${agent.id}/edit`}
+                      className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <Pencil className="size-3" />
+                      编辑
+                    </Link>
+                    {deleteConfirm === agent.id ? (
+                      <div className="flex items-center gap-1 ml-auto">
+                        <button
+                          onClick={() => handleDelete(agent.id)}
+                          className="text-xs text-destructive hover:underline"
+                        >
+                          确认删除
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirm(null)}
+                          className="text-xs text-muted-foreground hover:underline"
+                        >
+                          取消
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setDeleteConfirm(agent.id)}
+                        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive transition-colors ml-auto"
                       >
-                        {ds.name}
-                      </span>
-                    ))}
-                  </div>
+                        <Trash2 className="size-3" />
+                        删除
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             </div>

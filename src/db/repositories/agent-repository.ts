@@ -123,7 +123,9 @@ export class SqliteAgentRepository implements AgentRepository {
     // 先删除关联的数据源绑定
     this.db.delete(agentDatasources).where(eq(agentDatasources.agentId, id)).run()
 
-    const result = this.db.delete(customAgents).where(eq(customAgents.id, id)).run()
+    const result = this.db.delete(customAgents).where(eq(customAgents.id, id)).run() as unknown as {
+      changes: number
+    }
     return result.changes > 0
   }
 }

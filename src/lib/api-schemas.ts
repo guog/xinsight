@@ -42,16 +42,39 @@ export const CreateMessageSchema = z.object({
   role: z.enum(["user", "assistant"], {
     message: "role 必须为 user 或 assistant",
   }),
-  parts: z
-    .unknown()
-    .refine(
-      (val) => {
-        const str = typeof val === "string" ? val : JSON.stringify(val)
-        // 100KB 限制
-        return new TextEncoder().encode(str).byteLength <= 102400
-      },
-      { message: "parts 大小不能超过 100KB" },
-    ),
+  parts: z.unknown().refine(
+    (val) => {
+      const str = typeof val === "string" ? val : JSON.stringify(val)
+      // 100KB 限制
+      return new TextEncoder().encode(str).byteLength <= 102400
+    },
+    { message: "parts 大小不能超过 100KB" },
+  ),
+})
+
+/** 创建自定义 Agent */
+export const CreateAgentSchema = z.object({
+  id: z
+    .string()
+    .min(1, "ID 不能为空")
+    .max(100)
+    .regex(/^[a-z0-9_-]+$/, "ID 只能包含小写字母、数字、下划线和连字符"),
+  name: z.string().min(1, "名称不能为空").max(200),
+  description: z.string().max(1000).optional(),
+  systemPrompt: z.string().max(50000).optional(),
+  modelId: z.string().max(200).nullable().optional(),
+  icon: z.string().max(50).optional(),
+  enabled: z.boolean().optional(),
+})
+
+/** 更新自定义 Agent */
+export const UpdateAgentSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  description: z.string().max(1000).optional(),
+  systemPrompt: z.string().max(50000).optional(),
+  modelId: z.string().max(200).nullable().optional(),
+  icon: z.string().max(50).nullable().optional(),
+  enabled: z.boolean().optional(),
 })
 
 /** 新增提供商 */
