@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { filterEndpoints } from "@/lib/endpoint-filter"
 import type { AdminAgent } from "@/hooks/use-admin-agents"
 
 interface Model {
@@ -54,6 +55,7 @@ export function AgentForm({ initialData, initialBindings, onSubmit, isEdit }: Ag
   // Datasource binding state
   const [datasources, setDatasources] = useState<Datasource[]>([])
   const [bindings, setBindings] = useState<DatasourceBinding[]>(initialBindings ?? [])
+  const [endpointSearch, setEndpointSearch] = useState("")
 
   useEffect(() => {
     fetch("/api/admin/models")
@@ -320,7 +322,16 @@ export function AgentForm({ initialData, initialBindings, onSubmit, isEdit }: Ag
       {/* 数据源绑定 */}
       {datasources.length > 0 && (
         <div className="space-y-3">
-          <label className="text-sm font-medium">数据源绑定</label>
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium">数据源绑定</label>
+            <input
+              type="text"
+              value={endpointSearch}
+              onChange={(e) => setEndpointSearch(e.target.value)}
+              placeholder="搜索接口..."
+              className="border-input bg-background rounded-md border px-2.5 py-1 text-xs w-44 focus:outline-none focus:ring-1 focus:ring-ring"
+            />
+          </div>
           <div className="border-input rounded-md border p-3 space-y-3">
             {datasources.map((ds) => {
               const endpoints = parseEndpoints(ds.endpoints)
@@ -355,7 +366,7 @@ export function AgentForm({ initialData, initialBindings, onSubmit, isEdit }: Ag
                         </label>
                       </div>
                       {!isAllEndpoints(ds.id) &&
-                        endpoints.map((ep) => (
+                        filterEndpoints(endpoints, endpointSearch).map((ep) => (
                           <div key={ep.id} className="flex items-center gap-2">
                             <input
                               type="checkbox"

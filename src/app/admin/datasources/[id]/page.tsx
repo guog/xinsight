@@ -3,12 +3,15 @@
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
-import { Loader2, Pencil, Zap, ArrowLeft, Globe, Key, Server } from "lucide-react"
+import { Loader2, Pencil, Zap, ArrowLeft, Globe, Key, Server, Search } from "lucide-react"
+import { filterEndpoints } from "@/lib/endpoint-filter"
 import { toast } from "sonner"
 
 interface Endpoint {
   id: string
   name: string
+  path?: string
+  method?: string
   description: string
   paramSchema: string
   apiSchemaFormat: string
@@ -33,6 +36,7 @@ export default function DatasourceDetailPage() {
   const [ds, setDs] = useState<Datasource | null>(null)
   const [loading, setLoading] = useState(true)
   const [testStatus, setTestStatus] = useState<"idle" | "testing" | "ok" | "failed">("idle")
+  const [endpointSearch, setEndpointSearch] = useState("")
   const [testDetails, setTestDetails] = useState<{
     statusCode?: number
     latency?: number
@@ -224,14 +228,28 @@ export default function DatasourceDetailPage() {
 
       {/* 接口列表 */}
       <section className="bg-card border border-border rounded-xl p-4 space-y-3">
-        <h3 className="text-sm font-medium flex items-center gap-2">
-          <Server className="size-4" /> 接口定义 ({ds.endpoints.length})
-        </h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium flex items-center gap-2">
+            <Server className="size-4" /> 接口定义 ({ds.endpoints.length})
+          </h3>
+          {ds.endpoints.length > 0 && (
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+              <input
+                type="text"
+                value={endpointSearch}
+                onChange={(e) => setEndpointSearch(e.target.value)}
+                placeholder="搜索接口..."
+                className="pl-8 pr-3 py-1.5 text-xs border border-border rounded-md bg-background w-48 focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+            </div>
+          )}
+        </div>
         {ds.endpoints.length === 0 ? (
           <p className="text-sm text-muted-foreground">未定义接口</p>
         ) : (
           <div className="space-y-3">
-            {ds.endpoints.map((ep, i) => (
+            {filterEndpoints(ds.endpoints, endpointSearch).map((ep, i) => (
               <div key={ep.id || i} className="border border-border rounded-lg p-3 space-y-2">
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-sm">{ep.name || ep.id || `接口 ${i + 1}`}</span>
