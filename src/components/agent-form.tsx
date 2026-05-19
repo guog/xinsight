@@ -28,11 +28,9 @@ export interface DatasourceBinding {
   endpointIds: string[] | null
 }
 
-type Binding = DatasourceBinding
-
 interface AgentFormProps {
   initialData?: Partial<AdminAgent>
-  initialBindings?: Binding[]
+  initialBindings?: DatasourceBinding[]
   onSubmit: (data: Record<string, unknown>) => Promise<void>
   isEdit?: boolean
 }
@@ -55,7 +53,7 @@ export function AgentForm({ initialData, initialBindings, onSubmit, isEdit }: Ag
 
   // Datasource binding state
   const [datasources, setDatasources] = useState<Datasource[]>([])
-  const [bindings, setBindings] = useState<Binding[]>(initialBindings ?? [])
+  const [bindings, setBindings] = useState<DatasourceBinding[]>(initialBindings ?? [])
 
   useEffect(() => {
     fetch("/api/admin/models")
@@ -182,10 +180,10 @@ export function AgentForm({ initialData, initialBindings, onSubmit, isEdit }: Ag
       await onSubmit({
         ...(isEdit ? {} : { id }),
         name,
-        description: description || null,
+        ...(description ? { description } : {}),
         systemPrompt,
         modelId: modelId || null,
-        icon: icon || null,
+        ...(icon ? { icon } : {}),
         enabled,
         bindings,
       })

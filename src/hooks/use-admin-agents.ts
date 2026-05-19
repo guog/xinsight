@@ -20,7 +20,7 @@ export function useAdminAgents() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
-  const refresh = useCallback(async () => {
+  const fetchAgents = useCallback(async () => {
     setLoading(true)
     setError("")
     try {
@@ -66,9 +66,9 @@ export function useAdminAgents() {
         const data = await res.json()
         throw new Error(data.error || "删除失败")
       }
-      await refresh()
+      await fetchAgents()
     },
-    [refresh],
+    [fetchAgents],
   )
 
   const toggleEnabled = useCallback(
@@ -82,10 +82,10 @@ export function useAdminAgents() {
         const data = await res.json()
         throw new Error(data.error || "更新失败")
       }
-      await refresh()
+      await fetchAgents()
     },
-    [refresh],
+    [fetchAgents],
   )
 
-  return { agents, loading, error, refresh, remove, toggleEnabled }
+  return { agents, loading, error, refresh: fetchAgents, remove, toggleEnabled }
 }

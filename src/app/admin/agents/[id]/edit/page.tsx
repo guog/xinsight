@@ -57,6 +57,7 @@ export default function EditAgentPage() {
     })
     if (!bindRes.ok) {
       toast.error("数据源绑定保存失败")
+      throw new Error("数据源绑定保存失败")
     }
 
     router.push("/admin/agents")
