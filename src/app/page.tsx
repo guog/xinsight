@@ -44,6 +44,8 @@ import { useVoiceConfig } from "@/hooks/use-voice-config"
 import { useIsMobile } from "@/hooks/use-device"
 import { MobileChatPage } from "@/components/mobile-chat-page"
 import { AgentProgressContext, createAgentProgressStore } from "@/hooks/use-agent-progress"
+import { useMessageFeedback } from "@/hooks/use-message-feedback"
+import { ThumbsUp, ThumbsDown } from "lucide-react"
 
 const VoiceChatPanel = dynamic(
   () => import("@/components/voice-chat-panel").then((m) => m.VoiceChatPanel),
@@ -81,6 +83,7 @@ function DesktopChatPage() {
   const agentProgressStore = useMemo(() => createAgentProgressStore(), [])
 
   const { createChat, refresh: refreshChats } = useChats()
+  const { feedbacks, loadFeedbacks, toggleFeedback } = useMessageFeedback(activeChatId)
 
   const chatApiUrl = API_BASE ? `${API_BASE}/api/chat` : "/api/chat"
 
@@ -143,6 +146,7 @@ function DesktopChatPage() {
     async (chat: ChatItem) => {
       setActiveChatId(chat.id)
       chatIdRef.current = chat.id
+      loadFeedbacks(chat.id)
       try {
         const res = await fetch(`${API_BASE}/api/chats/${chat.id}/messages`)
         if (res.ok) {
@@ -167,7 +171,7 @@ function DesktopChatPage() {
         console.error("加载历史消息失败:", e)
       }
     },
-    [setMessages],
+    [setMessages, loadFeedbacks],
   )
 
   /** 删除对话 */
@@ -327,6 +331,30 @@ function DesktopChatPage() {
                                                 }}
                                               >
                                                 <Copy className="size-4" />
+                                              </MessageAction>
+                                              <MessageAction
+                                                tooltip="有帮助"
+                                                onClick={() => toggleFeedback(message.id, "up")}
+                                              >
+                                                <ThumbsUp
+                                                  className={`size-4 ${
+                                                    feedbacks[message.id] === "up"
+                                                      ? "fill-current text-green-500"
+                                                      : ""
+                                                  }`}
+                                                />
+                                              </MessageAction>
+                                              <MessageAction
+                                                tooltip="没帮助"
+                                                onClick={() => toggleFeedback(message.id, "down")}
+                                              >
+                                                <ThumbsDown
+                                                  className={`size-4 ${
+                                                    feedbacks[message.id] === "down"
+                                                      ? "fill-current text-red-500"
+                                                      : ""
+                                                  }`}
+                                                />
                                               </MessageAction>
                                             </MessageActions>
                                           </div>
