@@ -39,7 +39,7 @@ interface SidebarProps {
 
 function AgentCapabilitiesPanel() {
   const [open, setOpen] = useState(false)
-  const agents = Object.values(AGENT_MAP)
+  const agents = Object.entries(AGENT_MAP)
 
   return (
     <div className="px-3 py-2 border-t border-border">
@@ -56,8 +56,8 @@ function AgentCapabilitiesPanel() {
       </button>
       {open && (
         <div className="mt-1.5 space-y-0.5">
-          {agents.map((agent) => (
-            <div key={agent.name} className="flex items-center gap-2 px-2 py-1.5 rounded-md">
+          {agents.map(([id, agent]) => (
+            <div key={id} className="flex items-center gap-2 px-2 py-1.5 rounded-md">
               <div
                 className={`size-6 rounded-full flex items-center justify-center text-[10px] font-bold ${agent.avatarBg} ${agent.color}`}
               >

@@ -229,98 +229,107 @@ export default function DatasourceDetailPage() {
 
       {/* 接口列表 */}
       <section className="bg-card border border-border rounded-xl p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium flex items-center gap-2">
-            <Server className="size-4" /> 接口定义 (
-            {filterEndpoints(ds.endpoints, deferredEndpointSearch).length}
-            {deferredEndpointSearch && `/${ds.endpoints.length}`})
-          </h3>
-          {ds.endpoints.length > 0 && (
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-              <input
-                type="text"
-                value={endpointSearch}
-                onChange={(e) => setEndpointSearch(e.target.value)}
-                placeholder="搜索接口..."
-                className="pl-8 pr-3 py-1.5 text-xs border border-border rounded-md bg-background w-48 focus:outline-none focus:ring-1 focus:ring-ring"
-              />
-            </div>
-          )}
-        </div>
-        {ds.endpoints.length === 0 ? (
-          <p className="text-sm text-muted-foreground">未定义接口</p>
-        ) : (
-          <div className="space-y-3">
-            {filterEndpoints(ds.endpoints, deferredEndpointSearch).length === 0 &&
-              deferredEndpointSearch && (
-                <p className="text-sm text-muted-foreground py-2">无匹配接口</p>
-              )}
-            {filterEndpoints(ds.endpoints, deferredEndpointSearch).map((ep, i) => (
-              <div key={ep.id || i} className="border border-border rounded-lg p-3 space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-sm">{ep.name || ep.id || `接口 ${i + 1}`}</span>
-                  {ep.apiSchemaFormat && (
-                    <span className="text-xs text-muted-foreground px-1.5 py-0.5 bg-muted rounded">
-                      {ep.apiSchemaFormat}
-                    </span>
-                  )}
-                </div>
-                {ep.description && (
-                  <p className="text-xs text-muted-foreground">{ep.description}</p>
-                )}
-                {ep.paramSchema && (
-                  <div>
-                    <span className="text-xs text-muted-foreground">参数：</span>
-                    <pre className="mt-1 text-xs bg-muted p-2 rounded overflow-x-auto">
-                      {ep.paramSchema}
-                    </pre>
-                  </div>
-                )}
-                {!!(ep as unknown as Record<string, unknown>).structuredParams && (
-                  <div>
-                    <span className="text-xs text-muted-foreground">结构化参数：</span>
-                    <div className="mt-1 space-y-0.5">
-                      {(
-                        (ep as unknown as Record<string, unknown>).structuredParams as Array<{
-                          name: string
-                          type: string
-                          required?: boolean
-                          description?: string
-                          enum?: string[]
-                          format?: string
-                          example?: unknown
-                        }>
-                      ).map((p, pi) => (
-                        <div key={pi} className="text-xs flex items-center gap-1.5">
-                          <code className="bg-muted px-1 rounded">{p.name}</code>
-                          <span className="text-muted-foreground">{p.type}</span>
-                          {p.required && <span className="text-red-500 text-[10px]">必填</span>}
-                          {p.description && (
-                            <span className="text-muted-foreground">- {p.description}</span>
-                          )}
-                          {p.enum && (
-                            <span className="text-muted-foreground">
-                              [可选: {p.enum.join(", ")}]
-                            </span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {ep.responseExample && (
-                  <div>
-                    <span className="text-xs text-muted-foreground">响应示例：</span>
-                    <pre className="mt-1 text-xs bg-muted p-2 rounded overflow-x-auto">
-                      {ep.responseExample}
-                    </pre>
+        {(() => {
+          const filtered = filterEndpoints(ds.endpoints, deferredEndpointSearch)
+          return (
+            <>
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium flex items-center gap-2">
+                  <Server className="size-4" /> 接口定义 ({filtered.length}
+                  {deferredEndpointSearch && `/${ds.endpoints.length}`})
+                </h3>
+                {ds.endpoints.length > 0 && (
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+                    <input
+                      type="text"
+                      value={endpointSearch}
+                      onChange={(e) => setEndpointSearch(e.target.value)}
+                      placeholder="搜索接口..."
+                      className="pl-8 pr-3 py-1.5 text-xs border border-border rounded-md bg-background w-48 focus:outline-none focus:ring-1 focus:ring-ring"
+                    />
                   </div>
                 )}
               </div>
-            ))}
-          </div>
-        )}
+              {ds.endpoints.length === 0 ? (
+                <p className="text-sm text-muted-foreground">未定义接口</p>
+              ) : (
+                <div className="space-y-3">
+                  {filtered.length === 0 && deferredEndpointSearch && (
+                    <p className="text-sm text-muted-foreground py-2">无匹配接口</p>
+                  )}
+                  {filtered.map((ep, i) => (
+                    <div key={ep.id || i} className="border border-border rounded-lg p-3 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-sm">
+                          {ep.name || ep.id || `接口 ${i + 1}`}
+                        </span>
+                        {ep.apiSchemaFormat && (
+                          <span className="text-xs text-muted-foreground px-1.5 py-0.5 bg-muted rounded">
+                            {ep.apiSchemaFormat}
+                          </span>
+                        )}
+                      </div>
+                      {ep.description && (
+                        <p className="text-xs text-muted-foreground">{ep.description}</p>
+                      )}
+                      {ep.paramSchema && (
+                        <div>
+                          <span className="text-xs text-muted-foreground">参数：</span>
+                          <pre className="mt-1 text-xs bg-muted p-2 rounded overflow-x-auto">
+                            {ep.paramSchema}
+                          </pre>
+                        </div>
+                      )}
+                      {!!(ep as unknown as Record<string, unknown>).structuredParams && (
+                        <div>
+                          <span className="text-xs text-muted-foreground">结构化参数：</span>
+                          <div className="mt-1 space-y-0.5">
+                            {(
+                              (ep as unknown as Record<string, unknown>).structuredParams as Array<{
+                                name: string
+                                type: string
+                                required?: boolean
+                                description?: string
+                                enum?: string[]
+                                format?: string
+                                example?: unknown
+                              }>
+                            ).map((p, pi) => (
+                              <div key={pi} className="text-xs flex items-center gap-1.5">
+                                <code className="bg-muted px-1 rounded">{p.name}</code>
+                                <span className="text-muted-foreground">{p.type}</span>
+                                {p.required && (
+                                  <span className="text-red-500 text-[10px]">必填</span>
+                                )}
+                                {p.description && (
+                                  <span className="text-muted-foreground">- {p.description}</span>
+                                )}
+                                {p.enum && (
+                                  <span className="text-muted-foreground">
+                                    [可选: {p.enum.join(", ")}]
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {ep.responseExample && (
+                        <div>
+                          <span className="text-xs text-muted-foreground">响应示例：</span>
+                          <pre className="mt-1 text-xs bg-muted p-2 rounded overflow-x-auto">
+                            {ep.responseExample}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )
+        })()}
       </section>
     </div>
   )
