@@ -13,7 +13,10 @@ import {
   LogOut,
   Search,
   Mic,
+  Users,
+  ChevronDown,
 } from "lucide-react"
+import { AGENT_MAP } from "@/config/agent-registry"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useSwipe } from "@/hooks/use-swipe"
@@ -32,6 +35,46 @@ interface SidebarProps {
   onNewChat: () => void
   onSelectChat: (chat: ChatItem) => void
   onDeleteChat?: (id: string) => void
+}
+
+function AgentCapabilitiesPanel() {
+  const [open, setOpen] = useState(false)
+  const agents = Object.values(AGENT_MAP)
+
+  return (
+    <div className="px-3 py-2 border-t border-border">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-2 w-full text-xs text-muted-foreground hover:text-foreground transition-colors py-1"
+      >
+        <Users className="size-3.5" />
+        <span className="font-medium">专家团队</span>
+        <span className="text-[10px] text-muted-foreground/60 ml-0.5">{agents.length}</span>
+        <ChevronDown
+          className={`size-3 ml-auto transition-transform duration-200 ${open ? "rotate-0" : "-rotate-90"}`}
+        />
+      </button>
+      {open && (
+        <div className="mt-1.5 space-y-0.5">
+          {agents.map((agent) => (
+            <div key={agent.name} className="flex items-center gap-2 px-2 py-1.5 rounded-md">
+              <div
+                className={`size-6 rounded-full flex items-center justify-center text-[10px] font-bold ${agent.avatarBg} ${agent.color}`}
+              >
+                {agent.avatar}
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-xs font-medium leading-tight">{agent.name}</span>
+                <span className="text-[10px] text-muted-foreground/70 leading-tight truncate">
+                  {agent.role}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }: SidebarProps) {
@@ -222,6 +265,9 @@ export function Sidebar({ activeChatId, onNewChat, onSelectChat, onDeleteChat }:
             ))
         )}
       </div>
+
+      {/* 专家团队（只读） */}
+      <AgentCapabilitiesPanel />
 
       {/* 底部导航 */}
       <div className="p-3 border-t border-border space-y-1">
