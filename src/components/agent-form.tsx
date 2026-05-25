@@ -331,11 +331,10 @@ export function AgentForm({ initialData, initialBindings, onSubmit, isEdit }: Ag
               const checked = isDatasourceChecked(ds.id)
               const dsSearch = deferredSearchMap[ds.id] ?? ""
               const filtered = filterEndpoints(endpoints, dsSearch)
+              const filteredSet = new Set(filtered.map((f) => f.id))
               const checkedEpIds = getBinding(ds.id)?.endpointIds ?? []
               const checkedButHidden = dsSearch
-                ? endpoints.filter(
-                    (ep) => checkedEpIds.includes(ep.id) && !filtered.some((f) => f.id === ep.id),
-                  )
+                ? endpoints.filter((ep) => checkedEpIds.includes(ep.id) && !filteredSet.has(ep.id))
                 : []
               return (
                 <div key={ds.id} className="space-y-2">

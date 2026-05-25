@@ -449,7 +449,6 @@ const DelegateAgentMessage = memo(function DelegateAgentMessage({
         }}
         className="flex items-center gap-2 w-full py-1 text-left hover:bg-muted/30 rounded-lg px-1.5 -mx-1.5 transition-colors group cursor-pointer"
       >
-        {/* 使用原生 title 替代 Tooltip 组件，零 JS 开销 */}
         <AgentAvatar
           avatar={agentInfo.avatar}
           avatarBg={agentInfo.avatarBg}
