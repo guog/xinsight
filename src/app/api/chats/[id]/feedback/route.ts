@@ -5,18 +5,12 @@ import { eq, and } from "drizzle-orm"
 import { withAuth } from "@/lib/with-auth"
 import { getOwnedChat } from "@/lib/chat-ownership"
 import { randomUUID } from "node:crypto"
-import { z } from "zod"
-
-const feedbackSchema = z.object({
-  messageId: z.string().min(1, "消息 ID 不能为空"),
-  type: z.enum(["up", "down"]),
-  comment: z.string().max(1000).optional(),
-})
+import { feedbackSchema } from "@/lib/api-schemas"
 
 /** GET /api/chats/[id]/feedback — 获取对话所有消息的反馈 */
 export const GET = withAuth(async (user, _request, context) => {
   const { id } = await (context as { params: Promise<{ id: string }> }).params
-  const chat = getOwnedChat(id, user.id)
+  const chat = await getOwnedChat(id, user.id)
   if (!chat) {
     return NextResponse.json({ error: "对话不存在" }, { status: 404 })
   }
@@ -30,7 +24,7 @@ export const GET = withAuth(async (user, _request, context) => {
 /** POST /api/chats/[id]/feedback — 提交或更新消息反馈 */
 export const POST = withAuth(async (user, request, context) => {
   const { id } = await (context as { params: Promise<{ id: string }> }).params
-  const chat = getOwnedChat(id, user.id)
+  const chat = await getOwnedChat(id, user.id)
   if (!chat) {
     return NextResponse.json({ error: "对话不存在" }, { status: 404 })
   }
@@ -51,7 +45,13 @@ export const POST = withAuth(async (user, request, context) => {
   const existing = await db
     .select()
     .from(messageFeedbacks)
-    .where(and(eq(messageFeedbacks.messageId, messageId), eq(messageFeedbacks.userId, user.id)))
+    .where(
+      and(
+        eq(messageFeedbacks.chatId, id),
+        eq(messageFeedbacks.messageId, messageId),
+        eq(messageFeedbacks.userId, user.id),
+      ),
+    )
 
   if (existing.length > 0) {
     if (existing[0].type === type) {

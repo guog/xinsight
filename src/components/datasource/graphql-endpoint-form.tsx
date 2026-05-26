@@ -16,13 +16,18 @@ interface Props {
 const operationTypes = ["query", "mutation", "subscription"] as const
 
 export default function GraphqlEndpointForm({ endpoint, onChange, onRemove }: Props) {
-  const update = (partial: Partial<GraphqlEndpoint>) => onChange({ ...endpoint, ...partial } as GraphqlEndpoint)
+  const update = (partial: Partial<GraphqlEndpoint>) =>
+    onChange({ ...endpoint, ...partial } as GraphqlEndpoint)
 
   return (
     <div className="border border-border rounded-lg p-4 space-y-3">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium">{endpoint.operationName || "GraphQL 接口"}</span>
-        <button type="button" onClick={onRemove} className="p-1 rounded hover:bg-muted text-red-500 transition-colors">
+        <button
+          type="button"
+          onClick={onRemove}
+          className="p-1 rounded hover:bg-muted text-red-500 transition-colors"
+        >
           <Trash2 className="size-4" />
         </button>
       </div>
@@ -33,24 +38,44 @@ export default function GraphqlEndpointForm({ endpoint, onChange, onRemove }: Pr
           <select
             className={inputClass}
             value={endpoint.operationType}
-            onChange={(e) => update({ operationType: e.target.value as GraphqlEndpoint["operationType"] })}
+            onChange={(e) =>
+              update({ operationType: e.target.value as GraphqlEndpoint["operationType"] })
+            }
           >
-            {operationTypes.map((t) => <option key={t} value={t}>{t}</option>)}
+            {operationTypes.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
           </select>
         </div>
         <div>
           <label className={labelClass}>Operation Name</label>
-          <input className={inputClass} value={endpoint.operationName} onChange={(e) => update({ operationName: e.target.value })} />
+          <input
+            className={inputClass}
+            value={endpoint.operationName}
+            onChange={(e) => update({ operationName: e.target.value })}
+          />
         </div>
         <div>
           <label className={labelClass}>ID</label>
-          <input className={inputClass} value={endpoint.id} onChange={(e) => update({ id: e.target.value })} placeholder="接口 ID" />
+          <input
+            className={inputClass}
+            value={endpoint.id}
+            onChange={(e) => update({ id: e.target.value })}
+            placeholder="接口 ID"
+          />
         </div>
       </div>
 
       <div>
         <label className={labelClass}>名称</label>
-        <input className={inputClass} value={endpoint.name} onChange={(e) => update({ name: e.target.value })} placeholder="接口名称" />
+        <input
+          className={inputClass}
+          value={endpoint.name}
+          onChange={(e) => update({ name: e.target.value })}
+          placeholder="接口名称"
+        />
       </div>
 
       <div>
@@ -77,7 +102,11 @@ export default function GraphqlEndpointForm({ endpoint, onChange, onRemove }: Pr
 
       <div>
         <label className={labelClass}>描述</label>
-        <input className={inputClass} value={endpoint.description ?? ""} onChange={(e) => update({ description: e.target.value })} />
+        <input
+          className={inputClass}
+          value={endpoint.description ?? ""}
+          onChange={(e) => update({ description: e.target.value })}
+        />
       </div>
     </div>
   )

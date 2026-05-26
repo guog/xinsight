@@ -16,7 +16,8 @@ interface Props {
 const methods = ["GET", "POST", "PUT", "PATCH", "DELETE"] as const
 
 export default function RestEndpointForm({ endpoint, onChange, onRemove }: Props) {
-  const update = (partial: Partial<RestEndpoint>) => onChange({ ...endpoint, ...partial } as RestEndpoint)
+  const update = (partial: Partial<RestEndpoint>) =>
+    onChange({ ...endpoint, ...partial } as RestEndpoint)
 
   const queryParams = endpoint.queryParams ?? {}
   const queryEntries = Object.entries(queryParams)
@@ -63,7 +64,9 @@ export default function RestEndpointForm({ endpoint, onChange, onRemove }: Props
             onChange={(e) => update({ method: e.target.value as RestEndpoint["method"] })}
           >
             {methods.map((m) => (
-              <option key={m} value={m}>{m}</option>
+              <option key={m} value={m}>
+                {m}
+              </option>
             ))}
           </select>
         </div>
@@ -81,11 +84,21 @@ export default function RestEndpointForm({ endpoint, onChange, onRemove }: Props
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <label className={labelClass}>ID</label>
-          <input className={inputClass} value={endpoint.id} onChange={(e) => update({ id: e.target.value })} placeholder="接口 ID" />
+          <input
+            className={inputClass}
+            value={endpoint.id}
+            onChange={(e) => update({ id: e.target.value })}
+            placeholder="接口 ID"
+          />
         </div>
         <div>
           <label className={labelClass}>名称</label>
-          <input className={inputClass} value={endpoint.name} onChange={(e) => update({ name: e.target.value })} placeholder="接口名称" />
+          <input
+            className={inputClass}
+            value={endpoint.name}
+            onChange={(e) => update({ name: e.target.value })}
+            placeholder="接口名称"
+          />
         </div>
       </div>
 
@@ -107,12 +120,20 @@ export default function RestEndpointForm({ endpoint, onChange, onRemove }: Props
                 onChange={(e) => updateQueryParam(key, key, e.target.value)}
                 placeholder="value"
               />
-              <button type="button" onClick={() => removeQueryParam(key)} className="p-1 text-red-500 hover:bg-muted rounded">
+              <button
+                type="button"
+                onClick={() => removeQueryParam(key)}
+                className="p-1 text-red-500 hover:bg-muted rounded"
+              >
                 <Trash2 className="size-4" />
               </button>
             </div>
           ))}
-          <button type="button" onClick={addQueryParam} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+          <button
+            type="button"
+            onClick={addQueryParam}
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+          >
             <Plus className="size-3" /> 添加参数
           </button>
         </div>

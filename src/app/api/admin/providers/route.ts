@@ -59,7 +59,16 @@ export async function POST(req: Request) {
     )
   }
 
-  const { id, name, type, apiFormat, baseUrl, apiKey, apiKeyRequired, models: modelSlugs } = parsed.data
+  const {
+    id,
+    name,
+    type,
+    apiFormat,
+    baseUrl,
+    apiKey,
+    apiKeyRequired,
+    models: modelSlugs,
+  } = parsed.data
 
   const now = new Date()
 

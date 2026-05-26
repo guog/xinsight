@@ -92,3 +92,10 @@ export const CreateProviderSchema = z.object({
   apiKeyRequired: z.boolean().default(true),
   models: z.array(z.string().min(1).max(200)).max(100).optional(),
 })
+
+/** 消息反馈 */
+export const feedbackSchema = z.object({
+  messageId: z.string().min(1, "消息 ID 不能为空"),
+  type: z.enum(["up", "down"]),
+  comment: z.string().max(1000).optional(),
+})

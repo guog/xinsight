@@ -58,3 +58,6 @@ raw/
 .mastra/
 sqlite.db
 xinsight.db
+
+# Claude
+.claude/

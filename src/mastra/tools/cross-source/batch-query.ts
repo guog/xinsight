@@ -10,9 +10,7 @@ const repo = new SqliteDatasourceRepository(db)
 export interface BatchQueryDeps {
   findById: (id: string) => Promise<Record<string, unknown> | null>
   getAgentBindings: (agentId: string) => Promise<string[]>
-  getAdapter: (
-    type: string,
-  ) => {
+  getAdapter: (type: string) => {
     query: (
       config: unknown,
       params: unknown,

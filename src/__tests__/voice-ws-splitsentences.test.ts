@@ -2,7 +2,6 @@ import { describe, it, expect } from "vitest"
 import { splitSentences } from "@/lib/text-utils"
 
 describe("splitSentences", () => {
-
   it("按中文句号分割", () => {
     const [sentences, remainder] = splitSentences("你好。世界。")
     expect(sentences).toEqual(["你好。", "世界。"])

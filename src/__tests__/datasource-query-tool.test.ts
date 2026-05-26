@@ -13,7 +13,9 @@ const { mockRepo, mockGetAdapter } = vi.hoisted(() => {
 
 vi.mock("@/db", () => ({ db: {} }))
 vi.mock("@/db/repositories/datasource-repository", () => ({
-  SqliteDatasourceRepository: function () { return mockRepo },
+  SqliteDatasourceRepository: function () {
+    return mockRepo
+  },
 }))
 vi.mock("@/mastra/tools/datasource/adapters", () => ({
   getAdapter: mockGetAdapter,
@@ -30,30 +32,21 @@ describe("datasourceQueryTool.execute", () => {
 
   it("数据源不存在返回错误", async () => {
     mockRepo.findById.mockResolvedValue(null)
-    const result = await execute(
-      { datasourceId: "ds1", params: {} },
-      { agentId: "agent1" },
-    )
+    const result = await execute({ datasourceId: "ds1", params: {} }, { agentId: "agent1" })
     expect(result.success).toBe(false)
     expect(result.error).toContain("未找到")
   })
 
   it("数据源已禁用返回错误", async () => {
     mockRepo.findById.mockResolvedValue({ id: "ds1", name: "Test", enabled: false })
-    const result = await execute(
-      { datasourceId: "ds1", params: {} },
-      { agentId: "agent1" },
-    )
+    const result = await execute({ datasourceId: "ds1", params: {} }, { agentId: "agent1" })
     expect(result.success).toBe(false)
     expect(result.error).toContain("已禁用")
   })
 
   it("缺少 Agent 上下文返回错误", async () => {
     mockRepo.findById.mockResolvedValue({ id: "ds1", name: "Test", enabled: true })
-    const result = await execute(
-      { datasourceId: "ds1", params: {} },
-      {},
-    )
+    const result = await execute({ datasourceId: "ds1", params: {} }, {})
     expect(result.success).toBe(false)
     expect(result.error).toContain("缺少 Agent 上下文")
   })
@@ -63,17 +56,16 @@ describe("datasourceQueryTool.execute", () => {
     mockRepo.getAgentEndpointBindings.mockResolvedValue([
       { datasourceId: "other-ds", endpointIds: null },
     ])
-    const result = await execute(
-      { datasourceId: "ds1", params: {} },
-      { agentId: "agent1" },
-    )
+    const result = await execute({ datasourceId: "ds1", params: {} }, { agentId: "agent1" })
     expect(result.success).toBe(false)
     expect(result.error).toContain("无权访问")
   })
 
   it("端点级权限拒绝", async () => {
     mockRepo.findById.mockResolvedValue({
-      id: "ds1", name: "Test", enabled: true,
+      id: "ds1",
+      name: "Test",
+      enabled: true,
       endpoints: [{ id: "ep1", params: {} }],
     })
     mockRepo.getAgentEndpointBindings.mockResolvedValue([
@@ -90,7 +82,9 @@ describe("datasourceQueryTool.execute", () => {
 
   it("endpoint 不存在返回错误", async () => {
     mockRepo.findById.mockResolvedValue({
-      id: "ds1", name: "Test", enabled: true,
+      id: "ds1",
+      name: "Test",
+      enabled: true,
       endpoints: [{ id: "ep1", params: {} }],
     })
     mockRepo.getAgentEndpointBindings.mockResolvedValue([])
@@ -104,23 +98,29 @@ describe("datasourceQueryTool.execute", () => {
 
   it("不支持的数据源类型返回错误", async () => {
     mockRepo.findById.mockResolvedValue({
-      id: "ds1", name: "Test", type: "unknown", enabled: true,
+      id: "ds1",
+      name: "Test",
+      type: "unknown",
+      enabled: true,
     })
     mockRepo.getAgentEndpointBindings.mockResolvedValue([])
     mockGetAdapter.mockReturnValue(null)
-    const result = await execute(
-      { datasourceId: "ds1", params: {} },
-      { agentId: "agent1" },
-    )
+    const result = await execute({ datasourceId: "ds1", params: {} }, { agentId: "agent1" })
     expect(result.success).toBe(false)
     expect(result.error).toContain("不支持的数据源类型")
   })
 
   it("成功查询调用 adapter", async () => {
     mockRepo.findById.mockResolvedValue({
-      id: "ds1", name: "Test", type: "rest", enabled: true,
-      auth: null, config: {}, endpoints: [],
-      createdAt: new Date(), updatedAt: new Date(),
+      id: "ds1",
+      name: "Test",
+      type: "rest",
+      enabled: true,
+      auth: null,
+      config: {},
+      endpoints: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
     })
     mockRepo.getAgentEndpointBindings.mockResolvedValue([])
     const mockAdapter = { query: vi.fn().mockResolvedValue({ success: true, data: [1, 2] }) }
@@ -135,11 +135,17 @@ describe("datasourceQueryTool.execute", () => {
 
   it("参数校验失败返回错误提示", async () => {
     mockRepo.findById.mockResolvedValue({
-      id: "ds1", name: "Test", type: "rest", enabled: true,
-      endpoints: [{
-        id: "ep1", params: {},
-        structuredParams: [{ name: "count", type: "number", required: true }],
-      }],
+      id: "ds1",
+      name: "Test",
+      type: "rest",
+      enabled: true,
+      endpoints: [
+        {
+          id: "ep1",
+          params: {},
+          structuredParams: [{ name: "count", type: "number", required: true }],
+        },
+      ],
     })
     mockRepo.getAgentEndpointBindings.mockResolvedValue([])
     const result = await execute(
@@ -180,11 +186,19 @@ describe("datasourceListTool.execute", () => {
     mockRepo.getAgentEndpointBindings.mockResolvedValue([])
     mockRepo.findByAgentId.mockResolvedValue([
       {
-        id: "ds1", name: "MES", type: "rest", description: null,
-        endpoints: [{
-          id: "ep1", name: "查询", description: "查询接口", params: {},
-          structuredParams: [{ name: "startDate", type: "date", required: true }],
-        }],
+        id: "ds1",
+        name: "MES",
+        type: "rest",
+        description: null,
+        endpoints: [
+          {
+            id: "ep1",
+            name: "查询",
+            description: "查询接口",
+            params: {},
+            structuredParams: [{ name: "startDate", type: "date", required: true }],
+          },
+        ],
       },
     ])
     const result = await execute({}, { resourceId: "agent1" })
@@ -198,7 +212,10 @@ describe("datasourceListTool.execute", () => {
     ])
     mockRepo.findByAgentId.mockResolvedValue([
       {
-        id: "ds1", name: "MES", type: "rest", description: null,
+        id: "ds1",
+        name: "MES",
+        type: "rest",
+        description: null,
         endpoints: [
           { id: "ep1", name: "A", description: "A", params: {} },
           { id: "ep2", name: "B", description: "B", params: {} },

@@ -12,6 +12,7 @@ export function useMessageFeedback(chatId: string | null) {
 
   const loadFeedbacks = useCallback(async (id: string) => {
     currentChatIdRef.current = id
+    setFeedbacks({})
     try {
       const res = await fetch(`${API_BASE}/api/chats/${id}/feedback`)
       if (res.ok && currentChatIdRef.current === id) {
@@ -30,11 +31,12 @@ export function useMessageFeedback(chatId: string | null) {
   const toggleFeedback = useCallback(
     async (messageId: string, type: FeedbackType) => {
       if (!chatId) return
-      const prev = feedbacks[messageId]
-      // Optimistic update
+
+      let prev: FeedbackType | undefined
       setFeedbacks((f) => {
+        prev = f[messageId]
         const next = { ...f }
-        if (prev === type) {
+        if (f[messageId] === type) {
           delete next[messageId]
         } else {
           next[messageId] = type
@@ -52,7 +54,6 @@ export function useMessageFeedback(chatId: string | null) {
           throw new Error(`HTTP error! status: ${res.status}`)
         }
       } catch {
-        // Revert on error
         setFeedbacks((f) => {
           const next = { ...f }
           if (prev) {
@@ -64,7 +65,7 @@ export function useMessageFeedback(chatId: string | null) {
         })
       }
     },
-    [chatId, feedbacks],
+    [chatId],
   )
 
   return { feedbacks, loadFeedbacks, toggleFeedback }

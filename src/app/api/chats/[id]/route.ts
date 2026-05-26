@@ -9,7 +9,7 @@ import { UpdateChatSchema } from "@/lib/api-schemas"
 /** GET /api/chats/[id] — 获取单个对话及其消息 */
 export const GET = withAuth(async (user, _request, context) => {
   const { id } = await (context as { params: Promise<{ id: string }> }).params
-  const chat = getOwnedChat(id, user.id)
+  const chat = await getOwnedChat(id, user.id)
   if (!chat) {
     return NextResponse.json({ error: "对话不存在" }, { status: 404 })
   }
@@ -24,7 +24,7 @@ export const GET = withAuth(async (user, _request, context) => {
 /** PATCH /api/chats/[id] — 更新对话信息 */
 export const PATCH = withAuth(async (user, request, context) => {
   const { id } = await (context as { params: Promise<{ id: string }> }).params
-  const chat = getOwnedChat(id, user.id)
+  const chat = await getOwnedChat(id, user.id)
   if (!chat) {
     return NextResponse.json({ error: "对话不存在" }, { status: 404 })
   }
@@ -52,7 +52,7 @@ export const PATCH = withAuth(async (user, request, context) => {
 /** DELETE /api/chats/[id] — 删除对话 */
 export const DELETE = withAuth(async (user, _request, context) => {
   const { id } = await (context as { params: Promise<{ id: string }> }).params
-  const chat = getOwnedChat(id, user.id)
+  const chat = await getOwnedChat(id, user.id)
   if (!chat) {
     return NextResponse.json({ error: "对话不存在" }, { status: 404 })
   }

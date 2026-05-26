@@ -35,22 +35,15 @@
           "name": "agent_datasources_datasource_id_datasources_id_fk",
           "tableFrom": "agent_datasources",
           "tableTo": "datasources",
-          "columnsFrom": [
-            "datasource_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["datasource_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
         "agent_datasources_agent_id_datasource_id_pk": {
-          "columns": [
-            "agent_id",
-            "datasource_id"
-          ],
+          "columns": ["agent_id", "datasource_id"],
           "name": "agent_datasources_agent_id_datasource_id_pk"
         }
       },
@@ -235,9 +228,7 @@
       "indexes": {
         "idx_messages_chat_id": {
           "name": "idx_messages_chat_id",
-          "columns": [
-            "chat_id"
-          ],
+          "columns": ["chat_id"],
           "isUnique": false
         }
       },
@@ -246,12 +237,8 @@
           "name": "messages_chat_id_chats_id_fk",
           "tableFrom": "messages",
           "tableTo": "chats",
-          "columnsFrom": [
-            "chat_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["chat_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -298,12 +285,8 @@
           "name": "sessions_user_id_users_id_fk",
           "tableFrom": "sessions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -369,9 +352,7 @@
       "indexes": {
         "users_username_unique": {
           "name": "users_username_unique",
-          "columns": [
-            "username"
-          ],
+          "columns": ["username"],
           "isUnique": true
         }
       },

@@ -46,8 +46,12 @@ export function ModelsPanel({ providerId, models, onSync }: ModelsPanelProps) {
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium">模型列表</span>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={onSync}>同步模型</Button>
-          <button onClick={() => setExpanded(false)} className="text-xs text-gray-500">收起</button>
+          <Button size="sm" variant="outline" onClick={onSync}>
+            同步模型
+          </Button>
+          <button onClick={() => setExpanded(false)} className="text-xs text-gray-500">
+            收起
+          </button>
         </div>
       </div>
       {localModels.length === 0 ? (
@@ -55,10 +59,15 @@ export function ModelsPanel({ providerId, models, onSync }: ModelsPanelProps) {
       ) : (
         <ul className="space-y-1">
           {localModels.map((m) => (
-            <li key={m.id} className="flex items-center justify-between text-sm py-1 px-2 rounded hover:bg-gray-50">
+            <li
+              key={m.id}
+              className="flex items-center justify-between text-sm py-1 px-2 rounded hover:bg-gray-50"
+            >
               <div className="flex items-center gap-2">
                 <span>{m.name}</span>
-                <span className={`inline-block px-1.5 py-0.5 text-xs rounded ${m.status === "available" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                <span
+                  className={`inline-block px-1.5 py-0.5 text-xs rounded ${m.status === "available" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}
+                >
                   {m.status === "available" ? "在线" : "离线"}
                 </span>
               </div>

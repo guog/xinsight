@@ -380,12 +380,16 @@ html.density-compact [data-streamdown] p {
   border: 1px solid var(--border);
   overflow: hidden;
   background: oklch(0.98 0.005 264) !important;
-  box-shadow: 0 1px 3px oklch(0 0 0 / 4%), 0 1px 2px oklch(0 0 0 / 3%);
+  box-shadow:
+    0 1px 3px oklch(0 0 0 / 4%),
+    0 1px 2px oklch(0 0 0 / 3%);
 }
 
 .dark [data-streamdown] pre {
   background: oklch(0.14 0.02 264) !important;
-  box-shadow: 0 1px 3px oklch(0 0 0 / 20%), 0 1px 2px oklch(0 0 0 / 15%);
+  box-shadow:
+    0 1px 3px oklch(0 0 0 / 20%),
+    0 1px 2px oklch(0 0 0 / 15%);
 }
 
 [data-streamdown] pre code {

@@ -84,11 +84,7 @@ export function Waveform({ analyserNode, mode = "fullscreen", className }: Wavef
   return (
     <canvas
       ref={canvasRef}
-      className={cn(
-        "w-full h-full",
-        mode === "compact" && "opacity-50",
-        className
-      )}
+      className={cn("w-full h-full", mode === "compact" && "opacity-50", className)}
     />
   )
 }
