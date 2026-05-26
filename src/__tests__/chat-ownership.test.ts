@@ -30,18 +30,18 @@ describe("getOwnedChat", () => {
     vi.resetAllMocks()
   })
 
-  it("返回属于用户的对话", () => {
+  it("返回属于用户的对话", async () => {
     const chat = { id: "chat-1", userId: "user-1", title: "测试" }
-    mockGet.mockReturnValue(chat)
+    mockGet.mockResolvedValue(chat)
 
-    const result = getOwnedChat("chat-1", "user-1")
+    const result = await getOwnedChat("chat-1", "user-1")
     expect(result).toEqual(chat)
   })
 
-  it("对话不存在时返回 undefined", () => {
-    mockGet.mockReturnValue(undefined)
+  it("对话不存在时返回 undefined", async () => {
+    mockGet.mockResolvedValue(undefined)
 
-    const result = getOwnedChat("chat-999", "user-1")
+    const result = await getOwnedChat("chat-999", "user-1")
     expect(result).toBeUndefined()
   })
 })
