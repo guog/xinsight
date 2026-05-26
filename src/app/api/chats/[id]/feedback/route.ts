@@ -5,6 +5,13 @@ import { eq, and } from "drizzle-orm"
 import { withAuth } from "@/lib/with-auth"
 import { getOwnedChat } from "@/lib/chat-ownership"
 import { randomUUID } from "node:crypto"
+import { z } from "zod"
+
+const feedbackSchema = z.object({
+  messageId: z.string().min(1, "消息 ID 不能为空"),
+  type: z.enum(["up", "down"]),
+  comment: z.string().max(1000).optional(),
+})
 
 /** GET /api/chats/[id]/feedback — 获取对话所有消息的反馈 */
 export const GET = withAuth(async (user, _request, context) => {
@@ -28,16 +35,18 @@ export const POST = withAuth(async (user, request, context) => {
     return NextResponse.json({ error: "对话不存在" }, { status: 404 })
   }
 
-  const body = await request.json()
-  const { messageId, type, comment } = body as {
-    messageId: string
-    type: "up" | "down"
-    comment?: string
+  let body: unknown
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: "无效的 JSON 请求数据" }, { status: 400 })
   }
 
-  if (!messageId || !["up", "down"].includes(type)) {
-    return NextResponse.json({ error: "参数错误" }, { status: 400 })
+  const result = feedbackSchema.safeParse(body)
+  if (!result.success) {
+    return NextResponse.json({ error: "参数错误", details: result.error.issues }, { status: 400 })
   }
+  const { messageId, type, comment } = result.data
 
   const existing = await db
     .select()

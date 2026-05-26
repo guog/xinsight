@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useRef } from "react"
 import { API_BASE } from "@/lib/api"
 
 type FeedbackType = "up" | "down"
@@ -8,11 +8,13 @@ type FeedbackMap = Record<string, FeedbackType>
 
 export function useMessageFeedback(chatId: string | null) {
   const [feedbacks, setFeedbacks] = useState<FeedbackMap>({})
+  const currentChatIdRef = useRef<string | null>(null)
 
   const loadFeedbacks = useCallback(async (id: string) => {
+    currentChatIdRef.current = id
     try {
       const res = await fetch(`${API_BASE}/api/chats/${id}/feedback`)
-      if (res.ok) {
+      if (res.ok && currentChatIdRef.current === id) {
         const data = await res.json()
         const map: FeedbackMap = {}
         for (const f of data) {
@@ -41,11 +43,14 @@ export function useMessageFeedback(chatId: string | null) {
       })
 
       try {
-        await fetch(`${API_BASE}/api/chats/${chatId}/feedback`, {
+        const res = await fetch(`${API_BASE}/api/chats/${chatId}/feedback`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ messageId, type }),
         })
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`)
+        }
       } catch {
         // Revert on error
         setFeedbacks((f) => {
