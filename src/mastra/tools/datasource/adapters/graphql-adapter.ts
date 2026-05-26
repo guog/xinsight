@@ -91,9 +91,7 @@ export class GraphqlAdapter implements DatasourceAdapter {
     } as DatasourceResult
   }
 
-  async testConnection(
-    config: DatasourceConfig,
-  ): Promise<{
+  async testConnection(config: DatasourceConfig): Promise<{
     ok: boolean
     message: string
     statusCode?: number

@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, primaryKey, index } from "drizzle-orm/sqlite-core"
+import { sqliteTable, text, integer, primaryKey, index, uniqueIndex } from "drizzle-orm/sqlite-core"
 
 /** 用户表 */
 export const users = sqliteTable("users", {
@@ -112,6 +112,7 @@ export const messageFeedbacks = sqliteTable(
   (table) => [
     index("idx_message_feedbacks_chat").on(table.chatId),
     index("idx_message_feedbacks_message").on(table.messageId),
+    uniqueIndex("uq_user_message_feedback").on(table.userId, table.messageId),
   ],
 )
 

@@ -62,8 +62,14 @@ export default function OpenApiImportDialog({ open, onClose, onImport }: Props) 
     "w-full px-3 py-2 text-sm rounded-lg border border-border bg-transparent focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
-      <div className="bg-background border border-border rounded-xl p-6 w-full max-w-lg shadow-lg" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      onClick={onClose}
+    >
+      <div
+        className="bg-background border border-border rounded-xl p-6 w-full max-w-lg shadow-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-medium">导入 OpenAPI 规范</h3>
           <button type="button" onClick={onClose} className="p-1 rounded hover:bg-muted">
@@ -90,27 +96,50 @@ export default function OpenApiImportDialog({ open, onClose, onImport }: Props) 
         </div>
 
         {tab === "url" ? (
-          <input className={inputClass} value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://example.com/openapi.json" />
+          <input
+            className={inputClass}
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://example.com/openapi.json"
+          />
         ) : (
-          <textarea className={`${inputClass} min-h-[120px] font-mono`} value={content} onChange={(e) => setContent(e.target.value)} placeholder="粘贴 OpenAPI JSON 或 YAML 内容" rows={6} />
+          <textarea
+            className={`${inputClass} min-h-[120px] font-mono`}
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="粘贴 OpenAPI JSON 或 YAML 内容"
+            rows={6}
+          />
         )}
 
         {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
 
         {preview && (
           <div className="mt-4 p-3 border border-border rounded-lg bg-muted/30">
-            <p className="text-sm font-medium">{preview.info.title} v{preview.info.version}</p>
+            <p className="text-sm font-medium">
+              {preview.info.title} v{preview.info.version}
+            </p>
             <p className="text-sm text-muted-foreground">发现 {preview.endpoints.length} 个接口</p>
-            {preview.baseUrl && <p className="text-xs text-muted-foreground">Base URL: {preview.baseUrl}</p>}
+            {preview.baseUrl && (
+              <p className="text-xs text-muted-foreground">Base URL: {preview.baseUrl}</p>
+            )}
           </div>
         )}
 
         <div className="flex justify-end gap-2 mt-4">
-          <button type="button" onClick={onClose} className="px-4 py-2 text-sm rounded-lg border border-border hover:bg-muted transition-colors">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-sm rounded-lg border border-border hover:bg-muted transition-colors"
+          >
             取消
           </button>
           {preview ? (
-            <button type="button" onClick={handleConfirm} className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+            <button
+              type="button"
+              onClick={handleConfirm}
+              className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+            >
               导入 {preview.endpoints.length} 个接口
             </button>
           ) : (

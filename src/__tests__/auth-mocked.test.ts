@@ -12,7 +12,14 @@ const { mockDb, mockCookies } = vi.hoisted(() => {
 
 // Mock chain helpers
 function chainSelect(result: unknown) {
-  const chain = { from: vi.fn(() => ({ where: vi.fn(() => ({ get: vi.fn(() => result), limit: vi.fn(() => ({ get: vi.fn(() => result) })) })) })) }
+  const chain = {
+    from: vi.fn(() => ({
+      where: vi.fn(() => ({
+        get: vi.fn(() => result),
+        limit: vi.fn(() => ({ get: vi.fn(() => result) })),
+      })),
+    })),
+  }
   mockDb.select.mockReturnValue(chain)
   return chain
 }
@@ -33,7 +40,7 @@ vi.mock("drizzle-orm", () => ({ eq: vi.fn((_a, _b) => "eq"), lt: vi.fn((_a, _b) 
 vi.mock("next/headers", () => ({ cookies: vi.fn(async () => mockCookies) }))
 vi.mock("@/lib/session-sign", () => ({
   signSessionId: vi.fn(async (id: string) => `${id}.sig`),
-  verifySessionCookie: vi.fn(async (val: string) => val.includes(".") ? val.split(".")[0] : null),
+  verifySessionCookie: vi.fn(async (val: string) => (val.includes(".") ? val.split(".")[0] : null)),
 }))
 
 // Mock Bun.password
@@ -44,7 +51,18 @@ vi.stubGlobal("Bun", {
   },
 })
 
-import { registerUser, loginUser, getCurrentUser, logoutUser, hasAnyUser, requireAuth, requireAdmin, handleAuthError, getSessionCookieOptions, cleanExpiredSessions } from "@/lib/auth"
+import {
+  registerUser,
+  loginUser,
+  getCurrentUser,
+  logoutUser,
+  hasAnyUser,
+  requireAuth,
+  requireAdmin,
+  handleAuthError,
+  getSessionCookieOptions,
+  cleanExpiredSessions,
+} from "@/lib/auth"
 
 describe("auth functions", () => {
   beforeEach(() => {
@@ -73,13 +91,25 @@ describe("auth functions", () => {
     })
 
     it("密码错误时抛错", async () => {
-      chainSelect({ id: "u1", username: "admin", passwordHash: "hash", displayName: "A", role: "admin" })
+      chainSelect({
+        id: "u1",
+        username: "admin",
+        passwordHash: "hash",
+        displayName: "A",
+        role: "admin",
+      })
       ;(Bun.password.verify as any).mockResolvedValueOnce(false)
       await expect(loginUser("admin", "wrong")).rejects.toThrow("用户名或密码错误")
     })
 
     it("成功登录返回 user 和 sessionId", async () => {
-      chainSelect({ id: "u1", username: "admin", passwordHash: "hash", displayName: "Admin", role: "admin" })
+      chainSelect({
+        id: "u1",
+        username: "admin",
+        passwordHash: "hash",
+        displayName: "Admin",
+        role: "admin",
+      })
       chainInsert()
       const result = await loginUser("admin", "correct")
       expect(result.user.username).toBe("admin")
@@ -113,7 +143,7 @@ describe("auth functions", () => {
       mockDb.select.mockImplementation(() => ({
         from: vi.fn(() => ({
           where: vi.fn(() => ({
-            get: vi.fn(() => callCount++ === 0 ? session : user),
+            get: vi.fn(() => (callCount++ === 0 ? session : user)),
           })),
         })),
       }))
@@ -188,7 +218,7 @@ describe("auth functions", () => {
       mockDb.select.mockImplementation(() => ({
         from: vi.fn(() => ({
           where: vi.fn(() => ({
-            get: vi.fn(() => callCount++ === 0 ? session : user),
+            get: vi.fn(() => (callCount++ === 0 ? session : user)),
           })),
         })),
       }))

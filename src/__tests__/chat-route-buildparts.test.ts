@@ -2,7 +2,6 @@ import { describe, it, expect } from "vitest"
 import { buildAssistantParts } from "@/lib/chat-utils"
 
 describe("chat route buildAssistantParts", () => {
-
   it("空输入返回空数组", () => {
     const result = buildAssistantParts("", "", new Map())
     expect(result).toEqual([])
@@ -24,7 +23,9 @@ describe("chat route buildAssistantParts", () => {
   })
 
   it("工具调用有输出时 state 为 output-available", () => {
-    const calls = new Map([["tc-1", { toolName: "search", input: { q: "test" }, output: "result" }]])
+    const calls = new Map([
+      ["tc-1", { toolName: "search", input: { q: "test" }, output: "result" }],
+    ])
     const result = buildAssistantParts("", "", calls)
     expect(result[0]).toMatchObject({
       type: "tool-search",

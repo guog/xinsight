@@ -15,6 +15,7 @@
 **Objective:** 所有 agent 文件从 `getDefaultModelId()` 获取模型而非硬编码字符串
 
 **Files:**
+
 - Create: `src/mastra/agents/model-config.ts`
 - Modify: `src/mastra/agents/factory-director.ts`
 - Modify: `src/mastra/agents/production-agent.ts`
@@ -44,6 +45,7 @@ export const DEFAULT_AGENT_MODEL = getDefaultModelId()
 **Step 2: 替换所有 agent 文件中的硬编码模型**
 
 每个 agent 文件:
+
 - 添加 `import { DEFAULT_AGENT_MODEL } from "./model-config"`
 - 将 `model: "deepseek/deepseek-v4-flash"` 替换为 `model: DEFAULT_AGENT_MODEL`
 
@@ -71,15 +73,18 @@ const FALLBACK_MODEL = "" // 空字符串，实际值由 getDefaultModelId() 在
 **Step 5: 修复 wiki LLM 配置**
 
 `src/lib/wiki/ingest-pipeline.ts` 和 `src/lib/wiki/auto-fix.ts`:
+
 - 提取共享 LLM provider 到 `src/lib/wiki/llm.ts`
 - 用 `getDefaultModelId()` 的 modelSlug 部分
 
 **Step 6: 验证**
+
 ```bash
 bunx tsc --noEmit
 ```
 
 **Step 7: Commit**
+
 ```bash
 git add -A
 git commit -m "refactor: extract default model config, remove hardcoded model names"
@@ -92,6 +97,7 @@ git commit -m "refactor: extract default model config, remove hardcoded model na
 **Objective:** 清理 dead code
 
 **Files:**
+
 - Delete: `src/mastra/agents/index.ts`
 - Modify: `src/components/agent-message.tsx` — 删除未使用的 `Route`, `useMemo` imports, `isDone` 变量
 
@@ -109,11 +115,13 @@ rm src/mastra/agents/index.ts
 - 删除 `isDone` 未使用变量
 
 **Step 3: 验证**
+
 ```bash
 bunx tsc --noEmit
 ```
 
 **Step 4: Commit**
+
 ```bash
 git add -A
 git commit -m "refactor: remove dead agents barrel and unused imports"
@@ -126,6 +134,7 @@ git commit -m "refactor: remove dead agents barrel and unused imports"
 **Objective:** 将 agent-message.tsx 中 ~100 行硬编码配置移到独立文件
 
 **Files:**
+
 - Create: `src/config/agent-registry.ts`
 - Modify: `src/components/agent-message.tsx`
 
@@ -148,6 +157,7 @@ import { AGENT_MAP, TOOL_AGENT_MAP } from "@/config/agent-registry"
 **Objective:** 将 page.tsx 的 message parts 渲染逻辑提取为独立组件
 
 **Files:**
+
 - Create: `src/components/chat/message-part-renderer.tsx`
 - Modify: `src/app/page.tsx`
 
@@ -173,6 +183,7 @@ page.tsx 和 mobile-chat-page.tsx 都使用此常量。
 **Objective:** 将 sidebar 从 331 行 God Component 拆为子组件 + hook
 
 **Files:**
+
 - Create: `src/hooks/use-chat-list.ts` — 封装列表 CRUD + 搜索
 - Create: `src/components/chat/chat-list-item.tsx` — 单个对话项
 - Modify: `src/components/sidebar.tsx` — 精简为布局组件
@@ -186,6 +197,7 @@ page.tsx 和 mobile-chat-page.tsx 都使用此常量。
 **Objective:** db/index.ts 只导出 db 实例，副作用移到显式初始化
 
 **Files:**
+
 - Create: `src/db/init.ts`
 - Modify: `src/db/index.ts`
 - Modify: `src/instrumentation.ts`（或 app 入口调用 init）
@@ -205,8 +217,8 @@ export async function initDatabase() {
   } catch (e) {
     console.warn("Migration skipped:", (e as Error).message)
   }
-  await seedUsers().catch(e => console.warn("Seed users failed:", (e as Error).message))
-  await seedProvidersFromEnv().catch(e => console.error("Provider seed failed:", e))
+  await seedUsers().catch((e) => console.warn("Seed users failed:", (e as Error).message))
+  await seedProvidersFromEnv().catch((e) => console.error("Provider seed failed:", e))
 }
 ```
 
@@ -221,6 +233,7 @@ export async function initDatabase() {
 **Objective:** chat/route.ts 的持久化逻辑移到 repository
 
 **Files:**
+
 - Create: `src/db/repositories/chat-repo.ts`（如果不存在）
 - Modify: `src/app/api/chat/route.ts`
 
@@ -231,6 +244,7 @@ export async function initDatabase() {
 **Objective:** 整理目录结构
 
 **Steps:**
+
 - 删除 `src/app/(desktop)/` 空目录
 - lib/ 下 provider-presets.ts、provider-seed.ts、provider-sync.ts 移到 `src/lib/provider/`
 - 清理 .DS_Store
@@ -243,6 +257,7 @@ export async function initDatabase() {
 **Objective:** wiki 的 auto-fix.ts 和 ingest-pipeline.ts 共享 LLM provider
 
 **Files:**
+
 - Create: `src/lib/wiki/llm.ts`
 - Modify: `src/lib/wiki/auto-fix.ts`
 - Modify: `src/lib/wiki/ingest-pipeline.ts`
@@ -252,6 +267,7 @@ export async function initDatabase() {
 ## Task 10: 验证 + PR
 
 **Steps:**
+
 1. `bunx tsc --noEmit`
 2. `bun test`
 3. 启动 dev server 验证功能

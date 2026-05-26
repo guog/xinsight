@@ -21,7 +21,7 @@ export function VoiceModeToggle({ mode, onModeChange, className }: VoiceModeTogg
           "px-3 py-1 text-sm rounded-md transition-colors",
           mode === "voice-only"
             ? "bg-background text-foreground shadow-sm"
-            : "text-muted-foreground hover:text-foreground"
+            : "text-muted-foreground hover:text-foreground",
         )}
       >
         纯语音
@@ -33,7 +33,7 @@ export function VoiceModeToggle({ mode, onModeChange, className }: VoiceModeTogg
           "px-3 py-1 text-sm rounded-md transition-colors",
           mode === "voice-text"
             ? "bg-background text-foreground shadow-sm"
-            : "text-muted-foreground hover:text-foreground"
+            : "text-muted-foreground hover:text-foreground",
         )}
       >
         语音+文字

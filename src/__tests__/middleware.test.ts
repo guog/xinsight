@@ -174,9 +174,7 @@ describe("middleware CSRF 防护", () => {
   })
 
   test("公开 API（/api/auth/login）POST 不做 CSRF 校验", async () => {
-    const res = await middleware(
-      createRequest("/api/auth/login", {}, { method: "POST" }),
-    )
+    const res = await middleware(createRequest("/api/auth/login", {}, { method: "POST" }))
     expect(res.status).toBe(200)
   })
 })

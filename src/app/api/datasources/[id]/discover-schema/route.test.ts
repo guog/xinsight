@@ -16,7 +16,9 @@ vi.mock("@/db", () => ({
 }))
 
 vi.mock("@/db/repositories/datasource-repository", () => ({
-  SqliteDatasourceRepository: function() { return mockRepo },
+  SqliteDatasourceRepository: function () {
+    return mockRepo
+  },
 }))
 
 vi.mock("@/mastra/tools/datasource/adapters", () => ({

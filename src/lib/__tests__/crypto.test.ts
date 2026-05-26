@@ -6,8 +6,7 @@ describe("crypto", () => {
 
   beforeEach(() => {
     // 设置测试用密钥（32 字节 = 64 hex 字符）
-    process.env.ENCRYPTION_KEY =
-      "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    process.env.ENCRYPTION_KEY = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
   })
 
   afterEach(() => {

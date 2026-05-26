@@ -38,41 +38,41 @@ bun dev
 
 ## 常用命令
 
-| 命令 | 说明 |
-| --- | --- |
-| `bun dev` | 启动开发服务器（Turbopack） |
-| `bun run build` | 生产构建 |
-| `bun run build:static` | 静态导出构建（Capacitor 用） |
-| `bun run test` | 运行测试（Vitest） |
-| `bun run test:watch` | 测试监听模式 |
-| `bun run test:coverage` | 测试覆盖率报告 |
-| `bun run lint` | ESLint 检查 |
-| `bun run lint:fix` | ESLint 自动修复 |
-| `bun run format` | Prettier 格式化 |
-| `bun run typecheck` | TypeScript 类型检查 |
-| `bun run mastra:dev` | 启动 Mastra Studio（:3001） |
-| `bun run dev:all` | 并发启动 Next + Mastra + MES Mock |
-| `bun run db:push` | 推送数据库 schema 变更 |
-| `bun run tauri:dev` | 启动 Tauri 桌面应用开发 |
-| `bun run tauri:build` | 构建 Tauri 桌面应用 |
-| `bun run cap:sync` | Capacitor 同步（含静态构建） |
-| `bun run cap:ios` | 打开 iOS 项目 |
-| `bun run cap:android` | 打开 Android 项目 |
+| 命令                    | 说明                              |
+| ----------------------- | --------------------------------- |
+| `bun dev`               | 启动开发服务器（Turbopack）       |
+| `bun run build`         | 生产构建                          |
+| `bun run build:static`  | 静态导出构建（Capacitor 用）      |
+| `bun run test`          | 运行测试（Vitest）                |
+| `bun run test:watch`    | 测试监听模式                      |
+| `bun run test:coverage` | 测试覆盖率报告                    |
+| `bun run lint`          | ESLint 检查                       |
+| `bun run lint:fix`      | ESLint 自动修复                   |
+| `bun run format`        | Prettier 格式化                   |
+| `bun run typecheck`     | TypeScript 类型检查               |
+| `bun run mastra:dev`    | 启动 Mastra Studio（:3001）       |
+| `bun run dev:all`       | 并发启动 Next + Mastra + MES Mock |
+| `bun run db:push`       | 推送数据库 schema 变更            |
+| `bun run tauri:dev`     | 启动 Tauri 桌面应用开发           |
+| `bun run tauri:build`   | 构建 Tauri 桌面应用               |
+| `bun run cap:sync`      | Capacitor 同步（含静态构建）      |
+| `bun run cap:ios`       | 打开 iOS 项目                     |
+| `bun run cap:android`   | 打开 Android 项目                 |
 
 ## 环境变量
 
 复制 `.env.example` 到 `.env.local` 并配置：
 
-| 变量 | 必填 | 说明 |
-| --- | --- | --- |
-| `LLM_PROVIDERS` | 是 | 启用的 LLM 提供商列表（如 `deepseek,qwen`） |
-| `DEEPSEEK_API_KEY` | 是 | DeepSeek API 密钥 |
-| `ENCRYPTION_KEY` | 是 | 32 字节 hex，用于加密存储 API key |
-| `SESSION_SECRET` | 是 | HMAC session 签名密钥 |
-| `DASHSCOPE_API_KEY` | 否 | 阿里 DashScope API 密钥（通义千问 + 语音） |
-| `OPENAI_API_KEY` | 否 | OpenAI API 密钥 |
-| `ANTHROPIC_API_KEY` | 否 | Anthropic API 密钥 |
-| `TTS_MODEL` / `TTS_VOICE` / `STT_MODEL` | 否 | 语音模型配置（基于 DashScope） |
+| 变量                                    | 必填 | 说明                                        |
+| --------------------------------------- | ---- | ------------------------------------------- |
+| `LLM_PROVIDERS`                         | 是   | 启用的 LLM 提供商列表（如 `deepseek,qwen`） |
+| `DEEPSEEK_API_KEY`                      | 是   | DeepSeek API 密钥                           |
+| `ENCRYPTION_KEY`                        | 是   | 32 字节 hex，用于加密存储 API key           |
+| `SESSION_SECRET`                        | 是   | HMAC session 签名密钥                       |
+| `DASHSCOPE_API_KEY`                     | 否   | 阿里 DashScope API 密钥（通义千问 + 语音）  |
+| `OPENAI_API_KEY`                        | 否   | OpenAI API 密钥                             |
+| `ANTHROPIC_API_KEY`                     | 否   | Anthropic API 密钥                          |
+| `TTS_MODEL` / `TTS_VOICE` / `STT_MODEL` | 否   | 语音模型配置（基于 DashScope）              |
 
 ## 目录结构
 

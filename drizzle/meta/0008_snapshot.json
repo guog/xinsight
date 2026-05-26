@@ -42,22 +42,15 @@
           "name": "agent_datasources_datasource_id_datasources_id_fk",
           "tableFrom": "agent_datasources",
           "tableTo": "datasources",
-          "columnsFrom": [
-            "datasource_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["datasource_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
         "agent_datasources_agent_id_datasource_id_pk": {
-          "columns": [
-            "agent_id",
-            "datasource_id"
-          ],
+          "columns": ["agent_id", "datasource_id"],
           "name": "agent_datasources_agent_id_datasource_id_pk"
         }
       },
@@ -125,12 +118,8 @@
           "name": "chats_user_id_users_id_fk",
           "tableFrom": "chats",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -338,9 +327,7 @@
       "indexes": {
         "idx_llm_models_provider": {
           "name": "idx_llm_models_provider",
-          "columns": [
-            "provider_id"
-          ],
+          "columns": ["provider_id"],
           "isUnique": false
         }
       },
@@ -349,12 +336,8 @@
           "name": "llm_models_provider_id_llm_providers_id_fk",
           "tableFrom": "llm_models",
           "tableTo": "llm_providers",
-          "columnsFrom": [
-            "provider_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["provider_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -505,9 +488,7 @@
       "indexes": {
         "idx_messages_chat_id": {
           "name": "idx_messages_chat_id",
-          "columns": [
-            "chat_id"
-          ],
+          "columns": ["chat_id"],
           "isUnique": false
         }
       },
@@ -516,12 +497,8 @@
           "name": "messages_chat_id_chats_id_fk",
           "tableFrom": "messages",
           "tableTo": "chats",
-          "columnsFrom": [
-            "chat_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["chat_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -565,10 +542,7 @@
       "indexes": {
         "idx_rate_limits_ip_action": {
           "name": "idx_rate_limits_ip_action",
-          "columns": [
-            "ip",
-            "action"
-          ],
+          "columns": ["ip", "action"],
           "isUnique": false
         }
       },
@@ -615,12 +589,8 @@
           "name": "sessions_user_id_users_id_fk",
           "tableFrom": "sessions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -686,9 +656,7 @@
       "indexes": {
         "users_username_unique": {
           "name": "users_username_unique",
-          "columns": [
-            "username"
-          ],
+          "columns": ["username"],
           "isUnique": true
         }
       },
@@ -778,12 +746,8 @@
           "name": "wiki_feedbacks_user_id_users_id_fk",
           "tableFrom": "wiki_feedbacks",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -945,16 +909,12 @@
       "indexes": {
         "wiki_uploads_stored_path_unique": {
           "name": "wiki_uploads_stored_path_unique",
-          "columns": [
-            "stored_path"
-          ],
+          "columns": ["stored_path"],
           "isUnique": true
         },
         "wiki_uploads_sha256_unique": {
           "name": "wiki_uploads_sha256_unique",
-          "columns": [
-            "sha256"
-          ],
+          "columns": ["sha256"],
           "isUnique": true
         }
       },

@@ -14,13 +14,20 @@ interface Props {
 }
 
 export default function GrpcEndpointForm({ endpoint, onChange, onRemove }: Props) {
-  const update = (partial: Partial<GrpcEndpoint>) => onChange({ ...endpoint, ...partial } as GrpcEndpoint)
+  const update = (partial: Partial<GrpcEndpoint>) =>
+    onChange({ ...endpoint, ...partial } as GrpcEndpoint)
 
   return (
     <div className="border border-border rounded-lg p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium">{endpoint.service ? `${endpoint.service}.${endpoint.method}` : "gRPC 接口"}</span>
-        <button type="button" onClick={onRemove} className="p-1 rounded hover:bg-muted text-red-500 transition-colors">
+        <span className="text-sm font-medium">
+          {endpoint.service ? `${endpoint.service}.${endpoint.method}` : "gRPC 接口"}
+        </span>
+        <button
+          type="button"
+          onClick={onRemove}
+          className="p-1 rounded hover:bg-muted text-red-500 transition-colors"
+        >
           <Trash2 className="size-4" />
         </button>
       </div>
@@ -28,22 +35,42 @@ export default function GrpcEndpointForm({ endpoint, onChange, onRemove }: Props
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <label className={labelClass}>ID</label>
-          <input className={inputClass} value={endpoint.id} onChange={(e) => update({ id: e.target.value })} placeholder="接口 ID" />
+          <input
+            className={inputClass}
+            value={endpoint.id}
+            onChange={(e) => update({ id: e.target.value })}
+            placeholder="接口 ID"
+          />
         </div>
         <div>
           <label className={labelClass}>名称</label>
-          <input className={inputClass} value={endpoint.name} onChange={(e) => update({ name: e.target.value })} placeholder="接口名称" />
+          <input
+            className={inputClass}
+            value={endpoint.name}
+            onChange={(e) => update({ name: e.target.value })}
+            placeholder="接口名称"
+          />
         </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <label className={labelClass}>Service</label>
-          <input className={inputClass} value={endpoint.service} onChange={(e) => update({ service: e.target.value })} placeholder="com.example.UserService" />
+          <input
+            className={inputClass}
+            value={endpoint.service}
+            onChange={(e) => update({ service: e.target.value })}
+            placeholder="com.example.UserService"
+          />
         </div>
         <div>
           <label className={labelClass}>Method</label>
-          <input className={inputClass} value={endpoint.method} onChange={(e) => update({ method: e.target.value })} placeholder="GetUser" />
+          <input
+            className={inputClass}
+            value={endpoint.method}
+            onChange={(e) => update({ method: e.target.value })}
+            placeholder="GetUser"
+          />
         </div>
       </div>
 
@@ -69,7 +96,11 @@ export default function GrpcEndpointForm({ endpoint, onChange, onRemove }: Props
 
       <div>
         <label className={labelClass}>描述</label>
-        <input className={inputClass} value={endpoint.description ?? ""} onChange={(e) => update({ description: e.target.value })} />
+        <input
+          className={inputClass}
+          value={endpoint.description ?? ""}
+          onChange={(e) => update({ description: e.target.value })}
+        />
       </div>
     </div>
   )

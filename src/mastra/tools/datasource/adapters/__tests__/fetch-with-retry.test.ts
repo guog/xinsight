@@ -17,7 +17,9 @@ function mockResponse(status: number, body: unknown = {}, headers: Record<string
 
 describe("fetchWithRetry", () => {
   test("successful request returns data", async () => {
-    globalThis.fetch = vi.fn(() => Promise.resolve(mockResponse(200, { hello: "world" }))) as unknown as typeof fetch
+    globalThis.fetch = vi.fn(() =>
+      Promise.resolve(mockResponse(200, { hello: "world" })),
+    ) as unknown as typeof fetch
 
     const result = await fetchWithRetry("http://example.com/api", { method: "GET" })
     expect(result.error).toBeUndefined()

@@ -54,7 +54,7 @@ describe("extractText", () => {
     const zip = new JSZip()
     zip.file(
       "word/document.xml",
-      '<w:document><w:body><w:p><w:r><w:t>Hello World</w:t></w:r></w:p></w:body></w:document>',
+      "<w:document><w:body><w:p><w:r><w:t>Hello World</w:t></w:r></w:p></w:body></w:document>",
     )
     const buf = await zip.generateAsync({ type: "nodebuffer" })
     const p = join(tmpDir, "test.docx")

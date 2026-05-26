@@ -55,8 +55,7 @@ export const datasourceQueryTool = createTool({
       resourceId?: string
       agent?: { agentId?: string; resourceId?: string }
     }
-    const agentId =
-      ctx.agent?.agentId ?? ctx.agent?.resourceId ?? ctx.agentId ?? ctx.resourceId
+    const agentId = ctx.agent?.agentId ?? ctx.agent?.resourceId ?? ctx.agentId ?? ctx.resourceId
 
     const config = await repo.findById(datasourceId)
     if (!config) return { success: false, error: `数据源 "${datasourceId}" 未找到` }
@@ -172,8 +171,7 @@ export const datasourceListTool = createTool({
       resourceId?: string
       agent?: { agentId?: string; resourceId?: string }
     }
-    const agentId =
-      ctx.agent?.agentId ?? ctx.agent?.resourceId ?? ctx.agentId ?? ctx.resourceId
+    const agentId = ctx.agent?.agentId ?? ctx.agent?.resourceId ?? ctx.agentId ?? ctx.resourceId
     // 获取端点级绑定信息，用于过滤 endpoints
     const endpointBindings = agentId ? await repo.getAgentEndpointBindings(agentId) : null
     const list = agentId ? await repo.findByAgentId(agentId) : await repo.findAllEnabled()
