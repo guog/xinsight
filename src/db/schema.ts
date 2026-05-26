@@ -206,3 +206,26 @@ export const llmModels = sqliteTable(
   },
   (table) => [index("idx_llm_models_provider").on(table.providerId)],
 )
+
+/** 知识库分区表 */
+export const wikiNamespaces = sqliteTable("wiki_namespaces", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull().unique(), // 唯一目录标识（例如 "energy"）
+  displayName: text("display_name").notNull(), // 分区显示名称（例如 "能源分区"）
+  description: text("description"), // 分区描述
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+})
+
+/** Agent 与知识库分区多对多关联表 */
+export const agentWikiNamespaces = sqliteTable(
+  "agent_wiki_namespaces",
+  {
+    agentId: text("agent_id").notNull(),
+    namespaceId: text("namespace_id")
+      .notNull()
+      .references(() => wikiNamespaces.id, { onDelete: "cascade" }),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.agentId, table.namespaceId] })],
+)

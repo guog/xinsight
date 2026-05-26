@@ -1,5 +1,5 @@
 import { createTool } from "@mastra/core/tools"
-import { z } from "zod"
+import * as z from "zod"
 import { readdir, readFile } from "fs/promises"
 import { join, relative, resolve } from "path"
 
@@ -11,6 +11,26 @@ function safePath(basePath: string, relativePath: string): string | null {
   const resolved = resolve(basePath, relativePath)
   if (!resolved.startsWith(base) && resolved !== resolve(basePath)) return null
   return resolved
+}
+
+/** 递归查找目录下的所有 markdown 文件（返回相对于 basePath 的路径） */
+async function scanFilesRecursively(dir: string, basePath: string): Promise<string[]> {
+  const results: string[] = []
+  let entries: any[] = []
+  try {
+    entries = await readdir(dir, { withFileTypes: true })
+  } catch {
+    return []
+  }
+  for (const entry of entries) {
+    const fullPath = join(dir, entry.name)
+    if (entry.isDirectory()) {
+      results.push(...(await scanFilesRecursively(fullPath, basePath)))
+    } else if (entry.name.endsWith(".md") || entry.name.endsWith(".mdx")) {
+      results.push(relative(basePath, fullPath))
+    }
+  }
+  return results
 }
 
 /**
@@ -42,7 +62,11 @@ export const wikiSearchTool = createTool({
     ),
     total: z.number(),
   }),
-  execute: async ({ query, type, limit }) => {
+  execute: async ({ query, type, limit }, context) => {
+    const { db } = await import("@/db")
+    const { wikiNamespaces, agentWikiNamespaces } = await import("@/db/schema")
+    const { eq } = await import("drizzle-orm")
+
     const maxResults = limit ?? 5
     const results: Array<{
       path: string
@@ -52,67 +76,110 @@ export const wikiSearchTool = createTool({
       tags: string[]
     }> = []
 
-    // 确定搜索目录
-    const searchDirs =
-      type && type !== "all"
-        ? [
-            type === "entity"
-              ? "entities"
-              : type === "concept"
-                ? "concepts"
-                : type === "comparison"
-                  ? "comparisons"
-                  : "queries",
-          ]
-        : ["entities", "concepts", "notes", "references", "comparisons", "queries"]
+    const ctx = context as unknown as {
+      agentId?: string
+      resourceId?: string
+      agent?: { agentId?: string; resourceId?: string }
+    }
+    const agentId = ctx.agent?.agentId ?? ctx.agent?.resourceId ?? ctx.agentId ?? ctx.resourceId
 
+    // 1. 获取该 Agent 的挂载分区
+    let namespaces: string[] = []
+    if (agentId) {
+      try {
+        const rows = await db
+          .select({ name: wikiNamespaces.name })
+          .from(agentWikiNamespaces)
+          .innerJoin(wikiNamespaces, eq(agentWikiNamespaces.namespaceId, wikiNamespaces.id))
+          .where(eq(agentWikiNamespaces.agentId, agentId))
+          .all()
+        namespaces = rows.map((r) => r.name)
+      } catch (e) {
+        console.error("查询 Agent 分区绑定失败", e)
+      }
+    }
+
+    // 2. 获取所有已注册的分区名称，用于排除公共扫描
+    let allRegisteredNamespaces: string[] = []
+    try {
+      const allNss = await db.select({ name: wikiNamespaces.name }).from(wikiNamespaces).all()
+      allRegisteredNamespaces = allNss.map((r) => r.name)
+    } catch {
+      // ignored
+    }
+
+    // 3. 收集所有可供扫描的相对路径
+    const relativePaths: string[] = []
+    const wikiRoot = getWikiPath()
+
+    if (agentId) {
+      if (namespaces.length > 0) {
+        // 只扫描该 Agent 挂载的分区文件夹
+        for (const ns of namespaces) {
+          const nsPath = join(wikiRoot, ns)
+          relativePaths.push(...(await scanFilesRecursively(nsPath, wikiRoot)))
+        }
+      } else {
+        // 扫描公共非分区页面
+        const topEntries = await readdir(wikiRoot, { withFileTypes: true }).catch(() => [])
+        for (const entry of topEntries) {
+          const entryPath = join(wikiRoot, entry.name)
+          if (entry.isDirectory()) {
+            if (!allRegisteredNamespaces.includes(entry.name)) {
+              relativePaths.push(...(await scanFilesRecursively(entryPath, wikiRoot)))
+            }
+          } else if (entry.name.endsWith(".md") || entry.name.endsWith(".mdx")) {
+            relativePaths.push(entry.name)
+          }
+        }
+      }
+    } else {
+      // agentId 缺失，允许扫描全部
+      relativePaths.push(...(await scanFilesRecursively(wikiRoot, wikiRoot)))
+    }
+
+    // 4. 进行关键词匹配和打分
     const queryLower = query.toLowerCase()
     const queryTerms = queryLower.split(/\s+/).filter(Boolean)
 
-    for (const dir of searchDirs) {
-      const dirPath = join(getWikiPath(), dir)
-      let files: string[]
+    for (const relPath of relativePaths) {
+      // 路径安全校验
+      const fullPath = safePath(wikiRoot, relPath)
+      if (!fullPath) continue
+
+      let content: string
       try {
-        files = await readdir(dirPath)
+        content = await readFile(fullPath, "utf-8")
       } catch {
         continue
       }
 
-      for (const file of files) {
-        if (!file.endsWith(".md") || file.startsWith(".")) continue
-
-        const filePath = join(dirPath, file)
-        let content: string
-        try {
-          content = await readFile(filePath, "utf-8")
-        } catch {
-          continue
-        }
-
-        // 计算匹配度 — 简单的 term frequency 评分
-        let score = 0
-        for (const term of queryTerms) {
-          const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-          const regex = new RegExp(escaped, "gi")
-          const matches = content.match(regex)
-          if (matches) score += matches.length
-        }
-
-        if (score === 0) continue
-
-        // 解析 frontmatter
-        const meta = parseFrontmatter(content)
-        // 提取匹配行作为摘要
-        const snippet = extractSnippet(content, queryTerms)
-
-        results.push({
-          path: relative(getWikiPath(), filePath),
-          title: meta.title || file.replace(".md", ""),
-          type: meta.type || dir.replace(/s$/, ""),
-          snippet,
-          tags: meta.tags || [],
-        })
+      let score = 0
+      for (const term of queryTerms) {
+        const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+        const regex = new RegExp(escaped, "gi")
+        const matches = content.match(regex)
+        if (matches) score += matches.length
       }
+
+      if (score === 0) continue
+
+      const meta = parseFrontmatter(content)
+      const snippet = extractSnippet(content, queryTerms)
+      // 计算文件的类别（type）：如果是分区下的，取分区名作为 type，否则取第一级子文件夹名
+      let computedType = "page"
+      const pathParts = relPath.split("/")
+      if (pathParts.length > 1) {
+        computedType = pathParts[0]
+      }
+
+      results.push({
+        path: relPath,
+        title: meta.title || pathParts[pathParts.length - 1].replace(/\.mdx?$/, ""),
+        type: meta.type || computedType,
+        snippet,
+        tags: meta.tags || [],
+      })
     }
 
     // 按相关度排序
@@ -265,9 +332,98 @@ export const wikiListTool = createTool({
     content: z.string().optional(),
     error: z.string().optional(),
   }),
-  execute: async () => {
+  execute: async (_, context) => {
+    const { db } = await import("@/db")
+    const { wikiNamespaces, agentWikiNamespaces } = await import("@/db/schema")
+    const { eq } = await import("drizzle-orm")
+
+    const ctx = context as unknown as {
+      agentId?: string
+      resourceId?: string
+      agent?: { agentId?: string; resourceId?: string }
+    }
+    const agentId = ctx.agent?.agentId ?? ctx.agent?.resourceId ?? ctx.agentId ?? ctx.resourceId
+
+    const wikiRoot = getWikiPath()
+
+    // 1. 获取该 Agent 的挂载分区
+    let namespaces: string[] = []
+    if (agentId) {
+      try {
+        const rows = await db
+          .select({ name: wikiNamespaces.name })
+          .from(agentWikiNamespaces)
+          .innerJoin(wikiNamespaces, eq(agentWikiNamespaces.namespaceId, wikiNamespaces.id))
+          .where(eq(agentWikiNamespaces.agentId, agentId))
+          .all()
+        namespaces = rows.map((r) => r.name)
+      } catch {
+        // ignored
+      }
+    }
+
+    if (agentId && namespaces.length > 0) {
+      // 聚合挂载分区的 index.md 或动态生成
+      let aggregatedContent = ""
+      for (const ns of namespaces) {
+        const nsIndex = join(wikiRoot, ns, "index.md")
+        let nsContent = ""
+        try {
+          nsContent = await readFile(nsIndex, "utf-8")
+        } catch {
+          // 动态生成目录列表
+          const files = await scanFilesRecursively(join(wikiRoot, ns), wikiRoot)
+          if (files.length > 0) {
+            nsContent =
+              `# ${ns} 分区文档目录\n\n` +
+              files
+                .map((f) => `- [${f.replace(ns + "/", "").replace(/\.mdx?$/, "")}](${f})`)
+                .join("\n") +
+              "\n"
+          } else {
+            nsContent = `# ${ns} 分区文档目录\n\n暂无文档\n`
+          }
+        }
+        aggregatedContent += nsContent + "\n---\n\n"
+      }
+      return { success: true, content: aggregatedContent.trim() }
+    }
+
+    if (agentId) {
+      // 有 Agent 但未绑定分区，只列出公共文档
+      let allRegisteredNamespaces: string[] = []
+      try {
+        const allNss = await db.select({ name: wikiNamespaces.name }).from(wikiNamespaces).all()
+        allRegisteredNamespaces = allNss.map((r) => r.name)
+      } catch {
+        // ignored
+      }
+
+      const publicFiles: string[] = []
+      const topEntries = await readdir(wikiRoot, { withFileTypes: true }).catch(() => [])
+      for (const entry of topEntries) {
+        const entryPath = join(wikiRoot, entry.name)
+        if (entry.isDirectory()) {
+          if (!allRegisteredNamespaces.includes(entry.name)) {
+            publicFiles.push(...(await scanFilesRecursively(entryPath, wikiRoot)))
+          }
+        } else if (entry.name.endsWith(".md") || entry.name.endsWith(".mdx")) {
+          publicFiles.push(entry.name)
+        }
+      }
+
+      let content = "# 公共文档目录\n\n"
+      if (publicFiles.length > 0) {
+        content += publicFiles.map((f) => `- [${f.replace(/\.mdx?$/, "")}](${f})`).join("\n")
+      } else {
+        content += "暂无公共文档"
+      }
+      return { success: true, content }
+    }
+
+    // 默认回退（无 agentId）
     try {
-      const indexPath = join(getWikiPath(), "index.md")
+      const indexPath = join(wikiRoot, "index.md")
       const content = await readFile(indexPath, "utf-8")
       return { success: true, content }
     } catch {

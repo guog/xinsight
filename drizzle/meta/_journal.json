@@ -71,6 +71,13 @@
       "when": 1778920815512,
       "tag": "0009_abnormal_pestilence",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1779772547035,
+      "tag": "0010_handy_sue_storm",
+      "breakpoints": true
     }
   ]
 }

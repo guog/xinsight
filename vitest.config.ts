@@ -25,6 +25,10 @@ export default defineConfig({
       "src/mastra/tools/datasource/__tests__/datasource-tool.test.ts",
       "src/lib/schema/build-context.test.ts",
       "src/mastra/tools/cross-source/__tests__/batch-query.test.ts",
+      "src/__tests__/wiki-schema-extended.test.ts",
+      "src/__tests__/wiki-tools-extended.test.ts",
+      "src/__tests__/operations-api.test.ts",
+      "src/mastra/tools/wiki/__tests__/**",
     ],
   },
   resolve: {

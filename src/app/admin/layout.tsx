@@ -1,6 +1,6 @@
 "use client"
 import Link from "next/link"
-import { ArrowLeft, Database, Bot, BookOpen, Cpu } from "lucide-react"
+import { ArrowLeft, Database, Bot, BookOpen, Cpu, BarChart3 } from "lucide-react"
 import { usePathname, useRouter } from "next/navigation"
 import { useUser } from "@/hooks/use-user"
 
@@ -9,6 +9,7 @@ const navItems = [
   { href: "/admin/agents", label: "Agent 管理", icon: Bot },
   { href: "/admin/wiki", label: "知识库", icon: BookOpen },
   { href: "/admin/providers", label: "模型管理", icon: Cpu },
+  { href: "/admin/operations", label: "运营统计", icon: BarChart3 },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -96,6 +97,30 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   <span className="text-foreground">编辑</span>
                 </>
               )}
+            </>
+          )}
+          {pathname.startsWith("/admin/wiki") && (
+            <>
+              <span>&gt;</span>
+              <Link href="/admin/wiki" className="hover:text-foreground transition-colors">
+                知识库
+              </Link>
+            </>
+          )}
+          {pathname.startsWith("/admin/providers") && (
+            <>
+              <span>&gt;</span>
+              <Link href="/admin/providers" className="hover:text-foreground transition-colors">
+                模型管理
+              </Link>
+            </>
+          )}
+          {pathname.startsWith("/admin/operations") && (
+            <>
+              <span>&gt;</span>
+              <Link href="/admin/operations" className="hover:text-foreground transition-colors">
+                运营统计
+              </Link>
             </>
           )}
         </nav>

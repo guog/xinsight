@@ -9,6 +9,7 @@ const dbPath =
   process.env.DATABASE_URL ??
   join(process.cwd(), "data", "xinsight.db")
 const sqlite = new Database(dbPath)
+sqlite.exec("PRAGMA foreign_keys = ON;")
 export const db = drizzle(sqlite, { schema })
 export type DB = typeof db
 
