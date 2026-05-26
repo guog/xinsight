@@ -5,7 +5,10 @@ import { Workflow, createStep } from "@mastra/core/workflows"
 import { mastra } from "@/mastra"
 import { getAdapter } from "@/mastra/tools/datasource/adapters"
 import type { DatasourceConfig } from "@/mastra/tools/datasource/types"
-import { z } from "zod"
+import { z as zodStatic } from "zod"
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const z = zodStatic || require("zod").z
 
 // 递归模板参数替换辅助函数
 function resolveTemplate(

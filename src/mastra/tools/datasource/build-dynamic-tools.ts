@@ -67,7 +67,8 @@ export async function buildDynamicTools(agentId: string) {
         | undefined
       const hasStructured = sParams && sParams.length > 0
 
-      const isConfRequired = ep.method !== "GET" && confirmationRequiredEps.includes(ep.id)
+      const method = (ep as any).method || (ep.params as any)?.method || "GET"
+      const isConfRequired = method !== "GET" && confirmationRequiredEps.includes(ep.id)
 
       const inputSchema = hasStructured
         ? z.object({ params: structuredParamsToZod(sParams).optional() })
@@ -95,11 +96,12 @@ export async function buildDynamicTools(agentId: string) {
               error: "CONFIRMATION_REQUIRED",
               metadata: {
                 confirmationRequired: true,
+                agentId,
                 datasourceId: ds.id,
                 datasourceName: ds.name,
                 endpointId: ep.id,
                 endpointName: ep.name,
-                method: ep.method,
+                method,
                 params: mergedParams,
               },
             }

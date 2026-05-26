@@ -537,6 +537,7 @@ function DirectToolMessage({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          agentId: metadata.agentId,
           datasourceId: metadata.datasourceId,
           endpointId: metadata.endpointId,
           params: metadata.params,

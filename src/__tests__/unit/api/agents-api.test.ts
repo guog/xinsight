@@ -17,9 +17,11 @@ vi.mock("@/db", () => ({
 // Mock agent-repository
 const mockGetAuthorizedAgentsForUser = vi.fn()
 vi.mock("@/db/repositories/agent-repository", () => ({
-  SqliteAgentRepository: vi.fn().mockImplementation(() => ({
-    getAuthorizedAgentsForUser: (...args: unknown[]) => mockGetAuthorizedAgentsForUser(...args),
-  })),
+  SqliteAgentRepository: class {
+    getAuthorizedAgentsForUser(...args: any[]) {
+      return mockGetAuthorizedAgentsForUser(...args)
+    }
+  },
 }))
 
 // Mock auth
