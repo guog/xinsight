@@ -7,6 +7,7 @@ import { getAdapter } from "@/mastra/tools/datasource/adapters"
 import { requireAuth, handleAuthError } from "@/lib/auth"
 import type { DatasourceConfig } from "@/mastra/tools/datasource/types"
 import { and, eq } from "drizzle-orm"
+import { safeFilterParams } from "@/mastra/tools/datasource/validate-params"
 
 export async function POST(request: Request) {
   try {
@@ -112,7 +113,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `不支持的数据源类型: ${ds.type}` }, { status: 400 })
     }
 
-    const mergedParams = { ...ep.params, ...(params ?? {}) }
+    const mergedParams = { ...ep.params, ...safeFilterParams(params) }
 
     const result = await adapter.query(
       {

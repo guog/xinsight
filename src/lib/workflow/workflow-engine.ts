@@ -6,6 +6,7 @@ import { mastra } from "@/mastra"
 import { getAdapter } from "@/mastra/tools/datasource/adapters"
 import type { DatasourceConfig } from "@/mastra/tools/datasource/types"
 import { z as zodStatic } from "zod"
+import { safeFilterParams } from "@/mastra/tools/datasource/validate-params"
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const z = zodStatic || require("zod").z
@@ -245,7 +246,7 @@ export class WorkflowEngine {
                 const adapter = getAdapter(ds.type)
                 if (!adapter) throw new Error(`不支持的数据源类型: ${ds.type}`)
 
-                const mergedParams = { ...ep.params, ...(resolvedParams ?? {}) }
+                const mergedParams = { ...ep.params, ...safeFilterParams(resolvedParams) }
                 const result = await adapter.query(
                   {
                     id: ds.id,

@@ -204,20 +204,21 @@ export class SqliteAgentRepository implements AgentRepository {
   }
 
   async updatePermissions(agentId: string, permissions: AgentPermissionInput[]): Promise<void> {
-    this.db.delete(agentPermissions).where(eq(agentPermissions.agentId, agentId)).run()
+    await this.db.transaction(async (tx) => {
+      tx.delete(agentPermissions).where(eq(agentPermissions.agentId, agentId)).run()
 
-    for (const p of permissions) {
-      this.db
-        .insert(agentPermissions)
-        .values({
-          id: crypto.randomUUID(),
-          agentId,
-          subjectType: p.subjectType,
-          subjectId: p.subjectId,
-          permissionType: p.permissionType ?? "read",
-          createdAt: new Date(),
-        })
-        .run()
-    }
+      for (const p of permissions) {
+        tx.insert(agentPermissions)
+          .values({
+            id: crypto.randomUUID(),
+            agentId,
+            subjectType: p.subjectType,
+            subjectId: p.subjectId,
+            permissionType: p.permissionType ?? "read",
+            createdAt: new Date(),
+          })
+          .run()
+      }
+    })
   }
 }

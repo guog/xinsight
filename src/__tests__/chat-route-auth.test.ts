@@ -42,6 +42,7 @@ const mockGetAuthorizedAgentsForUser = vi.fn()
 vi.mock("@/db/repositories/agent-repository", () => ({
   SqliteAgentRepository: vi.fn().mockImplementation(() => ({
     findEnabled: vi.fn().mockResolvedValue([]),
+    findById: vi.fn().mockResolvedValue({ id: "factory-director", name: "厂长", isBuiltin: true }),
     getAuthorizedAgentsForUser: (...args: unknown[]) => mockGetAuthorizedAgentsForUser(...args),
   })),
 }))

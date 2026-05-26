@@ -5,7 +5,12 @@ import { SqliteDatasourceRepository } from "@/db/repositories/datasource-reposit
 import { getAdapter } from "./adapters"
 import type { DatasourceConfig } from "./types"
 import type { StructuredParam } from "./types"
-import { validateParams, formatParamHints } from "./validate-params"
+import {
+  validateParams,
+  formatParamHints,
+  safeFilterParams,
+  isWriteEndpoint,
+} from "./validate-params"
 
 const MAX_TOOLS = 20
 
@@ -67,8 +72,14 @@ export async function buildDynamicTools(agentId: string) {
         | undefined
       const hasStructured = sParams && sParams.length > 0
 
-      const method = (ep as any).method || (ep.params as any)?.method || "GET"
-      const isConfRequired = method !== "GET" && confirmationRequiredEps.includes(ep.id)
+      const isWrite = isWriteEndpoint(ep)
+      const isConfRequired = isWrite && confirmationRequiredEps.includes(ep.id)
+      const displayMethod =
+        (ep as any).method ||
+        (ep as any).action ||
+        (ep as any).operationType ||
+        (ep as any).direction ||
+        "WRITE"
 
       const inputSchema = hasStructured
         ? z.object({ params: structuredParamsToZod(sParams).optional() })
@@ -88,7 +99,7 @@ export async function buildDynamicTools(agentId: string) {
           const adapter = getAdapter(ds.type)
           if (!adapter) return { success: false, error: `不支持的数据源类型: ${ds.type}` }
 
-          const mergedParams = { ...ep.params, ...(input.params ?? {}) }
+          const mergedParams = { ...ep.params, ...safeFilterParams(input.params) }
 
           if (isConfRequired) {
             return {
@@ -101,7 +112,7 @@ export async function buildDynamicTools(agentId: string) {
                 datasourceName: ds.name,
                 endpointId: ep.id,
                 endpointName: ep.name,
-                method,
+                method: displayMethod,
                 params: mergedParams,
               },
             }

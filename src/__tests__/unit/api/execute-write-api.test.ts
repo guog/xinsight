@@ -241,4 +241,25 @@ describe("POST /api/datasources/execute-write", () => {
     expect(mockQuery).toHaveBeenCalled()
     expect(mockRecordCall).toHaveBeenCalledWith("ds-1")
   })
+
+  it("应自动过滤传入的敏感参数以防止覆盖漏洞", async () => {
+    const req = new Request("http://localhost/api/datasources/execute-write", {
+      method: "POST",
+      body: JSON.stringify({
+        agentId: "chatAgent",
+        datasourceId: "ds-1",
+        endpointId: "write-orders",
+        params: { orderId: "123", method: "DELETE", path: "/admin/destroy" },
+      }),
+    })
+    const response = await POST(req)
+    expect(response.status).toBe(200)
+
+    expect(mockQuery).toHaveBeenCalled()
+    const callArgs = mockQuery.mock.calls[0]
+    const passedParams = callArgs[1]
+    expect(passedParams.orderId).toBe("123")
+    expect(passedParams.method).toBeUndefined()
+    expect(passedParams.path).toBeUndefined()
+  })
 })

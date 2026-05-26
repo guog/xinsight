@@ -77,3 +77,85 @@ export function formatParamHints(structuredParams: StructuredParam[]): string {
     })
     .join("\n")
 }
+
+/** 敏感参数保留字黑名单，防止外部/用户/LLM参数覆盖预配置的核心字段（如 path, method 等导致的安全注入漏洞） */
+export const SENSITIVE_KEYS = [
+  "method",
+  "path",
+  "headers",
+  "url",
+  "baseUrl",
+  "body",
+  "requestBody",
+  "queryParams",
+  "operationType",
+  "operationName",
+  "query",
+  "variables",
+  "service",
+  "requestMessage",
+  "responseMessage",
+  "action",
+  "nodeIds",
+  "dataType",
+  "topic",
+  "direction",
+  "qos",
+  "payloadFormat",
+  "auth",
+  "config",
+  "enabled",
+  "endpoints",
+  "id",
+  "name",
+  "type",
+]
+
+/**
+ * 过滤外部传入的参数，移除敏感字，防范参数覆盖注入攻击
+ */
+export function safeFilterParams(
+  params: Record<string, unknown> | undefined | null,
+): Record<string, unknown> {
+  if (!params) return {}
+  const filtered = { ...params }
+  for (const key of SENSITIVE_KEYS) {
+    delete filtered[key]
+  }
+  return filtered
+}
+
+/**
+ * 根据各协议端点的特征，判定其是否为写操作（从而触发二次确认）
+ */
+export function isWriteEndpoint(ep: any): boolean {
+  if (!ep) return false
+
+  // 1. REST 协议判断 (包含 path 且有特定 method)
+  if (ep.path !== undefined && ep.method !== undefined) {
+    return ep.method !== "GET"
+  }
+
+  // 2. GraphQL 协议判断
+  if (ep.operationType !== undefined) {
+    return ep.operationType === "mutation"
+  }
+
+  // 3. OPC UA 协议判断
+  if (ep.action !== undefined) {
+    return ep.action === "write"
+  }
+
+  // 4. MQTT 协议判断
+  if (ep.direction !== undefined) {
+    return ep.direction === "publish" || ep.direction === "both"
+  }
+
+  // 5. gRPC 协议或其他兜底：只要存在 RPC service，我们均保守地默认视为写操作
+  if (ep.service !== undefined) {
+    return true
+  }
+
+  // 兜底返回 true，使非 REST 协议端点默认进入安全二次确认机制
+  return true
+}
