@@ -2,15 +2,16 @@
 
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { AgentForm, type DatasourceBinding } from "@/components/agent-form"
+import { AgentForm, type DatasourceBinding, type AgentPermission } from "@/components/agent-form"
 import { toast } from "sonner"
 
 export default function NewAgentPage() {
   const router = useRouter()
 
   const handleSubmit = async (data: Record<string, unknown>) => {
-    const { bindings, ...agentData } = data as Record<string, unknown> & {
+    const { bindings, permissions, ...agentData } = data as Record<string, unknown> & {
       bindings?: DatasourceBinding[]
+      permissions?: AgentPermission[]
     }
 
     const res = await fetch("/api/admin/agents", {
@@ -34,6 +35,17 @@ export default function NewAgentPage() {
       })
       if (!bindRes.ok) {
         toast.error("数据源绑定保存失败")
+      }
+    }
+
+    if (permissions && permissions.length > 0) {
+      const permRes = await fetch(`/api/admin/agents/${id}/permissions`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ permissions }),
+      })
+      if (!permRes.ok) {
+        toast.error("可见性权限保存失败")
       }
     }
 

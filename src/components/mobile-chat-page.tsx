@@ -53,20 +53,21 @@ export function MobileChatPage() {
   const { createChat } = useChats()
 
   const chatApiUrl = API_BASE ? `${API_BASE}/api/chat` : "/api/chat"
-  const { messages, sendMessage, status, setMessages, stop, regenerate } = useChat({
-    // 节流：每 50ms 批量合并流式更新，由 100 降至 50
-    experimental_throttle: 50,
-    transport: new DefaultChatTransport({
-      api: chatApiUrl,
-      body: {
-        modelId,
-        agentId,
-        get chatId() {
-          return chatIdRef.current
+  const { messages, sendMessage, status, setMessages, stop, regenerate, submitToolOutputs } =
+    useChat({
+      // 节流：每 50ms 批量合并流式更新，由 100 降至 50
+      experimental_throttle: 50,
+      transport: new DefaultChatTransport({
+        api: chatApiUrl,
+        body: {
+          modelId,
+          agentId,
+          get chatId() {
+            return chatIdRef.current
+          },
         },
-      },
-    }),
-  })
+      }),
+    })
 
   const handleNewChat = useCallback(() => {
     setActiveChatId(null)
@@ -271,6 +272,8 @@ export function MobileChatPage() {
                               state={stateMap[tp.state] ?? "call"}
                               args={tp.input as Record<string, unknown>}
                               result={tp.output}
+                              submitToolOutputs={submitToolOutputs}
+                              toolCallId={tp.toolCallId}
                             />
                           )
                         }

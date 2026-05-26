@@ -56,6 +56,7 @@ interface AgentMessageProps {
   /** 已废弃，保留兼容 */
   showMeetingHeader?: boolean
   className?: string
+  submitToolOutputs?: (toolOutputs: { toolCallId: string; output: any }[]) => Promise<any>
 }
 
 function isSupervisorDelegation(toolName: string): boolean {
@@ -277,6 +278,7 @@ export function AgentMessage({
   toolCallId,
   showMeetingHeader,
   className,
+  submitToolOutputs,
 }: AgentMessageProps) {
   if (isSupervisorDelegation(toolName)) {
     return (
@@ -297,7 +299,9 @@ export function AgentMessage({
       state={state}
       args={args}
       result={result}
+      toolCallId={toolCallId}
       className={className}
+      submitToolOutputs={submitToolOutputs}
     />
   )
 }
@@ -498,30 +502,154 @@ const DelegateAgentMessage = memo(function DelegateAgentMessage({
 })
 
 /* ─── 直接工具调用（非 Agent 委派） ─── */
-function DirectToolMessage({ toolName, state, args, result, className }: AgentMessageProps) {
+function DirectToolMessage({
+  toolName,
+  state,
+  args,
+  result,
+  toolCallId,
+  className,
+  submitToolOutputs,
+}: AgentMessageProps) {
   const toolInfo = TOOL_AGENT_MAP[toolName]
   const toolState = mapToolState(state)
   const summary = state === "result" ? getDataSummary(result) : null
+
+  // 二次确认拦截状态判断
+  const isConfRequired =
+    state === "result" &&
+    result &&
+    typeof result === "object" &&
+    ((result as any).error === "CONFIRMATION_REQUIRED" ||
+      (result as any).metadata?.confirmationRequired === true)
+
+  const metadata = isConfRequired ? (result as any).metadata : null
+
+  const [loading, setLoading] = useState(false)
+  const [errorMsg, setErrorMsg] = useState("")
+
+  const handleConfirm = async () => {
+    if (!metadata || !submitToolOutputs || !toolCallId) return
+    setLoading(true)
+    setErrorMsg("")
+    try {
+      const res = await fetch("/api/datasources/execute-write", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          datasourceId: metadata.datasourceId,
+          endpointId: metadata.endpointId,
+          params: metadata.params,
+        }),
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error || "执行写操作失败")
+      }
+
+      await submitToolOutputs([{ toolCallId, output: data }])
+    } catch (e: any) {
+      console.error("确认执行失败:", e)
+      setErrorMsg(e.message || "执行发生错误，请重试")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleReject = async () => {
+    if (!submitToolOutputs || !toolCallId) return
+    setLoading(true)
+    setErrorMsg("")
+    try {
+      await submitToolOutputs([
+        {
+          toolCallId,
+          output: { success: false, error: "用户拒绝执行该操作" },
+        },
+      ])
+    } catch (e: any) {
+      console.error("拒绝执行失败:", e)
+      setErrorMsg(e.message || "拒绝失败，请重试")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className={cn("chat-message", className)}>
       <Tool>
         <ToolHeader
           title={toolInfo?.toolLabel ?? formatToolName(toolName)}
-          state={toolState}
+          state={isConfRequired ? "error" : toolState}
           toolName={toolName}
         />
         <ToolContent>
           {args && Object.keys(args).length > 0 && <ToolInput input={args} />}
-          {state === "result" && (
-            <>
-              {summary && (
-                <span className="text-xs text-muted-foreground mt-2 mb-2 inline-block">
-                  📊 摘要: {summary}
-                </span>
+          {isConfRequired ? (
+            <div className="mt-3 p-4 rounded-xl border border-amber-500/25 bg-amber-500/5 dark:bg-amber-950/10 space-y-3 animate-in fade-in duration-300">
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-amber-500/10 text-amber-500 rounded-lg animate-pulse">
+                  <AlertCircle className="size-5" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-sm font-semibold text-amber-700 dark:text-amber-400">
+                    需要操作二次确认
+                  </h4>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    AI 触发了敏感的工业写操作（{metadata.method}{" "}
+                    {metadata.endpointName || metadata.endpointId}）。
+                    执行该操作可能影响真实的底层工业系统，请仔细核对以下参数后选择是否允许执行：
+                  </p>
+                </div>
+              </div>
+
+              {metadata.params && Object.keys(metadata.params).length > 0 && (
+                <div className="text-xs bg-background/50 dark:bg-background/20 border rounded-lg p-2.5 font-mono overflow-auto max-h-40 max-w-full space-y-1">
+                  {Object.entries(metadata.params).map(([key, val]) => (
+                    <div key={key} className="flex gap-2">
+                      <span className="text-muted-foreground">{key}:</span>
+                      <span className="text-foreground font-medium">{String(val)}</span>
+                    </div>
+                  ))}
+                </div>
               )}
-              <ToolOutput output={result} />
-            </>
+
+              {errorMsg && <p className="text-xs text-destructive font-medium">{errorMsg}</p>}
+
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={handleConfirm}
+                  disabled={loading || !submitToolOutputs}
+                  className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white rounded-lg text-xs font-semibold shadow transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  {loading && (
+                    <div className="size-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  )}
+                  确认允许
+                </button>
+                <button
+                  type="button"
+                  onClick={handleReject}
+                  disabled={loading || !submitToolOutputs}
+                  className="px-3.5 py-1.5 bg-secondary hover:bg-secondary/80 disabled:opacity-50 text-secondary-foreground rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                >
+                  拒绝操作
+                </button>
+              </div>
+            </div>
+          ) : (
+            state === "result" && (
+              <>
+                {summary && (
+                  <span className="text-xs text-muted-foreground mt-2 mb-2 inline-block">
+                    📊 摘要: {summary}
+                  </span>
+                )}
+                <ToolOutput output={result} />
+              </>
+            )
           )}
         </ToolContent>
       </Tool>

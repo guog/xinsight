@@ -63,6 +63,7 @@ export const agentDatasources = sqliteTable(
       .references(() => datasources.id, { onDelete: "cascade" }),
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
     endpointIds: text("endpoint_ids"), // JSON 字符串，允许访问的 endpoint ID 列表，null = 全部
+    confirmationRequiredEndpoints: text("confirmation_required_endpoints"), // JSON 字符串，需要二次确认的 endpoint ID 列表，null = 无需确认
   },
   (table) => [primaryKey({ columns: [table.agentId, table.datasourceId] })],
 )
@@ -228,4 +229,75 @@ export const agentWikiNamespaces = sqliteTable(
     createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   },
   (table) => [primaryKey({ columns: [table.agentId, table.namespaceId] })],
+)
+
+/** 团队表 */
+export const teams = sqliteTable("teams", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+})
+
+/** 用户与团队的关联表 */
+export const userTeams = sqliteTable(
+  "user_teams",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    teamId: text("team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.teamId] })],
+)
+
+/** Agent 权限表 */
+export const agentPermissions = sqliteTable(
+  "agent_permissions",
+  {
+    id: text("id").primaryKey(),
+    agentId: text("agent_id").notNull(),
+    subjectType: text("subject_type").notNull(), // "role" | "team" | "user"
+    subjectId: text("subject_id").notNull(), // "admin" | team_id | user_id
+    permissionType: text("permission_type").notNull().default("read"), // "read" | "write" | "use"
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [
+    index("idx_agent_permissions_agent").on(table.agentId),
+    index("idx_agent_permissions_subject").on(table.subjectType, table.subjectId),
+  ],
+)
+
+/** 工作流定义表 */
+export const workflows = sqliteTable("workflows", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  definition: text("definition").notNull(), // JSON 字符串
+  status: text("status").notNull().default("draft"), // "draft" | "published"
+  version: integer("version").notNull().default(1),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+})
+
+/** 工作流执行记录表 */
+export const workflowExecutions = sqliteTable(
+  "workflow_executions",
+  {
+    id: text("id").primaryKey(),
+    workflowId: text("workflow_id")
+      .notNull()
+      .references(() => workflows.id, { onDelete: "cascade" }),
+    status: text("status").notNull().default("running"), // "running" | "completed" | "failed"
+    input: text("input").notNull(), // JSON
+    output: text("output"), // JSON
+    logs: text("logs"), // JSON
+    startedAt: integer("started_at", { mode: "timestamp" }).notNull(),
+    completedAt: integer("completed_at", { mode: "timestamp" }),
+  },
+  (table) => [index("idx_workflow_executions_wf").on(table.workflowId)],
 )

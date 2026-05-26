@@ -1,6 +1,7 @@
 import { createUIMessageStream, createUIMessageStreamResponse } from "ai"
 import type { UIMessage } from "ai"
 import { toAISdkStream } from "@mastra/ai-sdk"
+import { NextResponse } from "next/server"
 
 import { mastra } from "@/mastra"
 import { persistMessages, autoGenerateTitle } from "@/db/repositories/chat-repo"
@@ -45,9 +46,20 @@ export async function POST(req: Request) {
     if (modelId && process.env.NODE_ENV === "development")
       console.log("[chat] modelId requested:", modelId)
 
-    // 根据请求选择 Agent，默认使用厂长 Supervisor
+    const resolvedAgentId = agentId || "factoryDirectorAgent"
+
+    // 细粒度 RBAC 鉴权：校验用户对当前请求的 Agent 是否有使用权限
+    const agentRepo = new SqliteAgentRepository(db)
+    const authorizedAgents = await agentRepo.getAuthorizedAgentsForUser(user.id, user.role)
+    const authorizedAgentIds = new Set(authorizedAgents.map((a) => a.id))
+
+    if (!authorizedAgentIds.has(resolvedAgentId)) {
+      return NextResponse.json({ error: "无权访问此 Agent" }, { status: 403 })
+    }
+
+    // 根据请求选择 Agent，使用经过鉴权的 AgentId
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const agent = mastra.getAgent((agentId || "factoryDirectorAgent") as any)
+    const agent = mastra.getAgent(resolvedAgentId as any)
 
     // Memory 需要 resourceId + threadId 来关联对话上下文（使用真实用户 ID 实现隔离）
     const memoryOptions = chatId ? { resourceId: user.id, threadId: chatId } : undefined
@@ -55,7 +67,7 @@ export async function POST(req: Request) {
     // 动态注入数据源上下文到 Agent 提示词
     let datasourceContext = ""
     try {
-      datasourceContext = await buildDatasourceContext(agentId || "factoryDirectorAgent")
+      datasourceContext = await buildDatasourceContext(resolvedAgentId)
     } catch {
       // 降级处理：DB 查询失败时不影响对话
     }
@@ -63,15 +75,13 @@ export async function POST(req: Request) {
       ? `\n\n## 当前可用数据源\n以下数据源已注册为独立工具，直接按工具名调用即可（格式：数据源ID--端点ID）：\n${datasourceContext}`
       : ""
 
-    // Supervisor 动态路由：加载 DB 中启用的 Agent 列表，生成路由提示
+    // Supervisor 动态路由：加载当前用户有权使用的子 Agent 列表，生成路由提示
     let dynamicInstructions = ""
     const isSupervisor =
       !agentId || agentId === "factoryDirectorAgent" || agentId === "factory-director"
     if (isSupervisor) {
       try {
-        const agentRepo = new SqliteAgentRepository(db)
-        const enabledAgents = await agentRepo.findEnabled()
-        const workers = buildWorkerList(enabledAgents)
+        const workers = buildWorkerList(authorizedAgents)
         const lastUserMessage = chatMessages[chatMessages.length - 1]
         const userQuery =
           lastUserMessage?.parts
@@ -90,7 +100,6 @@ export async function POST(req: Request) {
 
     // 动态工具注册：基于 Agent-Endpoint 绑定生成 per-endpoint 工具
     let dynamicToolset: Record<string, unknown> = {}
-    const resolvedAgentId = agentId || "factoryDirectorAgent"
     try {
       dynamicToolset = await buildDynamicTools(resolvedAgentId)
     } catch (e) {

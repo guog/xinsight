@@ -102,24 +102,25 @@ function DesktopChatPage() {
     [chatApiUrl, modelId, agentId],
   )
 
-  const { messages, sendMessage, status, setMessages, stop, regenerate } = useChat({
-    // 节流：每 50ms 批量合并流式更新，避免多 Agent 并行时每 token 触发 re-render，由 100 降低至 50 提升流畅度同时兼顾性能
-    experimental_throttle: 50,
-    transport,
-    // 接收子 Agent 流式进度（transient data-agent-progress 事件）
-    onData: (dataPart) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const part = dataPart as any
-      if (part.type === "data-agent-progress" && part.data?.textDelta) {
-        // 存储多个 key 以便前端匹配（runId 和 toolCallId 可能不同）
-        const { runId, toolCallId, textDelta } = part.data
-        agentProgressStore.append(runId, textDelta)
-        if (toolCallId && toolCallId !== runId) {
-          agentProgressStore.append(toolCallId, textDelta)
+  const { messages, sendMessage, status, setMessages, stop, regenerate, submitToolOutputs } =
+    useChat({
+      // 节流：每 50ms 批量合并流式更新，避免多 Agent 并行时每 token 触发 re-render，由 100 降低至 50 提升流畅度同时兼顾性能
+      experimental_throttle: 50,
+      transport,
+      // 接收子 Agent 流式进度（transient data-agent-progress 事件）
+      onData: (dataPart) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const part = dataPart as any
+        if (part.type === "data-agent-progress" && part.data?.textDelta) {
+          // 存储多个 key 以便前端匹配（runId 和 toolCallId 可能不同）
+          const { runId, toolCallId, textDelta } = part.data
+          agentProgressStore.append(runId, textDelta)
+          if (toolCallId && toolCallId !== runId) {
+            agentProgressStore.append(toolCallId, textDelta)
+          }
         }
-      }
-    },
-  })
+      },
+    })
 
   /** 流式结束后刷新侧边栏（更新自动生成的标题等） */
   const prevStatusRef = useRef(status)
@@ -400,6 +401,7 @@ function DesktopChatPage() {
                                       state={stateMap[tp.state] ?? "call"}
                                       args={tp.input as Record<string, unknown>}
                                       result={tp.output}
+                                      submitToolOutputs={submitToolOutputs}
                                     />
                                   )
                                 }

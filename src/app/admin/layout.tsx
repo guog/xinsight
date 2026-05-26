@@ -1,6 +1,6 @@
 "use client"
 import Link from "next/link"
-import { ArrowLeft, Database, Bot, BookOpen, Cpu, BarChart3 } from "lucide-react"
+import { ArrowLeft, Database, Bot, BookOpen, Cpu, BarChart3, GitFork } from "lucide-react"
 import { usePathname, useRouter } from "next/navigation"
 import { useUser } from "@/hooks/use-user"
 
@@ -8,6 +8,7 @@ const navItems = [
   { href: "/admin/datasources", label: "数据源管理", icon: Database },
   { href: "/admin/agents", label: "Agent 管理", icon: Bot },
   { href: "/admin/wiki", label: "知识库", icon: BookOpen },
+  { href: "/admin/workflows", label: "工作流编排", icon: GitFork },
   { href: "/admin/providers", label: "模型管理", icon: Cpu },
   { href: "/admin/operations", label: "运营统计", icon: BarChart3 },
 ]
@@ -95,6 +96,32 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <>
                   <span>&gt;</span>
                   <span className="text-foreground">编辑</span>
+                </>
+              )}
+            </>
+          )}
+          {pathname.startsWith("/admin/workflows") && (
+            <>
+              <span>&gt;</span>
+              <Link href="/admin/workflows" className="hover:text-foreground transition-colors">
+                工作流编排
+              </Link>
+              {pathname.includes("/new") && (
+                <>
+                  <span>&gt;</span>
+                  <span className="text-foreground">新建</span>
+                </>
+              )}
+              {pathname.includes("/edit") && (
+                <>
+                  <span>&gt;</span>
+                  <span className="text-foreground">编辑</span>
+                </>
+              )}
+              {pathname.includes("/executions") && (
+                <>
+                  <span>&gt;</span>
+                  <span className="text-foreground">运行历史</span>
                 </>
               )}
             </>

@@ -9,6 +9,19 @@ vi.mock("@/mastra", () => ({
   mastra: mockMastra,
 }))
 
+// Mock db (uses bun:sqlite, unavailable in Node/Vitest)
+vi.mock("@/db", () => ({
+  db: {},
+}))
+
+// Mock agent-repository
+const mockGetAuthorizedAgentsForUser = vi.fn()
+vi.mock("@/db/repositories/agent-repository", () => ({
+  SqliteAgentRepository: vi.fn().mockImplementation(() => ({
+    getAuthorizedAgentsForUser: (...args: unknown[]) => mockGetAuthorizedAgentsForUser(...args),
+  })),
+}))
+
 // Mock auth
 const mockRequireAuth = vi.fn()
 vi.mock("@/lib/auth", async () => {
@@ -31,7 +44,14 @@ describe("GET /api/agents", () => {
   beforeEach(() => {
     mockListAgents.mockReset()
     mockRequireAuth.mockReset()
+    mockGetAuthorizedAgentsForUser.mockReset()
+
     mockRequireAuth.mockResolvedValue({ id: "user-1", username: "test", role: "user" })
+    mockGetAuthorizedAgentsForUser.mockResolvedValue([
+      { id: "chatAgent", name: "聊天助手" },
+      { id: "researchAgent", name: "研究助手" },
+      { id: "codeAgent", name: "代码助手" },
+    ])
   })
 
   it("未登录时返回 401", async () => {
@@ -41,11 +61,11 @@ describe("GET /api/agents", () => {
     expect(response.status).toBe(401)
   })
 
-  it("返回所有已注册的 Agent 列表", async () => {
+  it("返回所有已注册且授权的 Agent 列表", async () => {
     mockListAgents.mockReturnValue({
-      chatAgent: { id: "chat-agent", name: "聊天助手" },
-      researchAgent: { id: "research-agent", name: "研究助手" },
-      codeAgent: { id: "code-agent", name: "代码助手" },
+      chatAgent: { id: "chatAgent", name: "聊天助手" },
+      researchAgent: { id: "researchAgent", name: "研究助手" },
+      codeAgent: { id: "codeAgent", name: "代码助手" },
     })
 
     const response = await GET()
@@ -53,15 +73,28 @@ describe("GET /api/agents", () => {
 
     expect(response.status).toBe(200)
     expect(data).toEqual([
-      { id: "chat-agent", name: "聊天助手" },
-      { id: "research-agent", name: "研究助手" },
-      { id: "code-agent", name: "代码助手" },
+      { id: "chatAgent", name: "聊天助手" },
+      { id: "researchAgent", name: "研究助手" },
+      { id: "codeAgent", name: "代码助手" },
     ])
+  })
+
+  it("未授权的 Agent 将会被过滤掉", async () => {
+    mockListAgents.mockReturnValue({
+      chatAgent: { id: "chatAgent", name: "聊天助手" },
+      adminAgent: { id: "adminAgent", name: "管理员助手" }, // 这个在 getAuthorizedAgentsForUser 返回中不存在
+    })
+
+    const response = await GET()
+    const data = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(data).toEqual([{ id: "chatAgent", name: "聊天助手" }])
   })
 
   it("只返回 id 和 name 字段", async () => {
     mockListAgents.mockReturnValue({
-      chatAgent: { id: "chat-agent", name: "聊天助手", instructions: "some long text", tools: {} },
+      chatAgent: { id: "chatAgent", name: "聊天助手", instructions: "some long text", tools: {} },
     })
 
     const response = await GET()

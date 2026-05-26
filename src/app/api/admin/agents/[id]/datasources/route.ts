@@ -12,6 +12,7 @@ const BindingsSchema = z.object({
     z.object({
       datasourceId: z.string().min(1),
       endpointIds: z.array(z.string()).nullable(),
+      confirmationRequiredEndpoints: z.array(z.string()).nullable().optional(),
     }),
   ),
 })
@@ -35,7 +36,15 @@ export async function GET(_req: Request, { params }: Params) {
         endpointIds = null
       }
     }
-    return { datasourceId: r.datasourceId, endpointIds }
+    let confirmationRequiredEndpoints: string[] | null = null
+    if (r.confirmationRequiredEndpoints) {
+      try {
+        confirmationRequiredEndpoints = JSON.parse(r.confirmationRequiredEndpoints)
+      } catch {
+        confirmationRequiredEndpoints = null
+      }
+    }
+    return { datasourceId: r.datasourceId, endpointIds, confirmationRequiredEndpoints }
   })
 
   return NextResponse.json({ bindings })
@@ -68,6 +77,9 @@ export async function PUT(req: Request, { params }: Params) {
           agentId: id,
           datasourceId: b.datasourceId,
           endpointIds: b.endpointIds ? JSON.stringify(b.endpointIds) : null,
+          confirmationRequiredEndpoints: b.confirmationRequiredEndpoints
+            ? JSON.stringify(b.confirmationRequiredEndpoints)
+            : null,
           createdAt: new Date(),
         })
         .run()

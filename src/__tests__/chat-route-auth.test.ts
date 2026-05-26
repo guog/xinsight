@@ -15,6 +15,9 @@ vi.mock("@/mastra", () => ({
     getAgent: () => ({
       stream: mockStream,
     }),
+    listAgents: () => ({
+      factoryDirectorAgent: { id: "factoryDirectorAgent", name: "厂长" },
+    }),
   },
 }))
 
@@ -35,9 +38,11 @@ vi.mock("@/db", () => ({
 }))
 
 // Mock agent-repository
+const mockGetAuthorizedAgentsForUser = vi.fn()
 vi.mock("@/db/repositories/agent-repository", () => ({
   SqliteAgentRepository: vi.fn().mockImplementation(() => ({
     findEnabled: vi.fn().mockResolvedValue([]),
+    getAuthorizedAgentsForUser: (...args: unknown[]) => mockGetAuthorizedAgentsForUser(...args),
   })),
 }))
 
@@ -63,9 +68,11 @@ vi.mock("@mastra/ai-sdk", () => ({
   })),
 }))
 
-describe("/api/chat POST 认证", () => {
+describe("/api/chat POST 认证与鉴权", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // 默认让用户有权访问 factoryDirectorAgent
+    mockGetAuthorizedAgentsForUser.mockResolvedValue([{ id: "factoryDirectorAgent", name: "厂长" }])
   })
 
   it("未登录时返回 401", async () => {
@@ -85,7 +92,34 @@ describe("/api/chat POST 认证", () => {
     expect(mockRequireAuth).toHaveBeenCalled()
   })
 
-  it("已登录时正常处理，resourceId 使用真实用户 ID", async () => {
+  it("无权访问所请求的 Agent 时返回 403", async () => {
+    const fakeUser = {
+      id: "user-abc-123",
+      username: "testuser",
+      displayName: "测试用户",
+      role: "user",
+    }
+    mockRequireAuth.mockResolvedValue(fakeUser)
+    // 模拟 getAuthorizedAgentsForUser 返回不包含任何 Agent
+    mockGetAuthorizedAgentsForUser.mockResolvedValue([])
+
+    const { POST } = await import("@/app/api/chat/route")
+    const req = new Request("http://localhost/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: [{ role: "user", content: "你好" }],
+        agentId: "factoryDirectorAgent",
+      }),
+    })
+
+    const res = await POST(req)
+    expect(res.status).toBe(403)
+    const body = await res.json()
+    expect(body.error).toBe("无权访问此 Agent")
+  })
+
+  it("已登录且有权限时正常处理，resourceId 使用真实用户 ID", async () => {
     const fakeUser = {
       id: "user-abc-123",
       username: "testuser",

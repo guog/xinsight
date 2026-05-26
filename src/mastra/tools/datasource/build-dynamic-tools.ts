@@ -39,12 +39,23 @@ export async function buildDynamicTools(agentId: string) {
 
   if (!datasources.length) return {}
 
-  const bindingMap = new Map(bindings.map((b) => [b.datasourceId, b.endpointIds]))
+  const bindingMap = new Map(
+    bindings.map((b) => [
+      b.datasourceId,
+      {
+        endpointIds: b.endpointIds,
+        confirmationRequiredEndpoints: b.confirmationRequiredEndpoints,
+      },
+    ]),
+  )
   const tools: Record<string, ReturnType<typeof createTool>> = {}
   let count = 0
 
   for (const ds of datasources) {
-    const allowedEps = bindingMap.get(ds.id)
+    const binding = bindingMap.get(ds.id)
+    const allowedEps = binding?.endpointIds
+    const confirmationRequiredEps = binding?.confirmationRequiredEndpoints ?? []
+
     for (const ep of ds.endpoints ?? []) {
       if (count >= MAX_TOOLS) break
       // null = 全部允许，[] = 全部禁止，[...ids] = 仅允许指定端点
@@ -55,6 +66,8 @@ export async function buildDynamicTools(agentId: string) {
         | StructuredParam[]
         | undefined
       const hasStructured = sParams && sParams.length > 0
+
+      const isConfRequired = ep.method !== "GET" && confirmationRequiredEps.includes(ep.id)
 
       const inputSchema = hasStructured
         ? z.object({ params: structuredParamsToZod(sParams).optional() })
@@ -68,20 +81,29 @@ export async function buildDynamicTools(agentId: string) {
           success: z.boolean(),
           data: z.unknown().optional(),
           error: z.string().optional(),
-          metadata: z
-            .object({
-              duration: z.number().optional(),
-              datasourceId: z.string().optional(),
-              datasourceName: z.string().optional(),
-              paramHints: z.string().optional(),
-            })
-            .optional(),
+          metadata: z.record(z.string(), z.unknown()).optional(),
         }),
         execute: async (input) => {
           const adapter = getAdapter(ds.type)
           if (!adapter) return { success: false, error: `不支持的数据源类型: ${ds.type}` }
 
           const mergedParams = { ...ep.params, ...(input.params ?? {}) }
+
+          if (isConfRequired) {
+            return {
+              success: false,
+              error: "CONFIRMATION_REQUIRED",
+              metadata: {
+                confirmationRequired: true,
+                datasourceId: ds.id,
+                datasourceName: ds.name,
+                endpointId: ep.id,
+                endpointName: ep.name,
+                method: ep.method,
+                params: mergedParams,
+              },
+            }
+          }
 
           if (hasStructured) {
             const validation = validateParams(sParams, mergedParams)

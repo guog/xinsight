@@ -1,6 +1,6 @@
 import { db } from "@/db"
-import { users, customAgents } from "@/db/schema"
-import { eq } from "drizzle-orm"
+import { users, customAgents, teams, userTeams } from "@/db/schema"
+import { eq, and } from "drizzle-orm"
 
 /** 预置用户列表 */
 const SEED_USERS = [
@@ -104,5 +104,51 @@ export async function seedBuiltinAgents() {
         updatedAt: now,
       })
       .run()
+  }
+}
+
+/**
+ * 预置系统团队与用户关联。
+ */
+export async function seedTeams() {
+  const seedTeamsList = [
+    { id: "team-rd", name: "研发部", description: "负责技术研发与Agent开发" },
+    { id: "team-prod", name: "生产部", description: "负责厂区日常生产调度" },
+    { id: "team-qa", name: "质检部", description: "负责生产质量把控与检验" },
+  ]
+
+  for (const team of seedTeamsList) {
+    const existing = db.select().from(teams).where(eq(teams.id, team.id)).get()
+    if (existing) continue
+
+    const now = new Date()
+    db.insert(teams)
+      .values({
+        id: team.id,
+        name: team.name,
+        description: team.description,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .run()
+  }
+
+  // 把 guest 默认加入研发部 (team-rd)
+  const guestUser = db.select().from(users).where(eq(users.username, "guest")).get()
+  if (guestUser) {
+    const existingBinding = db
+      .select()
+      .from(userTeams)
+      .where(and(eq(userTeams.userId, guestUser.id), eq(userTeams.teamId, "team-rd")))
+      .get()
+    if (!existingBinding) {
+      db.insert(userTeams)
+        .values({
+          userId: guestUser.id,
+          teamId: "team-rd",
+          createdAt: new Date(),
+        })
+        .run()
+    }
   }
 }

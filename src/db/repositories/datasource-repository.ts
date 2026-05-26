@@ -54,12 +54,21 @@ export interface DatasourceRepository {
   findByAgentId(agentId: string): Promise<DatasourceRecord[]>
   update(id: string, input: UpdateDatasourceInput): Promise<DatasourceRecord>
   delete(id: string): Promise<void>
-  bindAgent(agentId: string, datasourceId: string, endpointIds?: string[]): Promise<void>
+  bindAgent(
+    agentId: string,
+    datasourceId: string,
+    endpointIds?: string[],
+    confirmationRequiredEndpoints?: string[],
+  ): Promise<void>
   unbindAgent(agentId: string, datasourceId: string): Promise<void>
   getAgentBindings(agentId: string): Promise<string[]>
-  getAgentEndpointBindings(
-    agentId: string,
-  ): Promise<{ datasourceId: string; endpointIds: string[] | null }[]>
+  getAgentEndpointBindings(agentId: string): Promise<
+    {
+      datasourceId: string
+      endpointIds: string[] | null
+      confirmationRequiredEndpoints: string[] | null
+    }[]
+  >
   getDatasourceAgents(datasourceId: string): Promise<string[]>
   updateTestResult(id: string, result: "ok" | "failed", message?: string): Promise<DatasourceRecord>
   recordCall(id: string): Promise<DatasourceRecord>
@@ -160,12 +169,20 @@ export class SqliteDatasourceRepository implements DatasourceRepository {
     await this.db.delete(datasources).where(eq(datasources.id, id))
   }
 
-  async bindAgent(agentId: string, datasourceId: string, endpointIds?: string[]): Promise<void> {
+  async bindAgent(
+    agentId: string,
+    datasourceId: string,
+    endpointIds?: string[],
+    confirmationRequiredEndpoints?: string[],
+  ): Promise<void> {
     await this.db.insert(agentDatasources).values({
       agentId,
       datasourceId,
       createdAt: new Date(),
       endpointIds: endpointIds ? JSON.stringify(endpointIds) : null,
+      confirmationRequiredEndpoints: confirmationRequiredEndpoints
+        ? JSON.stringify(confirmationRequiredEndpoints)
+        : null,
     })
   }
 
@@ -186,19 +203,27 @@ export class SqliteDatasourceRepository implements DatasourceRepository {
   }
 
   /** 获取 Agent 的端点级绑定信息 */
-  async getAgentEndpointBindings(
-    agentId: string,
-  ): Promise<{ datasourceId: string; endpointIds: string[] | null }[]> {
+  async getAgentEndpointBindings(agentId: string): Promise<
+    {
+      datasourceId: string
+      endpointIds: string[] | null
+      confirmationRequiredEndpoints: string[] | null
+    }[]
+  > {
     const rows = await this.db
       .select({
         datasourceId: agentDatasources.datasourceId,
         endpointIds: agentDatasources.endpointIds,
+        confirmationRequiredEndpoints: agentDatasources.confirmationRequiredEndpoints,
       })
       .from(agentDatasources)
       .where(eq(agentDatasources.agentId, agentId))
     return rows.map((r) => ({
       datasourceId: r.datasourceId,
       endpointIds: r.endpointIds ? safeJsonParse<string[]>(r.endpointIds, []) : null,
+      confirmationRequiredEndpoints: r.confirmationRequiredEndpoints
+        ? safeJsonParse<string[]>(r.confirmationRequiredEndpoints, [])
+        : null,
     }))
   }
 

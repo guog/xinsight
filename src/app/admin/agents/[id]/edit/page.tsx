@@ -3,7 +3,7 @@
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { useEffect, useState } from "react"
-import { AgentForm, type DatasourceBinding } from "@/components/agent-form"
+import { AgentForm, type DatasourceBinding, type AgentPermission } from "@/components/agent-form"
 import { toast } from "sonner"
 import type { AdminAgent } from "@/hooks/use-admin-agents"
 
@@ -12,6 +12,7 @@ export default function EditAgentPage() {
   const router = useRouter()
   const [agent, setAgent] = useState<AdminAgent | null>(null)
   const [initialBindings, setInitialBindings] = useState<DatasourceBinding[]>([])
+  const [initialPermissions, setInitialPermissions] = useState<AgentPermission[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
@@ -25,18 +26,24 @@ export default function EditAgentPage() {
         if (!res.ok) return { bindings: [] }
         return res.json()
       }),
+      fetch(`/api/admin/agents/${id}/permissions`).then(async (res) => {
+        if (!res.ok) return { permissions: [] }
+        return res.json()
+      }),
     ])
-      .then(([agentData, dsData]) => {
+      .then(([agentData, dsData, permData]) => {
         setAgent(agentData.agent)
         setInitialBindings(dsData.bindings ?? [])
+        setInitialPermissions(permData.permissions ?? [])
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
   }, [id])
 
   const handleSubmit = async (data: Record<string, unknown>) => {
-    const { bindings, ...agentData } = data as Record<string, unknown> & {
+    const { bindings, permissions, ...agentData } = data as Record<string, unknown> & {
       bindings?: DatasourceBinding[]
+      permissions?: AgentPermission[]
     }
 
     const res = await fetch(`/api/admin/agents/${id}`, {
@@ -58,6 +65,16 @@ export default function EditAgentPage() {
     if (!bindRes.ok) {
       toast.error("数据源绑定保存失败")
       throw new Error("数据源绑定保存失败")
+    }
+
+    const permRes = await fetch(`/api/admin/agents/${id}/permissions`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ permissions: permissions ?? [] }),
+    })
+    if (!permRes.ok) {
+      toast.error("可见性权限保存失败")
+      throw new Error("可见性权限保存失败")
     }
 
     router.push("/admin/agents")
@@ -97,6 +114,7 @@ export default function EditAgentPage() {
       <AgentForm
         initialData={agent}
         initialBindings={initialBindings}
+        initialPermissions={initialPermissions}
         onSubmit={handleSubmit}
         isEdit
       />
