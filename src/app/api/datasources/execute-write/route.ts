@@ -7,7 +7,7 @@ import { getAdapter } from "@/mastra/tools/datasource/adapters"
 import { requireAuth, handleAuthError } from "@/lib/auth"
 import type { DatasourceConfig } from "@/mastra/tools/datasource/types"
 import { and, eq } from "drizzle-orm"
-import { safeFilterParams } from "@/mastra/tools/datasource/validate-params"
+import { safeFilterParams, isWriteEndpoint } from "@/mastra/tools/datasource/validate-params"
 
 export async function POST(request: Request) {
   try {
@@ -98,13 +98,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `数据源下未找到目标端点: ${endpointId}` }, { status: 404 })
     }
 
-    // 7. 校验非 GET 方法
-    const method = (ep as any).method || (ep.params as any)?.method || "GET"
-    if (method === "GET") {
-      return NextResponse.json(
-        { error: "execute-write 接口仅支持非 GET 类型的写操作端点" },
-        { status: 400 },
-      )
+    // 7. 校验是否为写操作端点
+    if (!isWriteEndpoint(ep)) {
+      return NextResponse.json({ error: "execute-write 接口仅支持写操作端点" }, { status: 400 })
     }
 
     // 8. 执行写操作

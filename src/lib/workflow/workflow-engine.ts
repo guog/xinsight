@@ -6,6 +6,7 @@ import { mastra } from "@/mastra"
 import { getAdapter } from "@/mastra/tools/datasource/adapters"
 import type { DatasourceConfig } from "@/mastra/tools/datasource/types"
 import { z as zodStatic } from "zod"
+import { SqliteAgentRepository } from "@/db/repositories/agent-repository"
 import { safeFilterParams } from "@/mastra/tools/datasource/validate-params"
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -137,7 +138,11 @@ export class WorkflowEngine {
   /**
    * 动态执行工作流，并实时持久化每一步的运行日志 Trace 到 SQLite 数据库
    */
-  static async execute(workflowId: string, inputData: Record<string, any>): Promise<any> {
+  static async execute(
+    workflowId: string,
+    inputData: Record<string, any>,
+    context?: { userId?: string; role?: string },
+  ): Promise<any> {
     const wfRecord = db.select().from(workflows).where(eq(workflows.id, workflowId)).get()
     if (!wfRecord) {
       throw new Error(`工作流定义未找到: ${workflowId}`)
@@ -194,6 +199,17 @@ export class WorkflowEngine {
                 const agentId = node.config.agentId
                 const templatePrompt = node.config.prompt ?? ""
                 if (!agentId) throw new Error("Agent 节点缺少必要属性 agentId")
+
+                if (context?.userId && context?.role) {
+                  const agentRepo = new SqliteAgentRepository(db)
+                  const authorizedAgents = await agentRepo.getAuthorizedAgentsForUser(
+                    context.userId,
+                    context.role,
+                  )
+                  if (!authorizedAgents.some((a) => a.id === agentId)) {
+                    throw new Error(`权限不足: 当前用户无权在工作流中执行 Agent '${agentId}'`)
+                  }
+                }
 
                 // 动态解析提示词参数
                 const resolvedPrompt = resolveTemplate(templatePrompt, inputData, getStepResult)

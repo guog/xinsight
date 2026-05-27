@@ -17,8 +17,9 @@ const TriggerBodySchema = z.object({
 
 /** POST /api/admin/workflows/[id]/trigger — 手动触发指定工作流的异步或同步执行 */
 export async function POST(req: Request, { params }: Params) {
+  let user
   try {
-    await requireAdmin()
+    user = await requireAdmin()
   } catch (e) {
     return handleAuthError(e)
   }
@@ -39,7 +40,10 @@ export async function POST(req: Request, { params }: Params) {
     }
 
     const { input } = parsed.data
-    const result = await WorkflowEngine.execute(id, input)
+    const result = await WorkflowEngine.execute(id, input, {
+      userId: user.id,
+      role: user.role,
+    })
     return NextResponse.json({ success: true, result })
   } catch (error: any) {
     console.error("执行工作流失败:", error)

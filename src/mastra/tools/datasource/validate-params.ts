@@ -128,8 +128,8 @@ export function safeFilterParams(
 export function isWriteEndpoint(ep: any): boolean {
   if (!ep) return false
 
-  // 1. REST 协议判断 (包含 path 且有特定 method)
-  if (ep.path !== undefined && ep.method !== undefined) {
+  // 1. REST 协议判断 (只要包含 method 字段)
+  if (ep.method !== undefined) {
     return ep.method !== "GET"
   }
 

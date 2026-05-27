@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest"
-import { validateParams, formatParamHints } from "@/mastra/tools/datasource/validate-params"
+import {
+  validateParams,
+  formatParamHints,
+  safeFilterParams,
+  SENSITIVE_KEYS,
+} from "@/mastra/tools/datasource/validate-params"
 import type { StructuredParam } from "@/mastra/tools/datasource/types"
 
 describe("validateParams", () => {
@@ -106,5 +111,32 @@ describe("formatParamHints", () => {
     ]
     const hints = formatParamHints(params)
     expect(hints).toContain("[格式: yyyy-MM-dd]")
+  })
+})
+
+describe("safeFilterParams and SENSITIVE_KEYS", () => {
+  it("应该过滤敏感键（如 method, headers 等），但保留普通业务参数（如 id, name, type）", () => {
+    const input = {
+      name: "Alice",
+      id: "123",
+      type: "sensor",
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      url: "https://evil.com",
+    }
+    const result = safeFilterParams(input)
+    expect(result.name).toBe("Alice")
+    expect(result.id).toBe("123")
+    expect(result.type).toBe("sensor")
+    expect(result.method).toBeUndefined()
+    expect(result.headers).toBeUndefined()
+    expect(result.url).toBeUndefined()
+  })
+
+  it("安全黑名单中必须覆盖已知协议的所有敏感配置词", () => {
+    const requiredKeys = ["method", "path", "headers", "url", "query", "variables", "auth"]
+    for (const key of requiredKeys) {
+      expect(SENSITIVE_KEYS).toContain(key)
+    }
   })
 })

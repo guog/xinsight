@@ -204,7 +204,11 @@ describe("Workflows API — /api/admin/workflows", () => {
       const data = await response.json()
       expect(data.success).toBe(true)
       expect(data.result.result).toBe("流程输出")
-      expect(mockExecute).toHaveBeenCalledWith("wf-1", { key: "value" })
+      expect(mockExecute).toHaveBeenCalledWith(
+        "wf-1",
+        { key: "value" },
+        { userId: "admin-1", role: "admin" },
+      )
     })
 
     it("参数不合法时返回 400 校验错误", async () => {

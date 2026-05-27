@@ -207,7 +207,7 @@ describe("POST /api/datasources/execute-write", () => {
     const response = await POST(req)
     expect(response.status).toBe(400)
     const data = await response.json()
-    expect(data.error).toContain("仅支持非 GET 类型的写操作端点")
+    expect(data.error).toContain("仅支持写操作端点")
   })
 
   it("数据源不存在或已被禁用时返回相应错误", async () => {
