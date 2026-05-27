@@ -48,79 +48,9 @@ export async function POST(req: Request) {
 
     const resolvedAgentId = agentId || "factoryDirectorAgent"
 
-    // 细粒度 RBAC 鉴权：校验用户对当前请求的 Agent 是否有使用权限
-    let agentRepo: any
-    try {
-      agentRepo = new SqliteAgentRepository(db)
-    } catch {
-      agentRepo = (SqliteAgentRepository as any)(db)
-    }
-    const authorizedAgents =
-      typeof agentRepo.getAuthorizedAgentsForUser === "function"
-        ? await agentRepo.getAuthorizedAgentsForUser(user.id, user.role)
-        : []
-
-    // 自动豁免/放行在代码中注册但未 seed 进数据库 customAgents 表的内置 Agent
-    for (const [_, bAgent] of Object.entries(mastra?.agents || {})) {
-      const agentIdKey = bAgent.id
-      const existsInAuthorized = authorizedAgents.some((a) => a.id === agentIdKey)
-      if (!existsInAuthorized) {
-        const agentInDb =
-          typeof agentRepo.findById === "function" ? await agentRepo.findById(agentIdKey) : null
-        if (!agentInDb) {
-          authorizedAgents.push({
-            id: agentIdKey,
-            name: bAgent.name || agentIdKey,
-            description: (bAgent as any).description || null,
-            systemPrompt: (bAgent as any).instructions || "",
-            modelId: null,
-            icon: null,
-            isBuiltin: true,
-            enabled: true,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          })
-        }
-      }
-    }
-
-    let authorizedAgentIds = new Set(authorizedAgents.map((a) => a.id))
-
-    // 额外兜底：如果 resolvedAgentId 依然不在可访问列表中，但 mastra 能够成功实例化该 Agent，
-    // 并且数据库里不存在该 Agent 相关的限制（即 findById 找不到记录），则默认放行并追加至 authorizedAgents 中
-    if (!authorizedAgentIds.has(resolvedAgentId)) {
-      try {
-        const hasAgentInstance =
-          mastra &&
-          typeof mastra.getAgent === "function" &&
-          !!mastra.getAgent(resolvedAgentId as any)
-        if (hasAgentInstance) {
-          const agentInDb =
-            typeof agentRepo.findById === "function"
-              ? await agentRepo.findById(resolvedAgentId)
-              : null
-          if (!agentInDb) {
-            authorizedAgents.push({
-              id: resolvedAgentId,
-              name: resolvedAgentId,
-              description: null,
-              systemPrompt: "",
-              modelId: null,
-              icon: null,
-              isBuiltin: true,
-              enabled: true,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            })
-            authorizedAgentIds = new Set(authorizedAgents.map((a) => a.id))
-          }
-        }
-      } catch {
-        // 忽略
-      }
-    }
-
-    if (!authorizedAgentIds.has(resolvedAgentId)) {
+    // 细粒度 RBAC 鉴权：校验用户对当前请求的 Agent 是否有使用权限并进行解析
+    const { authorized, authorizedAgents } = await resolveAuthorizedAgentId(user, resolvedAgentId)
+    if (!authorized) {
       return NextResponse.json({ error: "无权访问此 Agent" }, { status: 403 })
     }
 
@@ -354,5 +284,56 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error("[chat] unhandled error:", error)
     return Response.json({ error: "服务器内部错误，请稍后重试" }, { status: 500 })
+  }
+}
+
+/**
+ * 校验用户对特定 Agent 是否具有授权，并且解析出其有权使用的所有 Agent 列表
+ */
+async function resolveAuthorizedAgentId(
+  user: { id: string; role: string },
+  resolvedAgentId: string,
+): Promise<{ authorized: boolean; authorizedAgents: any[] }> {
+  let agentRepo: any
+  try {
+    agentRepo = new SqliteAgentRepository(db)
+  } catch {
+    agentRepo = (SqliteAgentRepository as any)(db)
+  }
+  const authorizedAgents =
+    typeof agentRepo.getAuthorizedAgentsForUser === "function"
+      ? await agentRepo.getAuthorizedAgentsForUser(user.id, user.role)
+      : []
+
+  // 自动豁免/放行在代码中注册但未 seed 进数据库 customAgents 表的内置 Agent
+  for (const [_, bAgent] of Object.entries(mastra?.agents || {})) {
+    const agentIdKey = bAgent.id
+    const existsInAuthorized = authorizedAgents.some((a) => a.id === agentIdKey)
+    if (!existsInAuthorized) {
+      const agentInDb =
+        typeof agentRepo.findById === "function" ? await agentRepo.findById(agentIdKey) : null
+      if (!agentInDb) {
+        authorizedAgents.push({
+          id: agentIdKey,
+          name: bAgent.name || agentIdKey,
+          description: (bAgent as any).description || null,
+          systemPrompt: (bAgent as any).instructions || "",
+          modelId: null,
+          icon: null,
+          isBuiltin: true,
+          enabled: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+      }
+    }
+  }
+
+  const authorizedAgentIds = new Set(authorizedAgents.map((a) => a.id))
+  const authorized = authorizedAgentIds.has(resolvedAgentId)
+
+  return {
+    authorized,
+    authorizedAgents,
   }
 }

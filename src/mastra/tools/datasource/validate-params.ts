@@ -123,10 +123,39 @@ export function safeFilterParams(
 }
 
 /**
+ * 基于结构化参数定义（structuredParams）对外部传入的参数进行白名单过滤，只允许 structuredParams 中声明的字段，以增强安全性。
+ */
+export function whitelistFilterParams(
+  params: Record<string, unknown> | undefined | null,
+  structuredParams: StructuredParam[] | undefined | null,
+): Record<string, unknown> {
+  if (!params) return {}
+  // 如果没有声明 structuredParams，则退回到第一道防线黑名单做防护，因此直接返回原参数
+  if (!structuredParams || structuredParams.length === 0) return params
+
+  const allowedKeys = new Set(structuredParams.map((sp) => sp.name))
+  // endpointId 用于定位接口，必须保留
+  allowedKeys.add("endpointId")
+
+  const filtered: Record<string, unknown> = {}
+  for (const key of Object.keys(params)) {
+    if (allowedKeys.has(key)) {
+      filtered[key] = params[key]
+    }
+  }
+  return filtered
+}
+
+/**
  * 根据各协议端点的特征，判定其是否为写操作（从而触发二次确认）
  */
 export function isWriteEndpoint(ep: any): boolean {
   if (!ep) return false
+
+  // 0. 显式标记为只读的端点豁免二次确认
+  if (ep.readonly === true) {
+    return false
+  }
 
   // 1. REST 协议判断 (只要包含 method 字段)
   if (ep.method !== undefined) {

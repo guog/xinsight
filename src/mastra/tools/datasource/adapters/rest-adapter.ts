@@ -1,5 +1,12 @@
-import type { DatasourceAdapter, DatasourceConfig, DatasourceResult, AuthConfig } from "../types"
+import type {
+  DatasourceAdapter,
+  DatasourceConfig,
+  DatasourceResult,
+  AuthConfig,
+  StructuredParam,
+} from "../types"
 import { fetchWithRetry } from "./fetch-with-retry"
+import { whitelistFilterParams } from "../validate-params"
 
 /** REST 数据源适配器 */
 export class RestAdapter implements DatasourceAdapter {
@@ -18,13 +25,18 @@ export class RestAdapter implements DatasourceAdapter {
           | undefined)
       : undefined
 
+    let filteredParams = params
+    if (endpoint && (endpoint.structuredParams as any)?.length > 0) {
+      filteredParams = whitelistFilterParams(params, endpoint.structuredParams as StructuredParam[])
+    }
+
     const {
       path = "",
       method = "GET",
       body,
       headers: extraHeaders,
       query,
-    } = params as {
+    } = filteredParams as {
       path?: string
       method?: string
       body?: unknown
@@ -38,7 +50,7 @@ export class RestAdapter implements DatasourceAdapter {
 
     // 替换路径中的 {param} 占位符
     resolvedPath = resolvedPath.replace(/\{(\w+)\}/g, (_, key) => {
-      return String(params[key] ?? `{${key}}`)
+      return String(filteredParams[key] ?? `{${key}}`)
     })
 
     // 检测未替换的路径参数 — 提前报错而非发送无效请求

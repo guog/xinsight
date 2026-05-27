@@ -1,4 +1,11 @@
-import type { DatasourceAdapter, DatasourceConfig, DatasourceResult, AuthConfig } from "../types"
+import type {
+  DatasourceAdapter,
+  DatasourceConfig,
+  DatasourceResult,
+  AuthConfig,
+  StructuredParam,
+} from "../types"
+import { whitelistFilterParams } from "../validate-params"
 
 /** gRPC 数据源适配器（通过 gRPC-Web/JSON 网关代理） */
 export class GrpcAdapter implements DatasourceAdapter {
@@ -17,12 +24,17 @@ export class GrpcAdapter implements DatasourceAdapter {
           | undefined)
       : undefined
 
+    let filteredParams = params
+    if (endpoint && (endpoint.structuredParams as any)?.length > 0) {
+      filteredParams = whitelistFilterParams(params, endpoint.structuredParams as StructuredParam[])
+    }
+
     const {
       service,
       method,
       message,
       headers: extraHeaders,
-    } = params as {
+    } = filteredParams as {
       service?: string
       method?: string
       message?: unknown

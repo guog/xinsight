@@ -1,4 +1,11 @@
-import type { DatasourceAdapter, DatasourceConfig, DatasourceResult, AuthConfig } from "../types"
+import type {
+  DatasourceAdapter,
+  DatasourceConfig,
+  DatasourceResult,
+  AuthConfig,
+  StructuredParam,
+} from "../types"
+import { whitelistFilterParams } from "../validate-params"
 
 /** MQTT 数据源适配器（通过 HTTP 桥接代理） */
 export class MqttAdapter implements DatasourceAdapter {
@@ -17,7 +24,12 @@ export class MqttAdapter implements DatasourceAdapter {
           | undefined)
       : undefined
 
-    const { payload, timeout } = params as {
+    let filteredParams = params
+    if (endpoint && (endpoint.structuredParams as any)?.length > 0) {
+      filteredParams = whitelistFilterParams(params, endpoint.structuredParams as StructuredParam[])
+    }
+
+    const { payload, timeout } = filteredParams as {
       payload?: unknown
       timeout?: number
     }
@@ -28,7 +40,7 @@ export class MqttAdapter implements DatasourceAdapter {
     const endpointQos = endpoint?.qos as number | undefined
 
     // action: 优先 params.action，其次根据 endpoint.direction 映射
-    const paramAction = params.action as string | undefined
+    const paramAction = filteredParams.action as string | undefined
     const resolvedAction =
       paramAction ??
       (endpointDirection === "subscribe"
@@ -48,7 +60,8 @@ export class MqttAdapter implements DatasourceAdapter {
       }
 
       // topic 优先级: params.topic > endpoint.topic > config.defaultTopic
-      const resolvedTopic = (params.topic as string) ?? endpointTopic ?? mqttConfig.defaultTopic
+      const resolvedTopic =
+        (filteredParams.topic as string) ?? endpointTopic ?? mqttConfig.defaultTopic
 
       const reqHeaders: Record<string, string> = {
         "Content-Type": "application/json",

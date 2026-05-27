@@ -1,4 +1,11 @@
-import type { DatasourceAdapter, DatasourceConfig, DatasourceResult, AuthConfig } from "../types"
+import type {
+  DatasourceAdapter,
+  DatasourceConfig,
+  DatasourceResult,
+  AuthConfig,
+  StructuredParam,
+} from "../types"
+import { whitelistFilterParams } from "../validate-params"
 
 /** OPC UA 数据源适配器（通过 REST 网关代理） */
 export class OpcuaAdapter implements DatasourceAdapter {
@@ -17,11 +24,16 @@ export class OpcuaAdapter implements DatasourceAdapter {
           | undefined)
       : undefined
 
+    let filteredParams = params
+    if (endpoint && (endpoint.structuredParams as any)?.length > 0) {
+      filteredParams = whitelistFilterParams(params, endpoint.structuredParams as StructuredParam[])
+    }
+
     // params 覆盖 endpoint 默认值
-    const action = (params.action ?? endpoint?.action) as "read" | "write" | "browse"
-    const nodeIds = (params.nodeIds ?? endpoint?.nodeIds) as string[] | undefined
-    const nodeId = params.nodeId as string | undefined
-    const values = params.values as unknown[] | undefined
+    const action = (filteredParams.action ?? endpoint?.action) as "read" | "write" | "browse"
+    const nodeIds = (filteredParams.nodeIds ?? endpoint?.nodeIds) as string[] | undefined
+    const nodeId = filteredParams.nodeId as string | undefined
+    const values = filteredParams.values as unknown[] | undefined
 
     try {
       const opcuaConfig = config.config as {

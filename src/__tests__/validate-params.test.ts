@@ -4,6 +4,8 @@ import {
   formatParamHints,
   safeFilterParams,
   SENSITIVE_KEYS,
+  whitelistFilterParams,
+  isWriteEndpoint,
 } from "@/mastra/tools/datasource/validate-params"
 import type { StructuredParam } from "@/mastra/tools/datasource/types"
 
@@ -138,5 +140,52 @@ describe("safeFilterParams and SENSITIVE_KEYS", () => {
     for (const key of requiredKeys) {
       expect(SENSITIVE_KEYS).toContain(key)
     }
+  })
+})
+
+describe("whitelistFilterParams", () => {
+  it("应该只保留在 structuredParams 中声明的字段，并允许 endpointId", () => {
+    const params: StructuredParam[] = [
+      { name: "id", type: "string", required: true },
+      { name: "limit", type: "number", required: false },
+    ]
+    const input = {
+      id: "sensor-1",
+      limit: 10,
+      endpointId: "ep-1",
+      evilParam: "drop-me",
+      path: "/something",
+    }
+    const result = whitelistFilterParams(input, params)
+    expect(result.id).toBe("sensor-1")
+    expect(result.limit).toBe(10)
+    expect(result.endpointId).toBe("ep-1")
+    expect(result.evilParam).toBeUndefined()
+    expect(result.path).toBeUndefined()
+  })
+
+  it("未声明 structuredParams 时应原样返回", () => {
+    const input = { id: "1" }
+    expect(whitelistFilterParams(input, [])).toEqual(input)
+    expect(whitelistFilterParams(input, null)).toEqual(input)
+  })
+})
+
+describe("isWriteEndpoint with readonly support", () => {
+  it("显式标明 readonly 的端点应豁免为写操作", () => {
+    const ep = {
+      id: "write-op",
+      method: "POST",
+      readonly: true,
+    }
+    expect(isWriteEndpoint(ep)).toBe(false)
+  })
+
+  it("未标明 readonly 且 method 为 POST 的端点应被视为写操作", () => {
+    const ep = {
+      id: "write-op",
+      method: "POST",
+    }
+    expect(isWriteEndpoint(ep)).toBe(true)
   })
 })

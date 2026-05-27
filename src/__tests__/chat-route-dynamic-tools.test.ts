@@ -34,6 +34,13 @@ vi.mock("@/db", () => ({ db: {} }))
 vi.mock("@/db/repositories/agent-repository", () => ({
   SqliteAgentRepository: vi.fn().mockImplementation(() => ({
     findEnabled: vi.fn().mockResolvedValue([]),
+    getAuthorizedAgentsForUser: vi
+      .fn()
+      .mockResolvedValue([
+        { id: "production-agent" },
+        { id: "chat-agent" },
+        { id: "factoryDirectorAgent" },
+      ]),
   })),
 }))
 vi.mock("@/mastra/agents/supervisor-router", () => ({

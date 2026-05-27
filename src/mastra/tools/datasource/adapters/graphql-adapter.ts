@@ -1,5 +1,11 @@
-import type { DatasourceAdapter, DatasourceConfig, DatasourceResult } from "../types"
+import type {
+  DatasourceAdapter,
+  DatasourceConfig,
+  DatasourceResult,
+  StructuredParam,
+} from "../types"
 import { fetchWithRetry } from "./fetch-with-retry"
+import { whitelistFilterParams } from "../validate-params"
 
 /** GraphQL 数据源适配器 */
 export class GraphqlAdapter implements DatasourceAdapter {
@@ -43,10 +49,16 @@ export class GraphqlAdapter implements DatasourceAdapter {
           | undefined)
       : undefined
 
+    let filteredParams = params
+    if (endpoint && (endpoint.structuredParams as any)?.length > 0) {
+      filteredParams = whitelistFilterParams(params, endpoint.structuredParams as StructuredParam[])
+    }
+
     // 优先使用 endpoint 的协议专属字段
-    const resolvedQuery = (endpoint?.query as string) ?? params.query
-    const resolvedOperationName = (endpoint?.operationName as string) ?? params.operationName
-    const resolvedVariables = params.variables
+    const resolvedQuery = (endpoint?.query as string) ?? filteredParams.query
+    const resolvedOperationName =
+      (endpoint?.operationName as string) ?? filteredParams.operationName
+    const resolvedVariables = filteredParams.variables
 
     const body: Record<string, unknown> = { query: resolvedQuery }
     if (resolvedVariables) body.variables = resolvedVariables

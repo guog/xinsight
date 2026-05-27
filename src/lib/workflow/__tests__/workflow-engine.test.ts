@@ -74,6 +74,28 @@ function createTestDb() {
       started_at INTEGER NOT NULL,
       completed_at INTEGER
     );
+    CREATE TABLE agent_datasources (
+      agent_id TEXT NOT NULL,
+      datasource_id TEXT NOT NULL,
+      endpoint_ids TEXT,
+      confirmation_required_endpoints TEXT,
+      created_at INTEGER NOT NULL,
+      PRIMARY KEY(agent_id, datasource_id)
+    );
+    CREATE TABLE agent_permissions (
+      id TEXT PRIMARY KEY,
+      agent_id TEXT NOT NULL,
+      subject_type TEXT NOT NULL,
+      subject_id TEXT NOT NULL,
+      permission_type TEXT NOT NULL DEFAULT 'read',
+      created_at INTEGER NOT NULL
+    );
+    CREATE TABLE user_teams (
+      user_id TEXT NOT NULL,
+      team_id TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      PRIMARY KEY(user_id, team_id)
+    );
   `)
   return drizzle(sqlite, { schema })
 }
@@ -97,6 +119,10 @@ describe("WorkflowEngine 工作流引擎", () => {
     testDbInstance.delete(schema.workflowExecutions).run()
     testDbInstance.delete(schema.workflows).run()
     testDbInstance.delete(schema.datasources).run()
+    testDbInstance.delete(schema.customAgents).run()
+    testDbInstance.delete(schema.agentDatasources).run()
+    testDbInstance.delete(schema.agentPermissions).run()
+    testDbInstance.delete(schema.userTeams).run()
   })
 
   describe("topologicalSort 拓扑排序", () => {
@@ -184,7 +210,11 @@ describe("WorkflowEngine 工作流引擎", () => {
         })
         .run()
 
-      const result = await WorkflowEngine.execute("wf-1", { content: "重要订单" })
+      const result = await WorkflowEngine.execute(
+        "wf-1",
+        { content: "重要订单" },
+        { userId: "admin-id", role: "admin" },
+      )
 
       // 验证最终执行结果是最后一步 Node2 的返回
       expect(result.success).toBe(true)
@@ -258,7 +288,9 @@ describe("WorkflowEngine 工作流引擎", () => {
         })
         .run()
 
-      await expect(WorkflowEngine.execute("wf-2", { content: "异常" })).rejects.toThrow("网关超时")
+      await expect(
+        WorkflowEngine.execute("wf-2", { content: "异常" }, { userId: "admin-id", role: "admin" }),
+      ).rejects.toThrow("网关超时")
 
       // 验证数据库状态为 failed 且记录了错误
       const exec = testDbInstance
@@ -275,6 +307,180 @@ describe("WorkflowEngine 工作流引擎", () => {
       expect(logs).toHaveLength(2)
       expect(logs[1].status).toBe("failed")
       expect(logs[1].error).toContain("网关超时")
+    })
+
+    it("当参数是单一占位符且输入为非 string 类型时应该保留原始类型", async () => {
+      mockQuery.mockResolvedValue({ success: true, data: {} })
+
+      const definition = {
+        nodes: [
+          {
+            id: "node_2",
+            type: "tool" as const,
+            config: {
+              datasourceId: "ds-1",
+              endpointId: "ep-1",
+              params: {
+                limit: "{{input.limit}}",
+                flag: "{{input.flag}}",
+                mixed: "Limit is {{input.limit}}",
+              },
+            },
+          },
+        ],
+        edges: [],
+      }
+
+      testDbInstance
+        .insert(schema.workflows)
+        .values({
+          id: "wf-type-preserve",
+          name: "类型保留测试",
+          definition: JSON.stringify(definition),
+          status: "published",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .run()
+
+      await WorkflowEngine.execute(
+        "wf-type-preserve",
+        { limit: 100, flag: true },
+        { userId: "admin-id", role: "admin" },
+      )
+
+      expect(mockQuery).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          limit: 100,
+          flag: true,
+          mixed: "Limit is 100",
+        }),
+      )
+    })
+
+    it("非管理员用户触发时，若未绑定数据源，应该抛出权限错误拦截", async () => {
+      const definition = {
+        nodes: [
+          {
+            id: "node_2",
+            type: "tool" as const,
+            config: {
+              datasourceId: "ds-1",
+              endpointId: "ep-1",
+              params: {},
+            },
+          },
+        ],
+        edges: [],
+      }
+
+      testDbInstance
+        .insert(schema.workflows)
+        .values({
+          id: "wf-auth-test-1",
+          name: "越权拦截测试",
+          definition: JSON.stringify(definition),
+          status: "published",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .run()
+
+      await expect(
+        WorkflowEngine.execute("wf-auth-test-1", {}, { userId: "user-1", role: "user" }),
+      ).rejects.toThrow("权限不足: 当前用户")
+    })
+
+    it("非管理员用户触发时，若接口需要二次确认，应该拦截写操作并抛错", async () => {
+      // 1. 模拟一个写操作端点，例如 method = "POST"
+      testDbInstance
+        .insert(schema.datasources)
+        .values({
+          id: "ds-write",
+          name: "Write DS",
+          type: "rest",
+          auth: JSON.stringify({ type: "none" }),
+          config: JSON.stringify({ baseUrl: "http://api.test" }),
+          endpoints: JSON.stringify([
+            { id: "ep-write", path: "/update", method: "POST", params: {} },
+          ]),
+          enabled: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .run()
+
+      // 2. 将用户拥有的 agent-1 授权给 user-1
+      testDbInstance
+        .insert(schema.customAgents)
+        .values({
+          id: "agent-1",
+          name: "Agent 1",
+          systemPrompt: "prompt",
+          enabled: true,
+          isBuiltin: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .run()
+
+      // 给 user-1 分配 agent-1 权限
+      testDbInstance
+        .insert(schema.agentPermissions)
+        .values({
+          id: "perm-1",
+          agentId: "agent-1",
+          subjectType: "user",
+          subjectId: "user-1",
+          permissionType: "read",
+          createdAt: new Date(),
+        })
+        .run()
+
+      // 3. 将此 Agent 绑定到该数据源，并且限制端点为 ep-write，同时将 ep-write 设置为需要二次确认
+      testDbInstance
+        .insert(schema.agentDatasources)
+        .values({
+          agentId: "agent-1",
+          datasourceId: "ds-write",
+          endpointIds: JSON.stringify(["ep-write"]),
+          confirmationRequiredEndpoints: JSON.stringify(["ep-write"]),
+          createdAt: new Date(),
+        })
+        .run()
+
+      const definition = {
+        nodes: [
+          {
+            id: "node_write",
+            type: "tool" as const,
+            config: {
+              datasourceId: "ds-write",
+              endpointId: "ep-write",
+              params: {},
+            },
+          },
+        ],
+        edges: [],
+      }
+
+      testDbInstance
+        .insert(schema.workflows)
+        .values({
+          id: "wf-write-block-test",
+          name: "写操作拦截测试",
+          definition: JSON.stringify(definition),
+          status: "published",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .run()
+
+      // 4. 普通用户触发含有二次确认写接口的工作流应该抛错拦截
+      await expect(
+        WorkflowEngine.execute("wf-write-block-test", {}, { userId: "user-1", role: "user" }),
+      ).rejects.toThrow("需要二次确认，工作流引擎禁止直接执行写操作")
     })
   })
 })

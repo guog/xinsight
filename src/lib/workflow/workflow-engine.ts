@@ -1,16 +1,15 @@
 import { db } from "@/db"
-import { workflows, workflowExecutions, datasources } from "@/db/schema"
-import { eq } from "drizzle-orm"
+import { workflows, workflowExecutions, datasources, agentDatasources } from "@/db/schema"
+import { and, eq, inArray } from "drizzle-orm"
 import { Workflow, createStep } from "@mastra/core/workflows"
 import { mastra } from "@/mastra"
 import { getAdapter } from "@/mastra/tools/datasource/adapters"
 import type { DatasourceConfig } from "@/mastra/tools/datasource/types"
 import { z as zodStatic } from "zod"
 import { SqliteAgentRepository } from "@/db/repositories/agent-repository"
-import { safeFilterParams } from "@/mastra/tools/datasource/validate-params"
+import { safeFilterParams, isWriteEndpoint } from "@/mastra/tools/datasource/validate-params"
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const z = zodStatic || require("zod").z
+const z = zodStatic
 
 // 递归模板参数替换辅助函数
 function resolveTemplate(
@@ -47,8 +46,47 @@ function getNestedValue(obj: any, path: string[]): string {
   return curr !== undefined ? String(curr) : ""
 }
 
+function getNestedValueRaw(obj: any, path: string[]): any {
+  let curr = obj
+  for (const key of path) {
+    if (curr === null || curr === undefined) return undefined
+    curr = curr[key]
+  }
+  return curr
+}
+
+function resolveSinglePlaceholder(
+  template: string,
+  inputData: any,
+  getStepResult: (id: string) => any,
+): { matched: boolean; value: any } {
+  if (typeof template !== "string") return { matched: false, value: null }
+  const match = template.match(/^\{\{([^}]+)\}\}$/)
+  if (!match) return { matched: false, value: null }
+
+  const path = match[1].trim()
+  const parts = path.split(".")
+  const source = parts[0]
+  let result: any
+  if (source === "input") {
+    result = getNestedValueRaw(inputData, parts.slice(1))
+  } else {
+    const stepResult = getStepResult(source)
+    if (!stepResult) return { matched: true, value: undefined }
+
+    const remainingPath = parts[1] === "output" ? parts.slice(2) : parts.slice(1)
+    const output = stepResult.output || stepResult.result || stepResult
+    result = getNestedValueRaw(output, remainingPath)
+  }
+  return { matched: true, value: result }
+}
+
 function resolveParams(params: any, inputData: any, getStepResult: (id: string) => any): any {
   if (typeof params === "string") {
+    const single = resolveSinglePlaceholder(params, inputData, getStepResult)
+    if (single.matched) {
+      return single.value
+    }
     return resolveTemplate(params, inputData, getStepResult)
   }
   if (Array.isArray(params)) {
@@ -200,7 +238,7 @@ export class WorkflowEngine {
                 const templatePrompt = node.config.prompt ?? ""
                 if (!agentId) throw new Error("Agent 节点缺少必要属性 agentId")
 
-                if (context?.userId && context?.role) {
+                if (context?.userId && context?.role && context.role !== "admin") {
                   const agentRepo = new SqliteAgentRepository(db)
                   const authorizedAgents = await agentRepo.getAuthorizedAgentsForUser(
                     context.userId,
@@ -261,6 +299,81 @@ export class WorkflowEngine {
 
                 const adapter = getAdapter(ds.type)
                 if (!adapter) throw new Error(`不支持的数据源类型: ${ds.type}`)
+
+                // 细粒度越权防护与写操作二次确认拦截
+                if (context?.userId && context?.role !== "admin") {
+                  const agentRepo = new SqliteAgentRepository(db)
+                  const authorizedAgents = await agentRepo.getAuthorizedAgentsForUser(
+                    context.userId,
+                    context.role,
+                  )
+                  const authorizedAgentIds = authorizedAgents.map((a) => a.id)
+                  if (authorizedAgentIds.length === 0) {
+                    throw new Error(`权限不足: 当前用户没有任何可用的 Agent，无权访问数据源`)
+                  }
+
+                  // 查询对应的绑定关系
+                  const bindings = db
+                    .select()
+                    .from(agentDatasources)
+                    .where(
+                      and(
+                        inArray(agentDatasources.agentId, authorizedAgentIds),
+                        eq(agentDatasources.datasourceId, dsId),
+                      ),
+                    )
+                    .all()
+
+                  if (bindings.length === 0) {
+                    throw new Error(`权限不足: 当前用户无权访问数据源 '${ds.name}'`)
+                  }
+
+                  // 1. 校验端点白名单权限
+                  const hasAccess = bindings.some((b) => {
+                    if (!b.endpointIds) return true
+                    try {
+                      const epIds = JSON.parse(b.endpointIds) as string[]
+                      return epIds.includes(epId)
+                    } catch {
+                      return false
+                    }
+                  })
+                  if (!hasAccess) {
+                    throw new Error(
+                      `权限不足: 当前用户无权访问数据源 '${ds.name}' 的接口 '${epId}'`,
+                    )
+                  }
+
+                  // 2. 校验写操作二次确认
+                  const isWrite = isWriteEndpoint(ep)
+                  if (isWrite) {
+                    const isConfRequired = bindings.some((b) => {
+                      if (!b.confirmationRequiredEndpoints) return false
+                      try {
+                        const confRequiredEps =
+                          typeof b.confirmationRequiredEndpoints === "string"
+                            ? JSON.parse(b.confirmationRequiredEndpoints)
+                            : b.confirmationRequiredEndpoints
+                        return Array.isArray(confRequiredEps) && confRequiredEps.includes(epId)
+                      } catch {
+                        return false
+                      }
+                    })
+                    if (isConfRequired) {
+                      throw new Error(
+                        `权限不足: 接口 '${epId}' 需要二次确认，工作流引擎禁止直接执行写操作`,
+                      )
+                    }
+                  }
+                } else if (!context?.userId && context?.role !== "admin") {
+                  // 出于安全考虑，如果完全没有 userId 且不是 admin，检测到写操作也应当抛错拦截
+                  const isWrite = isWriteEndpoint(ep)
+                  if (isWrite) {
+                    throw new Error(
+                      `安全限制: 未登录或未知上下文，工作流引擎禁止执行写操作 '${epId}'`,
+                    )
+                  }
+                }
 
                 const mergedParams = { ...ep.params, ...safeFilterParams(resolvedParams) }
                 const result = await adapter.query(

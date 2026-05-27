@@ -46,6 +46,7 @@ export const DatasourceEndpointSchema = z.object({
   apiSchemaFormat: ApiSchemaFormat, // "natural" = 自然语言，"openapi" = 结构化 OpenAPI JSON Schema
   responseExample: z.string().optional(), // 响应示例
   structuredParams: z.lazy(() => z.array(StructuredParamSchema)).optional(),
+  readonly: z.boolean().optional(),
 })
 export type DatasourceEndpoint = z.infer<typeof DatasourceEndpointSchema>
 
@@ -98,6 +99,7 @@ const endpointBaseFields = {
   responseExample: z.string().optional(),
   responseSchema: z.optional(ResponseSchemaDefinition),
   structuredParams: z.array(StructuredParamSchema).optional(),
+  readonly: z.boolean().optional(),
 }
 
 /** REST 协议 endpoint */

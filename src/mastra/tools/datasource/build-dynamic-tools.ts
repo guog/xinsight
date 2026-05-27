@@ -59,7 +59,16 @@ export async function buildDynamicTools(agentId: string) {
   for (const ds of datasources) {
     const binding = bindingMap.get(ds.id)
     const allowedEps = binding?.endpointIds
-    const confirmationRequiredEps = binding?.confirmationRequiredEndpoints ?? []
+
+    let confirmationRequiredList: string[] = []
+    if (binding?.confirmationRequiredEndpoints) {
+      try {
+        confirmationRequiredList =
+          typeof binding.confirmationRequiredEndpoints === "string"
+            ? JSON.parse(binding.confirmationRequiredEndpoints)
+            : binding.confirmationRequiredEndpoints
+      } catch {}
+    }
 
     for (const ep of ds.endpoints ?? []) {
       if (count >= MAX_TOOLS) break
@@ -73,7 +82,7 @@ export async function buildDynamicTools(agentId: string) {
       const hasStructured = sParams && sParams.length > 0
 
       const isWrite = isWriteEndpoint(ep)
-      const isConfRequired = isWrite && confirmationRequiredEps.includes(ep.id)
+      const isConfRequired = isWrite && confirmationRequiredList.includes(ep.id)
       const displayMethod =
         (ep as any).method ||
         (ep as any).action ||
