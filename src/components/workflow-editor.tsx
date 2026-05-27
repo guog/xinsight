@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Save, ArrowLeft, Trash2, Bot, Database, Settings2, HelpCircle } from "lucide-react"
 import { toast } from "sonner"
+import { topologicalSort } from "@/lib/workflow/topo-sort"
 
 interface Node {
   id: string
@@ -135,6 +136,10 @@ export default function WorkflowEditor({ initialId = "", isEdit = false }: Workf
 
   // 添加节点
   const addNode = (type: "agent" | "tool") => {
+    if (nodes.length >= 20) {
+      toast.error("工作流节点数量已达上限 (最大20个)")
+      return
+    }
     const id = `${type}_${Date.now().toString().slice(-6)}`
     const newNode: Node = {
       id,
@@ -157,37 +162,9 @@ export default function WorkflowEditor({ initialId = "", isEdit = false }: Workf
 
   // 拓扑排序校验循环依赖
   const checkWorkflowValidity = (): boolean => {
-    const inDegree: Record<string, number> = {}
-    const adj: Record<string, string[]> = {}
-
-    for (const n of nodes) {
-      inDegree[n.id] = 0
-      adj[n.id] = []
-    }
-
-    for (const e of edges) {
-      if (adj[e.source] && inDegree[e.target] !== undefined) {
-        adj[e.source].push(e.target)
-        inDegree[e.target]++
-      }
-    }
-
-    const queue: string[] = []
-    for (const id of Object.keys(inDegree)) {
-      if (inDegree[id] === 0) queue.push(id)
-    }
-
-    const order: string[] = []
-    while (queue.length > 0) {
-      const u = queue.shift()!
-      order.push(u)
-      for (const v of adj[u]) {
-        inDegree[v]--
-        if (inDegree[v] === 0) queue.push(v)
-      }
-    }
-
-    if (order.length !== nodes.length) {
+    try {
+      topologicalSort(nodes as any, edges)
+    } catch (e: any) {
       toast.error("工作流拓扑结构中存在循环依赖，请检查连线！")
       return false
     }

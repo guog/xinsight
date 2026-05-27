@@ -5,11 +5,10 @@ import { Workflow, createStep } from "@mastra/core/workflows"
 import { mastra } from "@/mastra"
 import { getAdapter } from "@/mastra/tools/datasource/adapters"
 import type { DatasourceConfig } from "@/mastra/tools/datasource/types"
-import { z as zodStatic } from "zod"
+import { z } from "zod"
 import { SqliteAgentRepository } from "@/db/repositories/agent-repository"
 import { safeFilterParams, isWriteEndpoint } from "@/mastra/tools/datasource/validate-params"
-
-const z = zodStatic
+import { topologicalSort } from "./topo-sort"
 
 // 递归模板参数替换辅助函数
 function resolveTemplate(
@@ -102,77 +101,34 @@ function resolveParams(params: any, inputData: any, getStepResult: (id: string) 
   return params
 }
 
-export interface WorkflowNode {
-  id: string
-  type: "agent" | "tool"
-  config: {
-    agentId?: string
-    prompt?: string
-    datasourceId?: string
-    endpointId?: string
-    params?: Record<string, unknown>
-  }
-}
+import type { WorkflowNode, WorkflowEdge, WorkflowDefinition } from "./topo-sort"
 
-export interface WorkflowEdge {
-  source: string
-  target: string
-}
-
-export interface WorkflowDefinition {
-  nodes: WorkflowNode[]
-  edges: WorkflowEdge[]
-}
+const WorkflowDefinitionSchema = z.object({
+  nodes: z.array(
+    z.object({
+      id: z.string(),
+      type: z.enum(["agent", "tool"]),
+      config: z.object({
+        agentId: z.string().optional(),
+        prompt: z.string().optional(),
+        datasourceId: z.string().optional(),
+        endpointId: z.string().optional(),
+        params: z.record(z.string(), z.unknown()).optional(),
+      }),
+    }),
+  ),
+  edges: z.array(
+    z.object({
+      source: z.string(),
+      target: z.string(),
+    }),
+  ),
+})
 
 /**
  * xinsight 可视化工作流动态构建与执行引擎
  */
 export class WorkflowEngine {
-  /**
-   * 拓扑排序算法，根据 nodes 和 edges 计算出节点的先后顺序并检测循环依赖
-   */
-  static topologicalSort(nodes: WorkflowNode[], edges: WorkflowEdge[]): WorkflowNode[] {
-    const inDegree: Record<string, number> = {}
-    const adj: Record<string, string[]> = {}
-    const nodeMap: Record<string, WorkflowNode> = {}
-
-    for (const n of nodes) {
-      inDegree[n.id] = 0
-      adj[n.id] = []
-      nodeMap[n.id] = n
-    }
-
-    for (const e of edges) {
-      if (adj[e.source] && inDegree[e.target] !== undefined) {
-        adj[e.source].push(e.target)
-        inDegree[e.target]++
-      }
-    }
-
-    const queue: string[] = []
-    for (const id of Object.keys(inDegree)) {
-      if (inDegree[id] === 0) queue.push(id)
-    }
-
-    const order: WorkflowNode[] = []
-    while (queue.length > 0) {
-      const u = queue.shift()!
-      if (nodeMap[u]) {
-        order.push(nodeMap[u])
-      }
-      for (const v of adj[u]) {
-        inDegree[v]--
-        if (inDegree[v] === 0) queue.push(v)
-      }
-    }
-
-    if (order.length !== nodes.length) {
-      throw new Error("工作流拓扑结构中存在循环依赖")
-    }
-
-    return order
-  }
-
   /**
    * 动态执行工作流，并实时持久化每一步的运行日志 Trace 到 SQLite 数据库
    */
@@ -188,13 +144,14 @@ export class WorkflowEngine {
 
     let definition: WorkflowDefinition
     try {
-      definition = JSON.parse(wfRecord.definition) as WorkflowDefinition
-    } catch {
-      throw new Error("工作流定义损坏或格式不正确")
+      const rawDef = JSON.parse(wfRecord.definition)
+      definition = WorkflowDefinitionSchema.parse(rawDef) as unknown as WorkflowDefinition
+    } catch (e: any) {
+      throw new Error(`工作流定义损坏或格式不正确: ${e.message}`)
     }
 
     // 1. 拓扑排序计算步骤执行顺序
-    const sortedNodes = this.topologicalSort(definition.nodes, definition.edges)
+    const sortedNodes = topologicalSort(definition.nodes, definition.edges)
     if (sortedNodes.length === 0) {
       throw new Error("工作流中没有配置任何有效的步骤节点")
     }
@@ -202,6 +159,17 @@ export class WorkflowEngine {
     const executionId = crypto.randomUUID()
     const startedAt = new Date()
     const traceLogs: any[] = []
+
+    // 用于串行化写入日志，防范并发/并行执行时的竞态问题
+    let dbUpdatePromise = Promise.resolve()
+    const safeUpdateLogs = (newLogs: any[]) => {
+      dbUpdatePromise = dbUpdatePromise.then(async () => {
+        db.update(workflowExecutions)
+          .set({ logs: JSON.stringify(newLogs) })
+          .where(eq(workflowExecutions.id, executionId))
+          .run()
+      })
+    }
 
     // 2. 在数据库中插入初始的 Running 状态记录
     db.insert(workflowExecutions)
@@ -266,10 +234,7 @@ export class WorkflowEngine {
 
                 // 实时持久化 Trace 日志
                 traceLogs.push(stepLog)
-                db.update(workflowExecutions)
-                  .set({ logs: JSON.stringify(traceLogs) })
-                  .where(eq(workflowExecutions.id, executionId))
-                  .run()
+                safeUpdateLogs(traceLogs)
 
                 return { text: response.text }
               } else if (node.type === "tool") {
@@ -399,10 +364,7 @@ export class WorkflowEngine {
                 stepLog.status = "success"
 
                 traceLogs.push(stepLog)
-                db.update(workflowExecutions)
-                  .set({ logs: JSON.stringify(traceLogs) })
-                  .where(eq(workflowExecutions.id, executionId))
-                  .run()
+                safeUpdateLogs(traceLogs)
 
                 return result
               } else {
@@ -414,11 +376,7 @@ export class WorkflowEngine {
               stepLog.endedAt = new Date().toISOString()
               stepLog.duration = Date.now() - stepStart
               traceLogs.push(stepLog)
-
-              db.update(workflowExecutions)
-                .set({ logs: JSON.stringify(traceLogs) })
-                .where(eq(workflowExecutions.id, executionId))
-                .run()
+              safeUpdateLogs(traceLogs)
 
               throw err
             }

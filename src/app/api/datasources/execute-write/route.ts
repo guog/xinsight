@@ -61,7 +61,9 @@ export async function POST(request: Request) {
     if (binding.endpointIds) {
       try {
         allowedEndpoints = JSON.parse(binding.endpointIds)
-      } catch {}
+      } catch {
+        return NextResponse.json({ error: "允许访问的接口配置格式损坏" }, { status: 403 })
+      }
     }
     if (allowedEndpoints && !allowedEndpoints.includes(endpointId)) {
       return NextResponse.json({ error: "该 Agent 无权访问此端点" }, { status: 403 })
@@ -71,8 +73,13 @@ export async function POST(request: Request) {
     let confirmationRequiredList: string[] = []
     if (binding.confirmationRequiredEndpoints) {
       try {
-        confirmationRequiredList = JSON.parse(binding.confirmationRequiredEndpoints)
-      } catch {}
+        confirmationRequiredList =
+          typeof binding.confirmationRequiredEndpoints === "string"
+            ? JSON.parse(binding.confirmationRequiredEndpoints)
+            : binding.confirmationRequiredEndpoints
+      } catch {
+        return NextResponse.json({ error: "二次确认配置格式损坏" }, { status: 403 })
+      }
     }
     if (!confirmationRequiredList.includes(endpointId)) {
       return NextResponse.json(

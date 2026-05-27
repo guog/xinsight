@@ -110,7 +110,8 @@ vi.mock("@/db", () => ({
 
 // 动态导入 WorkflowEngine 以加载 Mock db
 const { WorkflowEngine } = await import("../workflow-engine")
-import type { WorkflowNode, WorkflowEdge } from "../workflow-engine"
+import { topologicalSort } from "../topo-sort"
+import type { WorkflowNode, WorkflowEdge } from "../topo-sort"
 
 describe("WorkflowEngine 工作流引擎", () => {
   beforeEach(() => {
@@ -133,7 +134,7 @@ describe("WorkflowEngine 工作流引擎", () => {
       ]
       const edges: WorkflowEdge[] = [{ source: "node_1", target: "node_2" }]
 
-      const order = WorkflowEngine.topologicalSort(nodes, edges)
+      const order = topologicalSort(nodes, edges)
       expect(order[0].id).toBe("node_1")
       expect(order[1].id).toBe("node_2")
     })
@@ -148,7 +149,7 @@ describe("WorkflowEngine 工作流引擎", () => {
         { source: "node_2", target: "node_1" },
       ]
 
-      expect(() => WorkflowEngine.topologicalSort(nodes, edges)).toThrow("循环依赖")
+      expect(() => topologicalSort(nodes, edges)).toThrow("循环依赖")
     })
   })
 
@@ -481,6 +482,28 @@ describe("WorkflowEngine 工作流引擎", () => {
       await expect(
         WorkflowEngine.execute("wf-write-block-test", {}, { userId: "user-1", role: "user" }),
       ).rejects.toThrow("需要二次确认，工作流引擎禁止直接执行写操作")
+    })
+
+    it("工作流定义不符合 Zod schema 时，应该抛出格式不正确错误", async () => {
+      const definition = {
+        invalid_property: "test",
+      }
+
+      testDbInstance
+        .insert(schema.workflows)
+        .values({
+          id: "wf-invalid-schema",
+          name: "损坏工作流",
+          definition: JSON.stringify(definition),
+          status: "published",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .run()
+
+      await expect(
+        WorkflowEngine.execute("wf-invalid-schema", {}, { userId: "admin-id", role: "admin" }),
+      ).rejects.toThrow("工作流定义损坏或格式不正确")
     })
   })
 })

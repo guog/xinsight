@@ -294,6 +294,9 @@ async function resolveAuthorizedAgentId(
   user: { id: string; role: string },
   resolvedAgentId: string,
 ): Promise<{ authorized: boolean; authorizedAgents: any[] }> {
+  // 兼容性设计: 在 Vitest/Jest 测试环境下，因为 vi.mock 对 SqliteAgentRepository 的模拟，
+  // 该类有时会被转换/退化为普通函数，直接 new 调用会触发 'is not a constructor' 的异常。
+  // 此处的 try-catch 兼容机制能确保在测试套件环境下平滑降级，以普通函数形式获取实例，保证测试平稳运行。
   let agentRepo: any
   try {
     agentRepo = new SqliteAgentRepository(db)
