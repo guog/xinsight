@@ -29,6 +29,9 @@ export default defineConfig({
       "src/__tests__/wiki-tools-extended.test.ts",
       "src/__tests__/operations-api.test.ts",
       "src/mastra/tools/wiki/__tests__/**",
+      // 下面两个是 Bun 环境特有的测试，需要使用 `bun test` 运行
+      "src/lib/workflow/__tests__/workflow-engine.test.ts",
+      "src/mastra/tools/datasource/__tests__/write-interceptor.test.ts",
     ],
   },
   resolve: {

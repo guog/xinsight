@@ -106,9 +106,6 @@ export const SENSITIVE_KEYS = [
   "config",
   "enabled",
   "endpoints",
-  "id",
-  "name",
-  "type",
 ]
 
 /**
